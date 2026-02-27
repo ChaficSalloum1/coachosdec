@@ -1,0 +1,46 @@
+# Approve Booking Request Test
+# Tests the booking approval workflow
+
+appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+
+---
+- launchApp
+
+# Login
+- tapOn: "Settings"
+- tapOn: "Login"
+- inputText: "coach-a@test.com"  # UPDATE with your test email
+- tapOn: "Password"
+- inputText: "password123"  # UPDATE with your test password
+- tapOn: "Sign In"
+
+- assertVisible: "Today"
+
+# Navigate to Requests screen
+- tapOn: "Requests"
+
+# Check if there are pending requests
+# If no requests exist, this test will need a booking request created first
+- assertVisible: "Requests"  # Or "Pending Requests"
+
+# Find a booking request (if exists)
+- tapOn: "Pending"  # Or look for request card
+
+# Approve the booking
+- swipe: 
+    direction: RIGHT
+    startPoint: "20%,50%"
+    endPoint: "80%,50%"
+# Or tap approve button
+- tapOn: "Approve"
+
+# Confirm approval
+- tapOn: "Confirm"  # Or "Yes"
+
+# Verify request is approved (should disappear from pending)
+- assertNotVisible: "Pending"
+
+# Verify lesson was created (check Today screen)
+- tapOn: "Today"
+- assertVisible: "Lesson"  # Or student name from booking
+

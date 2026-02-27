@@ -1,0 +1,23 @@
+# Maestro Configuration
+# Global settings for all Maestro tests
+
+env:
+  # Test account credentials - UPDATE THESE with your actual test accounts
+  COACH_A_EMAIL: "coach-a@test.com"
+  COACH_A_PASSWORD: "password123"
+  COACH_A_UID: "413b2a6e-9051-4cf3-bdd9-a81d015dfbbf"  # UPDATE: Add your Coach A UID from Supabase
+  
+  COACH_B_EMAIL: "coach-b@test.com"
+  COACH_B_PASSWORD: "password123"
+  COACH_B_UID: "8b2a6acb-bbff-445c-8905-41062e435123"  # UPDATE: Add your Coach B UID from Supabase
+  
+  # App bundle ID - UPDATE with your actual bundle ID
+  # For vibecodeapp.com, it's likely: com.vibecodeapp or com.vibecode.app
+  # After building, check the console output or run: npx expo config
+  APP_ID: "com.vibecodeapp"  # UPDATE: Verify this matches your actual bundle ID after building
+
+tags:
+  - critical
+  - security
+  - e2e
+

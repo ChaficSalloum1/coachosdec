@@ -1,0 +1,28 @@
+# Onboarding Test
+# Tests the initial user onboarding/setup flow
+
+appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+
+---
+- launchApp
+
+# If app shows onboarding screen (for new users)
+- assertVisible: "Welcome"  # Or "Welcome to CoachOS"
+
+# Fill in onboarding form
+- inputText: "Test Coach"
+- tapOn: "Sports"
+- inputText: "Tennis, Basketball"
+- tapOn: "Price"
+- inputText: "50"
+
+# Complete onboarding
+- tapOn: "Get Started"  # Or "Complete" button
+
+# Verify onboarding completed and main app loads
+- assertVisible: "Today"
+
+# Verify coach profile was created
+- tapOn: "Settings"
+- assertVisible: "Test Coach"
+

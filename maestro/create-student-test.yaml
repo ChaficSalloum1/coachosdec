@@ -1,0 +1,41 @@
+# Create Student Test
+# Tests the core student creation flow
+
+appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+
+---
+- launchApp
+
+# Login (update credentials as needed)
+- tapOn: "Settings"
+- tapOn: "Login"
+- inputText: "coach-a@test.com"  # UPDATE with your test email
+- tapOn: "Password"
+- inputText: "password123"  # UPDATE with your test password
+- tapOn: "Sign In"
+
+# Wait for app to load
+- assertVisible: "Today"
+
+# Navigate to Students screen
+- tapOn: "Students"
+
+# Tap add button (could be "+" icon or "Add Student" text)
+- tapOn: 
+    id: "add-student-button"
+- tapOn: "Add Student"  # Fallback if testID doesn't work
+
+# Fill in student form
+- inputText: "Test Student"
+- tapOn: "Contact"  # Or tap on contact field
+- inputText: "test@example.com"
+
+# Save student
+- tapOn: "Save"
+
+# Verify student appears in list
+- assertVisible: "Test Student"
+
+# Verify student details are correct
+- assertVisible: "test@example.com"
+

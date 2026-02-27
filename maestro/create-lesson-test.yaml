@@ -1,0 +1,48 @@
+# Create Lesson Test
+# Tests creating a lesson for a student
+
+appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+
+---
+- launchApp
+
+# Login
+- tapOn: "Settings"
+- tapOn: "Login"
+- inputText: "coach-a@test.com"  # UPDATE with your test email
+- tapOn: "Password"
+- inputText: "password123"  # UPDATE with your test password
+- tapOn: "Sign In"
+
+- assertVisible: "Today"
+
+# Navigate to Today screen (should already be there)
+# Look for "Add Lesson" or similar button
+- tapOn: "Add Lesson"  # Or look for "+" button on Today screen
+
+# Select student (if student picker appears)
+- tapOn: "Test Student"  # Use a student that exists
+
+# Fill in lesson details
+- tapOn: "Date"
+- tapOn: "Tomorrow"  # Or select a specific date
+
+- tapOn: "Start Time"
+- inputText: "10:00"  # Or use time picker
+
+- tapOn: "End Time"
+- inputText: "11:00"
+
+- tapOn: "Duration"
+- inputText: "60"
+
+- tapOn: "Price"
+- inputText: "50"
+
+# Save lesson
+- tapOn: "Save"
+
+# Verify lesson appears on Today screen
+- assertVisible: "Test Student"
+- assertVisible: "10:00"
+
