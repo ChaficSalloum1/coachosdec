@@ -5,6 +5,7 @@ This runs in the background and keeps your data synced
 import { useEffect, useRef } from "react";
 import { useCoachStore } from "../state/coachStore";
 import { loadCoachDataFromSupabase } from "../services/supabaseSync";
+import { getSupabaseClient } from "../api/supabase";
 import {
   saveCoachToSupabase,
   saveStudentToSupabase,
@@ -427,6 +428,64 @@ export const useSupabaseSync = () => {
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
+    };
+  }, [coach?.id]);
+
+  // Real-time subscription: new booking requests arrive instantly
+  useEffect(() => {
+    if (!coach?.id) return;
+    const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
+    const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) return;
+
+    let supabase: ReturnType<typeof getSupabaseClient>;
+    try {
+      supabase = getSupabaseClient();
+    } catch {
+      return;
+    }
+
+    const channel = supabase
+      .channel(`booking_requests:${coach.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'booking_requests',
+          filter: `coach_id=eq.${coach.id}`,
+        },
+        (payload) => {
+          const row = payload.new as BookingRequest & { coach_id?: string; student_name?: string; student_contact?: string; requested_date?: string; requested_time?: string; created_at?: string };
+          // Normalise snake_case → camelCase
+          const request: BookingRequest = {
+            id: row.id,
+            coachId: row.coachId ?? row.coach_id ?? coach.id,
+            studentName: row.studentName ?? row.student_name ?? '',
+            studentContact: row.studentContact ?? row.student_contact ?? '',
+            requestedDate: row.requestedDate ?? row.requested_date ?? '',
+            requestedTime: row.requestedTime ?? row.requested_time ?? '',
+            duration: row.duration ?? 60,
+            note: row.note,
+            status: row.status ?? 'pending',
+            createdAt: row.createdAt ?? row.created_at ?? new Date().toISOString(),
+            areaId: row.areaId,
+            facilityId: row.facilityId,
+            courtId: row.courtId,
+          };
+          const existing = useCoachStore.getState().bookingRequests;
+          if (!existing.find(r => r.id === request.id)) {
+            useCoachStore.setState({ bookingRequests: [request, ...existing] });
+            if (__DEV__) {
+              console.log('📬 New booking request received via realtime:', request.studentName);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
   }, [coach?.id]);
 };

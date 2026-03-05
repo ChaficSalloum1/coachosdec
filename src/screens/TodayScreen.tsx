@@ -7,12 +7,12 @@ import {
   Pressable,
   AlertButton,
   FlatList,
+  Share,
   useWindowDimensions,
   ViewToken,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle,
@@ -35,6 +35,8 @@ import { Lesson } from '../types/coach';
 import { SwipeableCard } from '../components/SwipeableCard';
 import { LessonAvatar } from '../components/LessonAvatar';
 import { FloatingActionButton } from '../components/FloatingActionButton';
+import { QuickNoteSheet } from '../components/QuickNoteSheet';
+import { AddLessonSheet } from '../components/AddLessonSheet';
 import { 
   todayISO, 
   addDaysISO, 
@@ -59,6 +61,7 @@ export function TodayScreen() {
   
   const [currentPageIndex, setCurrentPageIndex] = useState(CENTER_PAGE_INDEX);
   const [cache, setCache] = useState<Record<string, Lesson[]>>({});
+  const [showAddLesson, setShowAddLesson] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<Record<string, number>>({});
   const scrollX = useSharedValue(CENTER_PAGE_INDEX * SCREEN_WIDTH);
@@ -165,11 +168,12 @@ export function TodayScreen() {
 
   const handleFABPress = useCallback(() => {
     const options = [
+      'Add Lesson',
       'Jump to Today',
       'Add Availability',
       'Cancel',
     ];
-    const cancelButtonIndex = 2;
+    const cancelButtonIndex = 3;
 
     showActionSheetWithOptions(
       {
@@ -179,8 +183,10 @@ export function TodayScreen() {
       },
       (buttonIndex) => {
         if (buttonIndex === 0) {
-          jumpToToday();
+          setShowAddLesson(true);
         } else if (buttonIndex === 1) {
+          jumpToToday();
+        } else if (buttonIndex === 2) {
           navigation.navigate('Settings', { screen: 'Availability' });
         }
       }
@@ -245,6 +251,16 @@ export function TodayScreen() {
       {!isToday(currentDayISO) && (
         <JumpToTodayButton onPress={jumpToToday} bottom={insets.bottom + 24} />
       )}
+
+      {/* FAB — quick actions */}
+      <FloatingActionButton onPress={handleFABPress} bottom={insets.bottom + 76} />
+
+      {/* Add Lesson Sheet */}
+      <AddLessonSheet
+        visible={showAddLesson}
+        defaultDate={currentDayISO}
+        onClose={() => setShowAddLesson(false)}
+      />
     </View>
   );
 }
@@ -339,12 +355,12 @@ interface AnimatedDayPageProps {
   screenWidth: number;
 }
 
-const AnimatedDayPage = React.memo(({ 
-  dateISO, 
-  lessons, 
-  onPreviousDay, 
-  onNextDay, 
-  onMarkPaid, 
+const AnimatedDayPage = React.memo(({
+  dateISO,
+  lessons,
+  onPreviousDay,
+  onNextDay,
+  onMarkPaid,
   onCancel,
   insets,
   index,
@@ -352,6 +368,8 @@ const AnimatedDayPage = React.memo(({
   screenWidth,
 }: AnimatedDayPageProps) => {
   const PAGE_PEEK = 16; // Show 16px of adjacent pages
+  const [noteLesson, setNoteLesson] = useState<Lesson | null>(null);
+  const coach = useCoachStore(s => s.coach);
   
   const animatedStyle = useAnimatedStyle(() => {
     const inputRange = [
@@ -359,59 +377,12 @@ const AnimatedDayPage = React.memo(({
       index * screenWidth,
       (index + 1) * screenWidth,
     ];
-    
-    // 3D rotation effect
-    const rotateY = interpolate(
-      scrollX.value,
-      inputRange,
-      [15, 0, -15],
-      Extrapolate.CLAMP
-    );
-    
-    // Scale effect for depth
-    const scale = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.92, 1, 0.92],
-      Extrapolate.CLAMP
-    );
-    
-    // Opacity for pages being turned
-    const opacity = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.6, 1, 0.6],
-      Extrapolate.CLAMP
-    );
-    
-    return {
-      transform: [
-        { perspective: 1000 },
-        { rotateY: `${rotateY}deg` },
-        { scale },
-      ],
-      opacity,
-    };
-  });
 
-  const shadowStyle = useAnimatedStyle(() => {
-    const inputRange = [
-      (index - 1) * screenWidth,
-      index * screenWidth,
-      (index + 1) * screenWidth,
-    ];
-    
-    // Shadow opacity based on rotation
-    const shadowOpacity = interpolate(
-      scrollX.value,
-      inputRange,
-      [0.3, 0, 0.3],
-      Extrapolate.CLAMP
-    );
-    
-    return {
-      opacity: shadowOpacity,
-    };
+    const translateX = interpolate(scrollX.value, inputRange, [-8, 0, 8], Extrapolate.CLAMP);
+    const scale = interpolate(scrollX.value, inputRange, [0.96, 1, 0.96], Extrapolate.CLAMP);
+    const opacity = interpolate(scrollX.value, inputRange, [0.7, 1, 0.7], Extrapolate.CLAMP);
+
+    return { transform: [{ translateX }, { scale }], opacity };
   });
 
   return (
@@ -468,16 +439,36 @@ const AnimatedDayPage = React.memo(({
           )}
         </View>
 
-        <Pressable
-          onPress={onNextDay}
-          className="w-11 h-11 rounded-lg items-center justify-center active:opacity-60"
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Next day"
-          accessibilityHint="Double tap to jump to next lesson day"
-        >
-          <Ionicons name="chevron-forward" size={24} color={DesignTokens.colors.graphite} />
-        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          {isToday(dateISO) && coach?.bookingLink && (
+            <Pressable
+              onPress={() => Share.share({
+                message: `Book a lesson: https://coachos.app/book/${coach.bookingLink}`,
+                url: `https://coachos.app/book/${coach.bookingLink}`,
+              })}
+              style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+              accessibilityLabel="Share booking link"
+            >
+              <Ionicons name="share-outline" size={22} color={DesignTokens.colors.accent} />
+            </Pressable>
+          )}
+          <Pressable
+            onPress={onNextDay}
+            className="w-11 h-11 rounded-lg items-center justify-center active:opacity-60"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Next day"
+            accessibilityHint="Double tap to jump to next lesson day"
+          >
+            <Ionicons name="chevron-forward" size={24} color={DesignTokens.colors.graphite} />
+          </Pressable>
+        </View>
       </View>
+
+      {/* Next Lesson Hero — today only */}
+      {isToday(dateISO) && lessons.length > 0 && (
+        <NextLessonHero lessons={lessons} />
+      )}
 
       {/* Scrollable Lesson Content */}
       <ScrollView
@@ -496,34 +487,20 @@ const AnimatedDayPage = React.memo(({
                   index={idx}
                   onMarkPaid={() => onMarkPaid(lesson.id)}
                   onCancel={() => onCancel(lesson.id)}
+                  onNotePress={() => setNoteLesson(lesson)}
                 />
               ))}
             </View>
           )}
         </View>
       </ScrollView>
-      
-      {/* Shadow overlay */}
-      <Animated.View 
-        style={[
-          {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            pointerEvents: 'none',
-          },
-          shadowStyle,
-        ]}
-      >
-        <LinearGradient
-          colors={['rgba(0,0,0,0.2)', 'transparent', 'rgba(0,0,0,0.2)']}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={{ flex: 1 }}
-        />
-      </Animated.View>
+
+      <QuickNoteSheet
+        visible={noteLesson !== null}
+        lesson={noteLesson}
+        onClose={() => setNoteLesson(null)}
+      />
+
     </Animated.View>
   );
 }, (prevProps, nextProps) => {
@@ -534,6 +511,99 @@ const AnimatedDayPage = React.memo(({
 });
 
 AnimatedDayPage.displayName = 'AnimatedDayPage';
+
+// Next Lesson Hero — shows the upcoming lesson for today
+function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
+  const scale = useSharedValue(0.95);
+  const opacity = useSharedValue(0);
+
+  useEffect(() => {
+    scale.value = withSpring(1, DesignTokens.animations.spring);
+    opacity.value = withTiming(1, { duration: 300 });
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  const nowTime = new Date().toTimeString().slice(0, 5);
+  const nextLesson = lessons.find(l => l.status === 'scheduled' && l.startTime >= nowTime) ?? null;
+
+  if (!nextLesson) return null;
+
+  const formatTime = (time: string) => {
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    return `${hour % 12 || 12}:${minutes} ${ampm}`;
+  };
+
+  const minutesUntil = () => {
+    const [nh, nm] = nowTime.split(':').map(Number);
+    const [lh, lm] = nextLesson.startTime.split(':').map(Number);
+    return (lh * 60 + lm) - (nh * 60 + nm);
+  };
+
+  const mins = minutesUntil();
+  const isImminent = mins <= 5;
+  const timeLabel = mins <= 0 ? 'Now' : mins === 1 ? 'in 1 min' : `in ${mins} min`;
+  const timeLabelColor = isImminent ? DesignTokens.colors.warning : DesignTokens.colors.success;
+
+  return (
+    <Animated.View
+      style={[
+        {
+          backgroundColor: '#EBF5FF',
+          borderWidth: 1,
+          borderColor: DesignTokens.colors.accent,
+          borderRadius: DesignTokens.radius?.card ?? 12,
+          marginHorizontal: 16,
+          marginTop: 12,
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        },
+        animatedStyle,
+      ]}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+        <LessonAvatar name={nextLesson.studentName} size={36} />
+        <View style={{ marginLeft: 12, flex: 1 }}>
+          <Text
+            style={{
+              ...DesignTokens.typography.caption1,
+              fontWeight: '700',
+              color: DesignTokens.colors.accent,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
+            }}
+          >
+            NEXT UP
+          </Text>
+          <Text
+            style={{
+              ...DesignTokens.typography.title3 ?? DesignTokens.typography.headline,
+              fontWeight: '700',
+              color: DesignTokens.colors.graphite,
+            }}
+            numberOfLines={1}
+          >
+            {nextLesson.studentName}
+          </Text>
+          <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>
+            {formatTime(nextLesson.startTime)} – {formatTime(nextLesson.endTime)}
+          </Text>
+        </View>
+      </View>
+      <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: timeLabelColor }}>
+        {timeLabel}
+      </Text>
+    </Animated.View>
+  );
+}
 
 // Empty State with Animation
 function EmptyState({ dateISO }: { dateISO: string }) {
@@ -627,9 +697,10 @@ interface AnimatedLessonCardProps {
   index: number;
   onMarkPaid: () => void;
   onCancel: () => void;
+  onNotePress: () => void;
 }
 
-function AnimatedLessonCard({ lesson, index, onMarkPaid, onCancel }: AnimatedLessonCardProps) {
+function AnimatedLessonCard({ lesson, index, onMarkPaid, onCancel, onNotePress }: AnimatedLessonCardProps) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
 
@@ -653,6 +724,7 @@ function AnimatedLessonCard({ lesson, index, onMarkPaid, onCancel }: AnimatedLes
         lesson={lesson}
         onMarkPaid={onMarkPaid}
         onCancel={onCancel}
+        onNotePress={onNotePress}
       />
     </Animated.View>
   );
@@ -663,9 +735,10 @@ interface LessonCardProps {
   lesson: Lesson;
   onMarkPaid: () => void;
   onCancel: () => void;
+  onNotePress: () => void;
 }
 
-const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel }: LessonCardProps) => {
+const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: LessonCardProps) => {
   const { formatLocationText } = useCoachStore();
 
   const handleCancelSwipe = () => {
@@ -821,6 +894,21 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel }: LessonCardProps
             </Text>
           )}
         </View>
+
+        {/* Quick note button */}
+        <Pressable
+          onPress={(e) => { e.stopPropagation(); onNotePress(); }}
+          style={{
+            width: 44,
+            height: 44,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginLeft: DesignTokens.spacing.sm,
+          }}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <Ionicons name="document-text-outline" size={20} color={DesignTokens.colors.grey} />
+        </Pressable>
       </View>
     </SwipeableCard>
   );

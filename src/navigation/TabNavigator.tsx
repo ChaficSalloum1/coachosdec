@@ -9,6 +9,7 @@ import { TodayScreen } from '../screens/TodayScreen';
 import { RequestsScreen } from '../screens/RequestsScreen';
 import { StudentsScreen } from '../screens/StudentsScreen';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
+import { useCoachStore } from '../state/coachStore';
 
 export type TabParamList = {
   Today: undefined;
@@ -22,6 +23,9 @@ const Tab = createBottomTabNavigator<TabParamList>();
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const pendingCount = useCoachStore(
+    s => s.bookingRequests.filter(r => r.status === 'pending').length
+  );
 
   return (
     <Tab.Navigator
@@ -91,6 +95,7 @@ export function TabNavigator() {
         options={{
           title: t('requests'),
           headerShown: false,
+          tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
         }}
       />
       <Tab.Screen

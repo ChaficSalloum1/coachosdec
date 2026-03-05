@@ -63,42 +63,9 @@ export function SettingsScreen() {
 
       <ScrollView className="flex-1">
         <View className="px-4 py-6">
-          {/* Language Section */}
-          <Section title={t('language')}>
-            <LanguageSelector />
-          </Section>
-
-          {/* Profile Section */}
-          <Section title={t('profile')}>
-            <ProfileCard coach={coach} isEditing={isEditing} onUpdate={updateCoach} />
-            <Pressable
-              onPress={() => setIsEditing(!isEditing)}
-              className="mt-4 bg-primary rounded-default py-3 px-4 active:bg-primary/80"
-            >
-              <Text className="text-body font-medium text-white text-center">
-                {isEditing ? t('saveChanges') : t('editProfile')}
-              </Text>
-            </Pressable>
-          </Section>
-
-          {/* Payment Settings */}
-          <Section title={t('paymentSettings')}>
-            <PaymentSettings coach={coach} onUpdate={updateCoach} />
-          </Section>
-
-          {/* Calendar Sync */}
-          <Section title={t('calendarIntegration')}>
-            <CalendarSyncCard coach={coach} onUpdate={updateCoach} />
-          </Section>
-
-          {/* Availability */}
+          {/* Quick Access — on-court essentials first */}
           <Section title={t('availability')}>
             <AvailabilityCard coach={coach} />
-          </Section>
-
-          {/* Locations */}
-          <Section title={t('locations')}>
-            <LocationsCard />
           </Section>
 
           {/* Booking Link */}
@@ -120,6 +87,42 @@ export function SettingsScreen() {
                 <Ionicons name="eye-outline" size={20} color="#1E88E5" />
               </View>
             </Pressable>
+          </Section>
+
+          {/* Divider */}
+          <View style={{ height: 1, backgroundColor: '#E0E0E0', marginVertical: 8 }} />
+
+          {/* Profile Section */}
+          <Section title={t('profile')}>
+            <ProfileCard coach={coach} isEditing={isEditing} onUpdate={updateCoach} />
+            <Pressable
+              onPress={() => setIsEditing(!isEditing)}
+              className="mt-4 bg-primary rounded-default py-3 px-4 active:bg-primary/80"
+            >
+              <Text className="text-body font-medium text-white text-center">
+                {isEditing ? t('saveChanges') : t('editProfile')}
+              </Text>
+            </Pressable>
+          </Section>
+
+          {/* Locations */}
+          <Section title={t('locations')}>
+            <LocationsCard />
+          </Section>
+
+          {/* Payment Settings */}
+          <Section title={t('paymentSettings')}>
+            <PaymentSettings coach={coach} onUpdate={updateCoach} />
+          </Section>
+
+          {/* Calendar Sync */}
+          <Section title={t('calendarIntegration')}>
+            <CalendarSyncCard coach={coach} onUpdate={updateCoach} />
+          </Section>
+
+          {/* Language Section */}
+          <Section title={t('language')}>
+            <LanguageSelector />
           </Section>
 
           {/* Data Management */}

@@ -52,6 +52,17 @@ interface CoachState {
   declineBookingRequest: (requestId: string) => void;
   
   // Lesson actions
+  createLesson: (params: {
+    studentId: string;
+    studentName: string;
+    date: string;
+    startTime: string;
+    duration: number;
+    price: number;
+    areaId?: string;
+    facilityId?: string;
+    courtId?: string;
+  }) => void;
   addLesson: (lesson: Lesson) => void;
   updateLesson: (lessonId: string, updates: Partial<Lesson>) => void;
   markLessonPaid: (lessonId: string) => void;
@@ -347,6 +358,41 @@ export const useCoachStore = create<CoachState>()(
         )
       })),
       
+      createLesson: (params) => set((state) => {
+        if (!state.coach) return state;
+        const lesson: Lesson = {
+          id: `lesson_${Date.now()}`,
+          coachId: state.coach.id,
+          studentId: params.studentId,
+          studentName: params.studentName,
+          date: params.date,
+          startTime: params.startTime,
+          endTime: addMinutesToTime(params.startTime, params.duration),
+          duration: params.duration,
+          price: params.price,
+          isPaid: false,
+          status: 'scheduled',
+          createdAt: new Date().toISOString(),
+          areaId: params.areaId,
+          facilityId: params.facilityId,
+          courtId: params.courtId,
+        };
+        const updatedStudents = state.students.map(s => {
+          if (s.id !== params.studentId) return s;
+          return {
+            ...s,
+            totalLessons: s.totalLessons + 1,
+            totalSpent: s.totalSpent + params.price,
+            balance: s.balance + params.price,
+            lastLessonDate: params.date,
+          };
+        });
+        return {
+          lessons: [lesson, ...state.lessons],
+          students: updatedStudents,
+        };
+      }),
+
       addLesson: (lesson) => set((state) => ({
         lessons: [lesson, ...state.lessons]
       })),

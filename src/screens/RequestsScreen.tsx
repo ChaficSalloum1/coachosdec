@@ -18,11 +18,31 @@ import { DesignTokens } from '../utils/designTokens';
 
 export function RequestsScreen() {
   const insets = useSafeAreaInsets();
-  const { getPendingRequests, approveBookingRequest, declineBookingRequest } = useCoachStore();
+  const { getPendingRequests, approveBookingRequest, declineBookingRequest, availabilityRanges, lessons, bookingRequests } = useCoachStore();
   const [isLoading, setIsLoading] = React.useState(true);
   const [approvingId, setApprovingId] = React.useState<string | null>(null);
   React.useEffect(() => { const t = setTimeout(() => setIsLoading(false), 500); return () => clearTimeout(t); }, []);
   const pendingRequests = getPendingRequests();
+
+  const getOpenSlotsForRequest = (requestId: string): string[] => {
+    const request = bookingRequests.find(r => r.id === requestId);
+    if (!request) return [];
+    const dayOfWeek = new Date(request.requestedDate + 'T12:00:00').getDay();
+    const dayRanges = availabilityRanges.filter(r => r.dayOfWeek === dayOfWeek);
+    const slots: string[] = [];
+    for (const range of dayRanges) {
+      const [startH] = range.startTime.split(':').map(Number);
+      const [endH] = range.endTime.split(':').map(Number);
+      for (let h = startH; h < endH; h++) {
+        const t = `${String(h).padStart(2, '0')}:00`;
+        const hasLesson = lessons.some(
+          l => l.date === request.requestedDate && l.startTime === t && l.status !== 'cancelled'
+        );
+        if (!hasLesson) slots.push(t);
+      }
+    }
+    return slots.slice(0, 3);
+  };
 
   const handleApproveRequest = async (requestId: string) => {
     try {
@@ -32,23 +52,23 @@ export function RequestsScreen() {
     } catch (error) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       const errorMessage = error instanceof Error ? error.message : 'Unable to approve this booking due to a scheduling conflict.';
-      
+      const request = bookingRequests.find(r => r.id === requestId);
+      const openSlots = getOpenSlotsForRequest(requestId);
+
+      const formatSlot = (t: string) => {
+        const [h, m] = t.split(':').map(Number);
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
+      };
+
+      const slotsMessage = openSlots.length > 0
+        ? `\n\nOpen slots on ${request?.requestedDate ?? 'that day'}:\n${openSlots.map(formatSlot).join('  ·  ')}\n\nContact ${request?.studentName ?? 'the student'} to reschedule.`
+        : '';
+
       Alert.alert(
         'Unable to Approve',
-        errorMessage,
-        [
-          { text: 'OK' },
-          ...(errorMessage.includes('Court conflict') ? [
-            {
-              text: 'Try Different Time',
-              style: 'default' as const,
-              onPress: () => {
-                // In a full implementation, this could navigate to a time selection screen
-                console.log('User wants to suggest different time');
-              }
-            }
-          ] : [])
-        ]
+        errorMessage + slotsMessage,
+        [{ text: 'OK' }]
       );
     } finally {
       setApprovingId(null);

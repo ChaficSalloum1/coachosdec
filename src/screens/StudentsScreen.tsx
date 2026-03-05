@@ -6,6 +6,10 @@ import {
   Pressable,
   TextInput,
   Alert,
+  Linking,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,26 +35,30 @@ export function StudentsScreen() {
     student.contact.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Bottom search bar height: 56px input + 16px vertical padding
+  const SEARCH_BAR_HEIGHT = 56;
+
   return (
-    <View className="flex-1 bg-white">
-      {/* Search Bar */}
-      <View className="px-4 py-3 border-b border-gray-200" style={{ paddingTop: insets.top + 12 }}>
-        <View className="flex-row items-center bg-gray-100 rounded-default px-3 py-2">
-          <Ionicons name="search" size={20} color="#42526E" />
-          <TextInput
-            className="flex-1 ml-2 text-body text-ink-900"
-            placeholder="Search students..."
-            placeholderTextColor="#42526E"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-          />
-        </View>
+    <KeyboardAvoidingView
+      className="flex-1 bg-white"
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      {/* Header — title only, search moved to bottom */}
+      <View
+        className="px-4 border-b border-gray-200"
+        style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
+      >
+        <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
+          Students
+        </Text>
       </View>
 
-      <ScrollView className="flex-1">
-        <View className="px-4 py-6">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: SEARCH_BAR_HEIGHT + insets.bottom + 60 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="px-4 py-4">
           {filteredStudents.length === 0 ? (
             <EmptyState hasSearch={searchQuery.length > 0} />
           ) : (
@@ -67,6 +75,27 @@ export function StudentsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Bottom-anchored search bar — in the thumb zone */}
+      <View
+        style={[
+          styles.bottomSearchBar,
+          { bottom: insets.bottom + 60 }, // 60 = tab bar height
+        ]}
+      >
+        <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
+          <Ionicons name="search" size={20} color="#42526E" />
+          <TextInput
+            className="flex-1 ml-2 text-base text-ink-900"
+            placeholder="Search students..."
+            placeholderTextColor="#42526E"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
+        </View>
+      </View>
 
       {/* Student Notes Modal */}
       {selectedStudent && (
@@ -89,7 +118,7 @@ export function StudentsScreen() {
           onClose={() => setSelectedStudent(null)}
         />
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -118,14 +147,27 @@ function EmptyState({ hasSearch }: EmptyStateProps) {
   );
 }
 
+const styles = StyleSheet.create({
+  bottomSearchBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    backgroundColor: 'white',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+});
+
 interface BalancePillProps {
   amount: number;
 }
 
 function BalancePill({ amount }: BalancePillProps) {
   return (
-    <View className="bg-warning/10 px-2 py-1 rounded-full">
-      <Text className="text-xs font-medium text-warning">
+    <View style={{ backgroundColor: 'rgba(245, 124, 0, 0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: '#F57C00' }}>
         ${amount.toFixed(2)} due
       </Text>
     </View>
@@ -289,19 +331,50 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
     return `${Math.floor(diffInDays / 30)} months ago`;
   };
 
+  const handleContactPress = () => {
+    if (!student.contact) return;
+    const isPhone = /^[\d\s\+\-\(\)]{7,}$/.test(student.contact.trim());
+    const url = isPhone
+      ? `tel:${student.contact.replace(/\s/g, '')}`
+      : `mailto:${student.contact}`;
+    Linking.openURL(url).catch(() => {});
+  };
+
   return (
     <Pressable
       onPress={showStudentDetails}
-      className="bg-white rounded-card border border-gray-200 p-4 shadow-sm active:bg-gray-50"
+      style={[
+        {
+          backgroundColor: 'white',
+          borderRadius: 12,
+          borderWidth: 1,
+          borderColor: '#E0E0E0',
+          padding: 16,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.05,
+          shadowRadius: 2,
+          elevation: 1,
+        },
+        unpaidAmount > 0 && {
+          borderLeftWidth: 3,
+          borderLeftColor: '#F57C00',
+        },
+      ]}
     >
       <View className="flex-row justify-between items-start">
         <View className="flex-1">
           <Text className="text-section font-semibold text-ink-900 mb-1">
             {student.name}
           </Text>
-          <Text className="text-small text-ink-600 mb-2">
-            {student.contact}
-          </Text>
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); handleContactPress(); }}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={{ fontSize: 13, color: '#1E88E5', marginBottom: 4 }}>
+              {student.contact}
+            </Text>
+          </Pressable>
           <Text className="text-small text-ink-600">
             Last lesson: {getLastLessonText()}
           </Text>
