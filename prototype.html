@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CoachOS – UI Prototype</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent: #007AFF;
+    --success: #34C759;
+    --warning: #FF9500;
+    --danger: #FF3B30;
+    --graphite: #1C1C1E;
+    --grey: #8E8E93;
+    --light-grey: #C7C7CC;
+    --super-light: #F2F2F7;
+    --white: #FFFFFF;
+    --amber: #F57C00;
+  }
+
+  body {
+    background: #1a1a2e;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    gap: 24px;
+  }
+
+  h1.title {
+    color: white;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    text-align: center;
+  }
+
+  h1.title span { color: #007AFF; }
+
+  .nav-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-btn {
+    padding: 8px 18px;
+    border-radius: 20px;
+    border: 2px solid rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.7);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .nav-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* Phone shell */
+  .phone {
+    width: 393px;
+    height: 852px;
+    background: var(--white);
+    border-radius: 54px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 12px #1C1C1E,
+      0 0 0 14px #3A3A3C,
+      0 60px 120px rgba(0,0,0,0.7);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* Notch */
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 126px;
+    height: 36px;
+    background: #1C1C1E;
+    border-radius: 0 0 20px 20px;
+    z-index: 100;
+  }
+
+  .screen {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    display: none;
+  }
+
+  .screen.active { display: flex; flex-direction: column; }
+
+  /* ============ STATUS BAR ============ */
+  .status-bar {
+    height: 54px;
+    background: var(--white);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 28px 8px;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .status-time { font-size: 15px; font-weight: 600; color: var(--graphite); }
+  .status-icons { display: flex; gap: 6px; align-items: center; }
+  .status-icons svg { width: 16px; height: 16px; fill: var(--graphite); }
+
+  /* ============ TAB BAR ============ */
+  .tab-bar {
+    height: 83px;
+    background: rgba(255,255,255,0.92);
+    border-top: 1px solid rgba(0,0,0,0.08);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: flex-start;
+    padding-top: 8px;
+    flex-shrink: 0;
+  }
+
+  .tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    cursor: pointer;
+    padding-top: 4px;
+    position: relative;
+  }
+
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 10px; font-weight: 500; color: var(--grey); }
+  .tab.active .tab-label { color: var(--accent); font-weight: 600; }
+  .tab.active .tab-icon { filter: none; }
+
+  .badge {
+    position: absolute;
+    top: 0;
+    right: calc(50% - 22px);
+    background: var(--danger);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+
+  /* ============ SCREEN CONTENT ============ */
+  .screen-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .screen-content::-webkit-scrollbar { display: none; }
+
+  /* ============ HEADER ============ */
+  .screen-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--super-light);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .header-chevron {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    color: var(--graphite);
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .header-center { text-align: center; }
+  .header-date { font-size: 22px; font-weight: 700; color: var(--graphite); }
+  .header-today { font-size: 15px; font-weight: 600; color: var(--accent); margin-top: 2px; }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .share-btn {
+    width: 40px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  /* ============ NEXT LESSON HERO ============ */
+  .hero-card {
+    background: #EBF5FF;
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    margin: 12px 16px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: fadeInUp 0.3s ease;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .hero-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .hero-info {}
+  .hero-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .hero-name { font-size: 17px; font-weight: 700; color: var(--graphite); }
+  .hero-time { font-size: 13px; color: var(--grey); }
+  .hero-countdown { font-size: 15px; font-weight: 600; color: var(--warning); }
+
+  /* ============ LESSON CARD ============ */
+  .lesson-list { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .lesson-card {
+    background: white;
+    border-radius: 12px;
+    padding: 12px 14px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+    display: flex;
+    align-items: center;
+    gap: 0;
+    animation: fadeInUp 0.25s ease;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .lesson-card:active { transform: scale(0.98); }
+
+  .lesson-avatar { flex-shrink: 0; }
+
+  .time-bar {
+    width: 4px;
+    height: 40px;
+    border-radius: 2px;
+    margin: 0 12px;
+    flex-shrink: 0;
+  }
+
+  .lesson-info { flex: 1; }
+  .lesson-row1 { display: flex; align-items: center; justify-content: space-between; }
+  .lesson-name { font-size: 16px; font-weight: 600; color: var(--graphite); }
+  .lesson-price { font-size: 16px; font-weight: 600; color: var(--graphite); }
+  .lesson-location { font-size: 13px; color: var(--grey); margin-top: 2px; }
+  .lesson-pending { font-size: 12px; font-weight: 600; color: var(--warning); margin-top: 4px; }
+
+  .note-btn {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--grey);
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    border-radius: 8px;
+    transition: background 0.15s;
+  }
+
+  .note-btn:hover { background: var(--super-light); }
+
+  .swipe-hint {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 4px;
+    margin-top: 4px;
+  }
+
+  .swipe-hint span {
+    font-size: 11px;
+    color: var(--light-grey);
+  }
+
+  /* ============ FAB ============ */
+  .fab {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,122,255,0.4);
+    cursor: pointer;
+    color: white;
+    font-size: 28px;
+    z-index: 10;
+    transition: transform 0.15s, box-shadow 0.15s;
+    animation: scaleIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  @keyframes scaleIn {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .fab:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,122,255,0.5); }
+  .fab:active { transform: scale(0.93); }
+
+  /* ============ JUMP TO TODAY ============ */
+  .jump-today {
+    position: absolute;
+    bottom: 110px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(28,28,30,0.85);
+    border-radius: 20px;
+    padding: 10px 20px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+
+  /* ============ MODAL SHEET ============ */
+  .sheet-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 50;
+    display: flex;
+    align-items: flex-end;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .sheet {
+    background: white;
+    border-radius: 20px 20px 0 0;
+    width: 100%;
+    max-height: 90%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    animation: slideUp 0.35s cubic-bezier(0.34,1.1,0.64,1);
+    scrollbar-width: none;
+  }
+
+  .sheet::-webkit-scrollbar { display: none; }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--super-light);
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+  }
+
+  .sheet-cancel { font-size: 17px; color: var(--grey); cursor: pointer; }
+  .sheet-title { font-size: 17px; font-weight: 600; color: var(--graphite); }
+  .sheet-save { font-size: 17px; font-weight: 600; color: var(--accent); cursor: pointer; }
+
+  .sheet-body { padding: 0 0 32px; }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 20px 20px 8px;
+  }
+
+  .pill-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .pill-row::-webkit-scrollbar { display: none; }
+
+  .pill {
+    padding: 10px 16px;
+    border-radius: 100px;
+    background: var(--super-light);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--graphite);
+    cursor: pointer;
+    white-space: nowrap;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
+  }
+
+  .pill.selected { background: var(--accent); color: white; }
+
+  .date-pill {
+    width: 56px;
+    height: 64px;
+    border-radius: 12px;
+    background: var(--super-light);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    gap: 2px;
+    flex-shrink: 0;
+    transition: background 0.12s;
+  }
+
+  .date-pill.selected { background: var(--accent); }
+  .date-pill .day-abbr { font-size: 11px; color: var(--grey); }
+  .date-pill.selected .day-abbr { color: rgba(255,255,255,0.8); }
+  .date-pill .day-num { font-size: 20px; font-weight: 600; color: var(--graphite); }
+  .date-pill.selected .day-num { color: white; }
+
+  .dur-row {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+  }
+
+  .dur-pill {
+    flex: 1;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--super-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--graphite);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+
+  .dur-pill.selected { background: var(--accent); color: white; }
+
+  .text-input {
+    background: var(--super-light);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 0 20px;
+    font-size: 17px;
+    color: var(--graphite);
+    font-family: inherit;
+    border: none;
+    outline: none;
+    width: calc(100% - 40px);
+  }
+
+  .price-row {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 4px;
+  }
+
+  .price-symbol { font-size: 24px; font-weight: 700; color: var(--grey); }
+
+  .save-btn-full {
+    margin: 20px 20px 0;
+    background: var(--accent);
+    border-radius: 12px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .save-btn-full:active { transform: scale(0.98); }
+
+  .note-input-area {
+    flex: 1;
+    padding: 20px;
+    font-size: 17px;
+    color: var(--graphite);
+    font-family: inherit;
+    line-height: 1.5;
+    min-height: 160px;
+    background: white;
+    border: none;
+    outline: none;
+    width: 100%;
+    resize: none;
+  }
+
+  /* ============ STUDENTS SCREEN ============ */
+  .students-header {
+    background: var(--white);
+    border-bottom: 1px solid var(--super-light);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .student-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    margin: 0 16px 10px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .student-card.balance-due { border-left: 3px solid var(--amber); }
+  .student-card:active { transform: scale(0.98); }
+  .student-avatar { flex-shrink: 0; }
+  .student-info { flex: 1; }
+  .student-name { font-size: 16px; font-weight: 600; color: var(--graphite); }
+  .student-contact { font-size: 14px; color: #1E88E5; margin-top: 2px; }
+  .student-meta { font-size: 13px; color: var(--grey); margin-top: 2px; }
+
+  .balance-pill {
+    background: #FFF3E0;
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--amber);
+    flex-shrink: 0;
+  }
+
+  .bottom-search {
+    position: absolute;
+    bottom: 88px;
+    left: 16px;
+    right: 16px;
+    background: white;
+    border-radius: 14px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+
+  .bottom-search input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: var(--graphite);
+    background: transparent;
+    font-family: inherit;
+  }
+
+  /* ============ REQUESTS SCREEN ============ */
+  .request-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    margin: 0 16px 10px;
+    padding: 14px 16px;
+    animation: fadeInUp 0.25s ease;
+  }
+
+  .request-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .request-name { font-size: 16px; font-weight: 600; color: var(--graphite); }
+  .request-contact { font-size: 13px; color: var(--grey); margin-top: 2px; }
+  .request-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .detail-chip {
+    background: var(--super-light);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+
+  .detail-chip .chip-label { font-size: 11px; color: var(--grey); font-weight: 500; text-transform: uppercase; }
+  .detail-chip .chip-value { font-size: 14px; font-weight: 600; color: var(--graphite); margin-top: 2px; }
+
+  .request-actions { display: flex; gap: 8px; }
+
+  .btn-approve {
+    flex: 1;
+    height: 44px;
+    background: var(--success);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 600;
+    color: white;
+    cursor: pointer;
+    gap: 6px;
+    transition: transform 0.1s;
+  }
+
+  .btn-decline {
+    height: 44px;
+    width: 44px;
+    background: #FFE5E5;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .btn-approve:active, .btn-decline:active { transform: scale(0.95); }
+
+  /* ============ SETTINGS SCREEN ============ */
+  .settings-section {
+    margin: 0 0 4px;
+  }
+
+  .settings-section-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--grey);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 20px 20px 8px;
+  }
+
+  .settings-row {
+    background: white;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    cursor: pointer;
+  }
+
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row-left { display: flex; align-items: center; gap: 12px; }
+  .settings-icon { font-size: 20px; }
+  .settings-label { font-size: 16px; color: var(--graphite); }
+  .settings-value { font-size: 15px; color: var(--grey); }
+  .settings-chevron { font-size: 14px; color: var(--light-grey); }
+
+  .availability-highlight {
+    background: linear-gradient(135deg, #EBF5FF 0%, #E8F4FE 100%);
+    border: 1.5px solid rgba(0,122,255,0.25);
+    border-radius: 12px;
+    margin: 0 16px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+  }
+
+  .avail-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .avail-info { flex: 1; }
+  .avail-title { font-size: 15px; font-weight: 600; color: var(--graphite); }
+  .avail-sub { font-size: 13px; color: var(--grey); margin-top: 2px; }
+
+  .booking-link-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid rgba(0,0,0,0.06);
+    margin: 0 16px;
+    padding: 16px;
+  }
+
+  .booking-url {
+    background: var(--super-light);
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .booking-url-text { font-size: 14px; color: var(--accent); font-weight: 500; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .copy-btn { font-size: 20px; color: var(--accent); flex-shrink: 0; cursor: pointer; }
+
+  .divider { height: 1px; background: var(--super-light); margin: 12px 0; }
+
+  /* ============ EMPTY STATE ============ */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 40px;
+    gap: 12px;
+  }
+
+  .empty-icon { font-size: 56px; opacity: 0.3; }
+  .empty-title { font-size: 18px; font-weight: 600; color: var(--graphite); }
+  .empty-sub { font-size: 15px; color: var(--grey); text-align: center; line-height: 1.5; }
+
+  /* pill row for action sheet preview */
+  .action-sheet {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: flex-end;
+    padding: 8px;
+  }
+
+  .action-sheet-inner {
+    width: 100%;
+    background: rgba(248,248,252,0.97);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+  }
+
+  .action-item {
+    padding: 16px 20px;
+    text-align: center;
+    font-size: 17px;
+    color: var(--accent);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+
+  .action-item:last-child { border-bottom: none; }
+  .action-item.destructive { color: var(--danger); }
+  .action-item.cancel { font-weight: 600; color: var(--graphite); }
+  .action-item:active { background: rgba(0,0,0,0.06); }
+
+  /* Responsive */
+  @media (max-width: 440px) {
+    .phone { width: 100%; height: auto; border-radius: 0; }
+  }
+
+  /* Legend */
+  .legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 800px;
+  }
+
+  .legend-item {
+    background: rgba(255,255,255,0.06);
+    border-radius: 10px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .legend-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .legend-text { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.4; }
+  .legend-text strong { color: white; }
+</style>
+</head>
+<body>
+
+<h1 class="title">CoachOS — <span>UI Prototype</span></h1>
+
+<div class="nav-row">
+  <button class="nav-btn active" onclick="showScreen('today')">Today</button>
+  <button class="nav-btn" onclick="showScreen('add-lesson')">Add Lesson</button>
+  <button class="nav-btn" onclick="showScreen('quick-note')">Quick Note</button>
+  <button class="nav-btn" onclick="showScreen('students')">Students</button>
+  <button class="nav-btn" onclick="showScreen('requests')">Requests</button>
+  <button class="nav-btn" onclick="showScreen('settings')">Settings</button>
+</div>
+
+<div class="phone">
+
+  <!-- ===== TODAY SCREEN ===== -->
+  <div id="screen-today" class="screen active">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <span style="font-size:12px;font-weight:600;color:#1C1C1E">●●●</span>
+        <span style="font-size:12px;">📶</span>
+        <span style="font-size:12px;">🔋</span>
+      </div>
+    </div>
+
+    <div class="screen-header">
+      <div class="header-chevron">‹</div>
+      <div class="header-center">
+        <div class="header-date">Thu, 5 Mar</div>
+        <div class="header-today">Today</div>
+      </div>
+      <div class="header-right">
+        <div class="share-btn" title="Share booking link">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#007AFF" stroke-width="2"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+        </div>
+        <div class="header-chevron">›</div>
+      </div>
+    </div>
+
+    <!-- NextLessonHero -->
+    <div class="hero-card">
+      <div class="hero-left">
+        <div class="avatar" style="background:#4CAF50;">SR</div>
+        <div class="hero-info">
+          <div class="hero-label">Next Up</div>
+          <div class="hero-name">Sarah Robinson</div>
+          <div class="hero-time">10:00 – 11:00 AM</div>
+        </div>
+      </div>
+      <div class="hero-countdown">in 19 min</div>
+    </div>
+
+    <div class="screen-content">
+      <div class="lesson-list" style="padding-top:12px;">
+
+        <div>
+          <div class="lesson-card">
+            <div class="lesson-avatar">
+              <div class="avatar" style="background:#4CAF50;">SR</div>
+            </div>
+            <div class="time-bar" style="background:#FF9500;"></div>
+            <div class="lesson-info">
+              <div class="lesson-row1">
+                <span class="lesson-name">10:00 AM · Sarah Robinson</span>
+                <span class="lesson-price">$80</span>
+              </div>
+              <div class="lesson-location">Wimbledon Park · Court 3</div>
+            </div>
+            <div class="note-btn" onclick="showScreen('quick-note')" title="Add note">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#8E8E93" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+          </div>
+          <div class="swipe-hint">
+            <span>← cancel</span>
+            <span>mark paid →</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="lesson-card">
+            <div class="lesson-avatar">
+              <div class="avatar" style="background:#9C27B0;">JK</div>
+            </div>
+            <div class="time-bar" style="background:#34C759;"></div>
+            <div class="lesson-info">
+              <div class="lesson-row1">
+                <span class="lesson-name">12:30 PM · James King</span>
+                <span class="lesson-price">$60</span>
+              </div>
+              <div class="lesson-location">Queen's Club</div>
+              <div class="lesson-pending">Payment Pending</div>
+            </div>
+            <div class="note-btn" onclick="showScreen('quick-note')">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#8E8E93" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="lesson-card">
+            <div class="lesson-avatar">
+              <div class="avatar" style="background:#FF5722;">LP</div>
+            </div>
+            <div class="time-bar" style="background:#007AFF;"></div>
+            <div class="lesson-info">
+              <div class="lesson-row1">
+                <span class="lesson-name">3:00 PM · Lisa Park</span>
+                <span class="lesson-price">$120</span>
+              </div>
+              <div class="lesson-location">Battersea Sports</div>
+            </div>
+            <div class="note-btn" onclick="showScreen('quick-note')">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#8E8E93" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FAB -->
+    <div class="fab" onclick="showActionSheet()">+</div>
+
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <div class="tab active" onclick="showScreen('today')">
+        <span class="tab-icon">📅</span>
+        <span class="tab-label" style="color:#007AFF;">Today</span>
+      </div>
+      <div class="tab" onclick="showScreen('students')">
+        <span class="tab-icon">👥</span>
+        <span class="tab-label">Students</span>
+      </div>
+      <div class="tab" onclick="showScreen('requests')">
+        <span class="tab-icon">📩</span>
+        <span class="tab-label">Requests</span>
+        <div class="badge">3</div>
+      </div>
+      <div class="tab" onclick="showScreen('settings')">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADD LESSON SHEET ===== -->
+  <div id="screen-add-lesson" class="screen">
+    <div class="status-bar" style="background:white;">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">🔋</div>
+    </div>
+
+    <div class="sheet-header" style="position:sticky;top:0;background:white;z-index:5;">
+      <span class="sheet-cancel" onclick="showScreen('today')">Cancel</span>
+      <span class="sheet-title">Add Lesson</span>
+      <span class="sheet-save">Add</span>
+    </div>
+
+    <div class="screen-content">
+      <div class="sheet-body">
+
+        <div class="section-label">Student</div>
+        <div style="padding:0 20px 10px;">
+          <div style="background:var(--super-light);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <span style="font-size:16px;color:var(--grey);">Search students…</span>
+          </div>
+        </div>
+        <div class="pill-row" style="padding-bottom:4px;">
+          <div class="pill selected">Sarah Robinson</div>
+          <div class="pill">James King</div>
+          <div class="pill">Lisa Park</div>
+          <div class="pill">Tom Wade</div>
+        </div>
+
+        <div class="section-label">Date</div>
+        <div class="pill-row">
+          <div class="date-pill selected"><span class="day-abbr">Thu</span><span class="day-num">5</span></div>
+          <div class="date-pill"><span class="day-abbr">Fri</span><span class="day-num">6</span></div>
+          <div class="date-pill"><span class="day-abbr">Sat</span><span class="day-num">7</span></div>
+          <div class="date-pill"><span class="day-abbr">Sun</span><span class="day-num">8</span></div>
+          <div class="date-pill"><span class="day-abbr">Mon</span><span class="day-num">9</span></div>
+          <div class="date-pill"><span class="day-abbr">Tue</span><span class="day-num">10</span></div>
+        </div>
+
+        <div class="section-label">Start Time</div>
+        <input class="text-input" type="text" placeholder="e.g. 9:00 AM" value="10:00 AM" style="margin-bottom:6px;">
+        <div style="padding:0 20px;font-size:13px;color:var(--grey);">Ends at 11:00 AM</div>
+
+        <div class="section-label">Duration</div>
+        <div class="dur-row">
+          <div class="dur-pill">30m</div>
+          <div class="dur-pill">45m</div>
+          <div class="dur-pill selected">60m</div>
+          <div class="dur-pill">90m</div>
+          <div class="dur-pill">2h</div>
+        </div>
+
+        <div class="section-label">Price</div>
+        <div class="price-row">
+          <span class="price-symbol">$</span>
+          <input class="text-input" type="text" value="80" style="margin:0;width:auto;flex:1;">
+        </div>
+
+        <div style="padding:20px 20px 0;">
+          <div class="save-btn-full">Add Lesson</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== QUICK NOTE SHEET ===== -->
+  <div id="screen-quick-note" class="screen">
+    <div class="status-bar" style="background:white;">
+      <span class="status-time">9:41</span>
+    </div>
+
+    <div class="sheet-header" style="position:sticky;top:0;background:white;z-index:5;">
+      <span class="sheet-cancel" onclick="showScreen('today')">Cancel</span>
+      <span class="sheet-title">Note — Sarah Robinson</span>
+      <span class="sheet-save">Save</span>
+    </div>
+
+    <div class="screen-content" style="display:flex;flex-direction:column;">
+      <textarea class="note-input-area" placeholder="What happened in this lesson?&#10;&#10;e.g. Worked on topspin backhand. Great improvement on consistency. Needs work on net approach — set for next session." autofocus>Worked on topspin backhand. Significant improvement on cross-court consistency. Rally length increased from 4-6 to 10-12 shots. Still tentative on net approach — set dedicated drill for next session.</textarea>
+
+      <div style="padding:12px 20px 32px;background:white;border-top:1px solid var(--super-light);flex-shrink:0;">
+        <div class="save-btn-full" onclick="showScreen('today')">Save Note</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STUDENTS SCREEN ===== -->
+  <div id="screen-students" class="screen">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+    </div>
+
+    <div class="students-header">
+      <span style="font-size:22px;font-weight:700;color:var(--graphite);">Students</span>
+      <span style="font-size:14px;font-weight:600;color:var(--grey);">4 students</span>
+    </div>
+
+    <div class="screen-content" style="padding-bottom:72px;">
+      <div style="padding:16px 0 0;">
+
+        <div class="student-card balance-due">
+          <div class="student-avatar">
+            <div class="avatar" style="background:#9C27B0;">JK</div>
+          </div>
+          <div class="student-info">
+            <div class="student-name">James King</div>
+            <div class="student-contact">+44 7700 900123</div>
+            <div class="student-meta">12 lessons · last Thu</div>
+          </div>
+          <div class="balance-pill">£60 owed</div>
+        </div>
+
+        <div class="student-card">
+          <div class="student-avatar">
+            <div class="avatar" style="background:#4CAF50;">SR</div>
+          </div>
+          <div class="student-info">
+            <div class="student-name">Sarah Robinson</div>
+            <div class="student-contact">sarah@gmail.com</div>
+            <div class="student-meta">28 lessons · today</div>
+          </div>
+        </div>
+
+        <div class="student-card balance-due">
+          <div class="student-avatar">
+            <div class="avatar" style="background:#FF5722;">LP</div>
+          </div>
+          <div class="student-info">
+            <div class="student-name">Lisa Park</div>
+            <div class="student-contact">+44 7911 654321</div>
+            <div class="student-meta">8 lessons · yesterday</div>
+          </div>
+          <div class="balance-pill">£120 owed</div>
+        </div>
+
+        <div class="student-card">
+          <div class="student-avatar">
+            <div class="avatar" style="background:#2196F3;">TW</div>
+          </div>
+          <div class="student-info">
+            <div class="student-name">Tom Wade</div>
+            <div class="student-contact">tom.wade@gmail.com</div>
+            <div class="student-meta">5 lessons · Mon</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Bottom search bar (thumb zone) -->
+    <div class="bottom-search">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#8E8E93" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search students…">
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab" onclick="showScreen('today')">
+        <span class="tab-icon">📅</span>
+        <span class="tab-label">Today</span>
+      </div>
+      <div class="tab active">
+        <span class="tab-icon">👥</span>
+        <span class="tab-label" style="color:#007AFF;">Students</span>
+      </div>
+      <div class="tab" onclick="showScreen('requests')">
+        <span class="tab-icon">📩</span>
+        <span class="tab-label">Requests</span>
+        <div class="badge">3</div>
+      </div>
+      <div class="tab" onclick="showScreen('settings')">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REQUESTS SCREEN ===== -->
+  <div id="screen-requests" class="screen">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+    </div>
+
+    <div class="students-header">
+      <span style="font-size:22px;font-weight:700;color:var(--graphite);">Requests</span>
+      <div style="background:#FF3B30;border-radius:10px;padding:4px 10px;font-size:14px;font-weight:700;color:white;">3 pending</div>
+    </div>
+
+    <div class="screen-content" style="padding-top:16px;">
+
+      <div class="request-card">
+        <div class="request-header">
+          <div class="avatar" style="background:#E91E63;width:40px;height:40px;">AM</div>
+          <div>
+            <div class="request-name">Alice Morgan</div>
+            <div class="request-contact">alice@email.com</div>
+          </div>
+        </div>
+        <div class="request-detail">
+          <div class="detail-chip">
+            <div class="chip-label">Date</div>
+            <div class="chip-value">Fri 7 Mar</div>
+          </div>
+          <div class="detail-chip">
+            <div class="chip-label">Time</div>
+            <div class="chip-value">2:00 PM</div>
+          </div>
+          <div class="detail-chip">
+            <div class="chip-label">Duration</div>
+            <div class="chip-value">60 min</div>
+          </div>
+          <div class="detail-chip">
+            <div class="chip-label">Price</div>
+            <div class="chip-value">£80</div>
+          </div>
+        </div>
+        <div style="font-size:13px;color:var(--grey);margin-bottom:12px;padding:8px 10px;background:var(--super-light);border-radius:8px;">"Looking to improve my second serve and volley game."</div>
+        <div class="request-actions">
+          <div class="btn-approve">✓ Approve</div>
+          <div class="btn-decline">✕</div>
+        </div>
+      </div>
+
+      <div class="request-card" style="opacity:0.7;">
+        <div class="request-header">
+          <div class="avatar" style="background:#FF9800;width:40px;height:40px;">BT</div>
+          <div>
+            <div class="request-name">Ben Turner</div>
+            <div class="request-contact">+44 7800 111222</div>
+          </div>
+        </div>
+        <div class="request-detail">
+          <div class="detail-chip"><div class="chip-label">Date</div><div class="chip-value">Sat 8 Mar</div></div>
+          <div class="detail-chip"><div class="chip-label">Time</div><div class="chip-value">10:00 AM</div></div>
+          <div class="detail-chip"><div class="chip-label">Duration</div><div class="chip-value">45 min</div></div>
+          <div class="detail-chip"><div class="chip-label">Price</div><div class="chip-value">£60</div></div>
+        </div>
+        <div class="request-actions">
+          <div class="btn-approve">✓ Approve</div>
+          <div class="btn-decline">✕</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab" onclick="showScreen('today')">
+        <span class="tab-icon">📅</span>
+        <span class="tab-label">Today</span>
+      </div>
+      <div class="tab" onclick="showScreen('students')">
+        <span class="tab-icon">👥</span>
+        <span class="tab-label">Students</span>
+      </div>
+      <div class="tab active">
+        <span class="tab-icon">📩</span>
+        <span class="tab-label" style="color:#007AFF;">Requests</span>
+        <div class="badge">3</div>
+      </div>
+      <div class="tab" onclick="showScreen('settings')">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS SCREEN ===== -->
+  <div id="screen-settings" class="screen">
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+    </div>
+
+    <div class="students-header">
+      <span style="font-size:22px;font-weight:700;color:var(--graphite);">Settings</span>
+    </div>
+
+    <div class="screen-content" style="background:var(--super-light);">
+
+      <!-- TOP PRIORITY: Availability (new position!) -->
+      <div class="settings-section">
+        <div class="settings-section-title">Availability</div>
+        <div class="availability-highlight">
+          <div class="avail-icon">🗓</div>
+          <div class="avail-info">
+            <div class="avail-title">Set Weekly Availability</div>
+            <div class="avail-sub">Mon–Fri, 8am–6pm · 3 courts</div>
+          </div>
+          <span style="color:var(--light-grey);font-size:16px;">›</span>
+        </div>
+      </div>
+
+      <!-- TOP PRIORITY: Booking Link -->
+      <div class="settings-section">
+        <div class="settings-section-title">Booking Link</div>
+        <div class="booking-link-card">
+          <div style="font-size:14px;font-weight:600;color:var(--graphite);margin-bottom:10px;">Your booking link</div>
+          <div class="booking-url">
+            <span class="booking-url-text">coachos.app/book/coach-alex</span>
+            <span class="copy-btn">⧉</span>
+          </div>
+          <div style="margin-top:12px;background:#EBF5FF;border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:14px;font-weight:600;color:var(--graphite);">Preview booking page</div>
+              <div style="font-size:12px;color:var(--grey);margin-top:2px;">See what students see</div>
+            </div>
+            <span style="font-size:18px;">👁</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider" style="margin:8px 0;"></div>
+
+      <!-- Profile -->
+      <div class="settings-section">
+        <div class="settings-section-title">Profile</div>
+        <div style="background:white;border-radius:12px;margin:0 16px;overflow:hidden;">
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">👤</span><span class="settings-label">Name</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="settings-value">Alex Coach</span><span class="settings-chevron">›</span></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">🏷</span><span class="settings-label">Hourly Rate</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="settings-value">£80/hr</span><span class="settings-chevron">›</span></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">🎾</span><span class="settings-label">Sports</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="settings-value">Tennis</span><span class="settings-chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Locations -->
+      <div class="settings-section">
+        <div class="settings-section-title">Locations</div>
+        <div style="background:white;border-radius:12px;margin:0 16px;overflow:hidden;">
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">📍</span><span class="settings-label">Areas & Courts</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="settings-value">3 venues</span><span class="settings-chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar -->
+      <div class="settings-section">
+        <div class="settings-section-title">Integrations</div>
+        <div style="background:white;border-radius:12px;margin:0 16px;overflow:hidden;">
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">📆</span><span class="settings-label">Calendar Sync</span></div>
+            <div style="width:44px;height:28px;background:#34C759;border-radius:14px;display:flex;align-items:center;justify-content:flex-end;padding-right:3px;cursor:pointer;"><div style="width:22px;height:22px;border-radius:11px;background:white;box-shadow:0 2px 4px rgba(0,0,0,0.2);"></div></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">🌐</span><span class="settings-label">Language</span></div>
+            <div style="display:flex;align-items:center;gap:6px;"><span class="settings-value">English</span><span class="settings-chevron">›</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data -->
+      <div class="settings-section" style="margin-bottom:32px;">
+        <div class="settings-section-title">Data</div>
+        <div style="background:white;border-radius:12px;margin:0 16px;overflow:hidden;">
+          <div class="settings-row">
+            <div class="settings-row-left"><span class="settings-icon">💾</span><span class="settings-label">Export Data</span></div>
+            <span class="settings-chevron">›</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab" onclick="showScreen('today')">
+        <span class="tab-icon">📅</span>
+        <span class="tab-label">Today</span>
+      </div>
+      <div class="tab" onclick="showScreen('students')">
+        <span class="tab-icon">👥</span>
+        <span class="tab-label">Students</span>
+      </div>
+      <div class="tab" onclick="showScreen('requests')">
+        <span class="tab-icon">📩</span>
+        <span class="tab-label">Requests</span>
+        <div class="badge">3</div>
+      </div>
+      <div class="tab active">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label" style="color:#007AFF;">Settings</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action sheet overlay (shared) -->
+  <div id="action-sheet" style="display:none;" class="action-sheet" onclick="hideActionSheet()">
+    <div class="action-sheet-inner" onclick="event.stopPropagation()">
+      <div style="padding:10px;text-align:center;font-size:13px;color:var(--grey);font-weight:500;">Quick Actions</div>
+      <div class="action-item" onclick="showScreen('add-lesson')">Add Lesson</div>
+      <div class="action-item" onclick="hideActionSheet()">Jump to Today</div>
+      <div class="action-item" onclick="hideActionSheet()">Add Availability</div>
+      <div style="height:8px;background:rgba(0,0,0,0.06);"></div>
+      <div class="action-item cancel" onclick="hideActionSheet()">Cancel</div>
+    </div>
+  </div>
+
+</div><!-- .phone -->
+
+<!-- Feature legend -->
+<div class="legend">
+  <div class="legend-item">
+    <span class="legend-icon">⚡</span>
+    <div class="legend-text"><strong>NextLessonHero</strong> — live countdown to next lesson, turns red when ≤5 min away</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">📤</span>
+    <div class="legend-text"><strong>Share button</strong> — one tap opens Share sheet with booking link (today only)</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">📄</span>
+    <div class="legend-text"><strong>Note icon</strong> on every card — opens QuickNoteSheet, saves to student timeline</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">+</span>
+    <div class="legend-text"><strong>FAB</strong> — Add Lesson / Jump to Today / Availability from one blue button</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">🔍</span>
+    <div class="legend-text"><strong>Search at bottom</strong> — Students search in thumb zone, not unreachable top of screen</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">🟠</span>
+    <div class="legend-text"><strong>Amber border</strong> — instant visual cue on student cards where payment is overdue</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">🗓</span>
+    <div class="legend-text"><strong>Settings reordered</strong> — Availability &amp; Booking Link at top, reached without scrolling</div>
+  </div>
+  <div class="legend-item">
+    <span class="legend-icon">🔴</span>
+    <div class="legend-text"><strong>Badge count</strong> on Requests tab — pending count visible at a glance</div>
+  </div>
+</div>
+
+<script>
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + name);
+  if (el) el.classList.add('active');
+
+  document.querySelectorAll('.nav-btn').forEach((b,i) => {
+    const screens = ['today','add-lesson','quick-note','students','requests','settings'];
+    b.classList.toggle('active', screens[i] === name);
+  });
+
+  hideActionSheet();
+}
+
+function showActionSheet() {
+  document.getElementById('action-sheet').style.display = 'flex';
+}
+
+function hideActionSheet() {
+  document.getElementById('action-sheet').style.display = 'none';
+}
+
+// Interactive pills
+document.querySelectorAll('.pill').forEach(p => {
+  p.addEventListener('click', function() {
+    this.closest('.pill-row').querySelectorAll('.pill').forEach(x => x.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+
+document.querySelectorAll('.date-pill').forEach(p => {
+  p.addEventListener('click', function() {
+    this.closest('.pill-row').querySelectorAll('.date-pill').forEach(x => x.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+
+document.querySelectorAll('.dur-pill').forEach(p => {
+  p.addEventListener('click', function() {
+    this.closest('.dur-row').querySelectorAll('.dur-pill').forEach(x => x.classList.remove('selected'));
+    this.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>
