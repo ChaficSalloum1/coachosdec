@@ -12,7 +12,6 @@
     "test:maestro:android": "maestro test maestro/ --android"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "@expo/react-native-action-sheet": "^4.1.1",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
@@ -91,7 +90,6 @@
     "i18next": "^25.6.0",
     "lottie-react-native": "7.2.2",
     "nativewind": "^4.1.23",
-    "openai": "^4.89.0",
     "patch-package": "^8.0.0",
     "posthog-react-native": "^4.37.1",
     "react": "19.0.0",

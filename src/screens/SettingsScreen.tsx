@@ -18,7 +18,7 @@ import { exportData } from '../utils/dataExport';
 import { useNavigation } from '@react-navigation/native';
 import { BookingLinkCard } from '../components/BookingLinkCard';
 import { saveLanguage } from '../i18n/config';
-import { getCurrentUser } from '../services/authService';
+import { getCurrentUser, signOut } from '../services/authService';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -30,6 +30,24 @@ export function SettingsScreen() {
   if (!coach) {
     return <OnboardingScreen onComplete={setCoach} />;
   }
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await signOut();
+            // RootNavigator's onAuthStateChange listener handles navigation
+          },
+        },
+      ]
+    );
+  };
 
   const handleExportData = async () => {
     Alert.alert(
@@ -71,22 +89,6 @@ export function SettingsScreen() {
           {/* Booking Link */}
           <Section title={t('bookingLink')}>
             <BookingLinkCard coach={coach} />
-            <Pressable
-              onPress={() => navigation.navigate('PublicBooking' as never)}
-              className="mt-3 bg-blue-50 rounded-xl p-4 active:bg-blue-100"
-            >
-              <View className="flex-row items-center justify-between">
-                <View className="flex-1">
-                  <Text className="text-base font-medium mb-1" style={{ color: '#0B1220' }}>
-                    {t('testBookingFlow')}
-                  </Text>
-                  <Text className="text-sm" style={{ color: '#42526E' }}>
-                    {t('testBookingFlowDesc')}
-                  </Text>
-                </View>
-                <Ionicons name="eye-outline" size={20} color="#1E88E5" />
-              </View>
-            </Pressable>
           </Section>
 
           {/* Divider */}
@@ -145,6 +147,21 @@ export function SettingsScreen() {
                 </View>
               </Pressable>
             </View>
+          </Section>
+
+          {/* Account */}
+          <Section title="Account">
+            <Pressable
+              onPress={handleSignOut}
+              className="bg-red-50 rounded-xl p-4 active:bg-red-100"
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="text-base font-medium" style={{ color: '#D32F2F' }}>
+                  Sign Out
+                </Text>
+                <Ionicons name="log-out-outline" size={20} color="#D32F2F" />
+              </View>
+            </Pressable>
           </Section>
         </View>
       </ScrollView>
