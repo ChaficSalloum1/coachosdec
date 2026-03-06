@@ -1,28 +1,49 @@
 # Onboarding Test
-# Tests the initial user onboarding/setup flow
+# Tests the first-run sign-up + profile creation flow.
+# Run this BEFORE other tests if the test account has never been used.
+#
+# PRE-REQUISITE: In Supabase Dashboard → Authentication → Settings,
+# ensure "Enable email confirmations" is OFF for test accounts,
+# OR use a pre-confirmed account in .maestro.yaml.
 
-appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+appId: ${APP_ID}
 
 ---
-- launchApp
+- launchApp:
+    clearState: true
 
-# If app shows onboarding screen (for new users)
-- assertVisible: "Welcome"  # Or "Welcome to CoachOS"
+# Login screen appears immediately on first launch
+- assertVisible: "CoachOS"
 
-# Fill in onboarding form
-- inputText: "Test Coach"
-- tapOn: "Sports"
-- inputText: "Tennis, Basketball"
-- tapOn: "Price"
-- inputText: "50"
+# Switch to Sign Up mode
+- tapOn: "Sign up"
 
-# Complete onboarding
-- tapOn: "Get Started"  # Or "Complete" button
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "Minimum 6 characters"
+- inputText: "${COACH_A_PASSWORD}"
+- tapOn: "Create Account"
 
-# Verify onboarding completed and main app loads
+- waitForAnimationToEnd
+
+# After sign-up, onboarding screen appears (no coach profile yet)
+- assertVisible: "Welcome to CoachOS"
+
+- tapOn: "John Smith"
+- inputText: "Coach Alpha"
+
+- tapOn: "Tennis, Basketball"
+- inputText: "Tennis"
+
+# Price field (tap the numeric input after the $ label)
+- tapOn: "50"
+- inputText: "60"
+
+- tapOn: "Get Started"
+
+# Should land on Today tab
 - assertVisible: "Today"
 
-# Verify coach profile was created
+# Verify profile saved in Settings
 - tapOn: "Settings"
-- assertVisible: "Test Coach"
-
+- assertVisible: "Coach Alpha"

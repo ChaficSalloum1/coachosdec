@@ -1,84 +1,89 @@
-# RLS Security Test - CRITICAL
-# This test verifies that Row Level Security policies work correctly
-# After implementing RLS policies, Coach A should NOT be able to see Coach B's data
+# RLS Security Test  ⚠️  CRITICAL — run after every schema change
+# =============================================================
+# Verifies that Supabase Row Level Security is working correctly:
+# Coach A must NOT be able to see Coach B's students (or any data).
 #
-# SETUP REQUIRED:
-# 1. Update .maestro.yaml with your test account credentials and bundle ID
-# 2. Create two test coach accounts in Supabase Authentication
-# 3. Build the app first: npx expo run:ios or npx expo run:android
+# PRE-REQUISITES:
+#   1. supabase-schema.sql has been run in Supabase SQL Editor
+#   2. Both COACH_A and COACH_B accounts exist in Supabase Auth
+#      AND have completed in-app onboarding (so they have a coaches row)
+#   3. App is built and installed on device/simulator
+#   4. Credentials set in maestro/.maestro.yaml
+# =============================================================
 
 appId: ${APP_ID}
 
 ---
-- launchApp
 
-# Step 1: Login as Coach A
-- tapOn: "Settings"  # Navigate to settings/login
-- tapOn: "Login"  # Or "Sign In" button
+# -------------------------------------------------------
+# Step 1: Sign in as Coach A and create a student
+# -------------------------------------------------------
+- launchApp:
+    clearState: true
+
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
 - inputText: "${COACH_A_EMAIL}"
-- tapOn: "Password"
+- tapOn: "••••••••"
 - inputText: "${COACH_A_PASSWORD}"
 - tapOn: "Sign In"
 
-# Wait for login to complete
-- assertVisible: "Today"  # Should see main app screen
+- waitForAnimationToEnd
+- assertVisible: "Today"
 
-# Step 2: Create a student as Coach A
 - tapOn: "Students"
-- tapOn: "Add Student"  # Or "+" button
-- inputText: "Coach A Student"
+- tapOn: "Add Student"
+- tapOn: "Name"
+- inputText: "Coach A Private Student"
 - tapOn: "Contact"
-- inputText: "coacha-student@test.com"
+- inputText: "private-a@test.com"
 - tapOn: "Save"
 
-# Verify student was created
-- assertVisible: "Coach A Student"
+- assertVisible: "Coach A Private Student"
 
-# Step 3: Logout
+# -------------------------------------------------------
+# Step 2: Sign out as Coach A
+# -------------------------------------------------------
 - tapOn: "Settings"
-- scroll
-- tapOn: "Logout"  # Or "Sign Out"
+- scrollToBottom
+- tapOn: "Sign Out"
+- tapOn: "Sign Out"   # confirm dialog
 
-# Step 4: Login as Coach B
-- tapOn: "Login"
+- waitForAnimationToEnd
+- assertVisible: "CoachOS"   # back to login screen
+
+# -------------------------------------------------------
+# Step 3: Sign in as Coach B
+# -------------------------------------------------------
+- tapOn: "your@email.com"
 - inputText: "${COACH_B_EMAIL}"
-- tapOn: "Password"
+- tapOn: "••••••••"
 - inputText: "${COACH_B_PASSWORD}"
 - tapOn: "Sign In"
 
-# Wait for login
+- waitForAnimationToEnd
 - assertVisible: "Today"
 
-# Step 5: Verify Coach B CANNOT see Coach A's student
-# This is the critical security check - if RLS is working, this should fail
+# -------------------------------------------------------
+# Step 4: CRITICAL ASSERTION — Coach B must NOT see Coach A's student
+# -------------------------------------------------------
 - tapOn: "Students"
+- assertNotVisible: "Coach A Private Student"
 
-# CRITICAL ASSERTION: Coach A's student should NOT be visible
-- assertNotVisible: "Coach A Student"
-
-# Step 6: Create Coach B's own student to verify they CAN create data
+# -------------------------------------------------------
+# Step 5: Coach B CAN create their own student
+# -------------------------------------------------------
 - tapOn: "Add Student"
-- inputText: "Coach B Student"
+- tapOn: "Name"
+- inputText: "Coach B Own Student"
 - tapOn: "Contact"
-- inputText: "coachb-student@test.com"
+- inputText: "own-b@test.com"
 - tapOn: "Save"
 
-# Verify Coach B can see their own student
-- assertVisible: "Coach B Student"
+- assertVisible: "Coach B Own Student"
+- assertNotVisible: "Coach A Private Student"
 
-# Step 7: Verify Coach B still cannot see Coach A's student
-- assertNotVisible: "Coach A Student"
-
-# Test passed if:
-# - Coach B cannot see "Coach A Student"
-# - Coach B can see "Coach B Student"
-# If Coach B CAN see Coach A's student, RLS policies are NOT working correctly!
-#
-# HOW TO RUN:
-# 1. Update .maestro.yaml with your bundle ID and test account credentials
-# 2. Build the app: npx expo run:ios or npx expo run:android
-# 3. Run: maestro test maestro/rls-security-test.yaml
-# 4. Or run all tests: npm run test:maestro
-#
-# NOTE: All credentials are now managed in .maestro.yaml - update them there!
-
+# -------------------------------------------------------
+# TEST PASSED if this point is reached without errors.
+# If assertNotVisible fails → RLS is broken → stop and fix schema.
+# -------------------------------------------------------

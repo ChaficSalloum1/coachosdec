@@ -1,8 +1,12 @@
 -- ============================================
 -- CoachOS Database Schema for Supabase
 -- ============================================
--- Run this SQL in your Supabase SQL Editor to create all tables
+-- Run this SQL in your Supabase SQL Editor to create all tables + secure RLS.
 -- Go to: Supabase Dashboard > SQL Editor > New Query > Paste this > Run
+--
+-- IMPORTANT: Run this ONCE on a fresh project. If you already ran an older
+-- version, use the migration scripts in /scripts/ instead.
+-- ============================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -11,7 +15,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1. COACHES TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS coaches (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY,  -- Must equal auth.uid() — set in the app during onboarding
   name TEXT NOT NULL,
   photo TEXT,
   sports TEXT[] DEFAULT '{}',
@@ -19,7 +23,7 @@ CREATE TABLE IF NOT EXISTS coaches (
   payment_settings JSONB DEFAULT '{"cashEnabled": true}',
   availability JSONB DEFAULT '{}',
   blackout_dates TEXT[] DEFAULT '{}',
-  booking_link TEXT,
+  booking_link TEXT UNIQUE,
   calendar_sync_enabled BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -74,7 +78,7 @@ CREATE TABLE IF NOT EXISTS students (
   total_lessons INTEGER DEFAULT 0,
   total_spent DECIMAL(10, 2) DEFAULT 0,
   balance DECIMAL(10, 2) DEFAULT 0,
-  notes TEXT, -- Deprecated but kept for compatibility
+  notes TEXT,
   last_lesson_date DATE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -88,7 +92,7 @@ CREATE TABLE IF NOT EXISTS student_notes (
   student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
   coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
-  lesson_id UUID, -- Optional: link to lesson
+  lesson_id UUID,
   tags TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -105,7 +109,7 @@ CREATE TABLE IF NOT EXISTS lessons (
   date DATE NOT NULL,
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
-  duration INTEGER NOT NULL, -- minutes
+  duration INTEGER NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
   is_paid BOOLEAN DEFAULT false,
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled')),
@@ -128,7 +132,7 @@ CREATE TABLE IF NOT EXISTS booking_requests (
   student_contact TEXT NOT NULL,
   requested_date DATE NOT NULL,
   requested_time TIME NOT NULL,
-  duration INTEGER NOT NULL, -- minutes
+  duration INTEGER NOT NULL,
   note TEXT,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
   area_id UUID REFERENCES areas(id) ON DELETE SET NULL,
@@ -144,7 +148,7 @@ CREATE TABLE IF NOT EXISTS booking_requests (
 CREATE TABLE IF NOT EXISTS availability_ranges (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
-  day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6), -- 0=Sunday, 6=Saturday
+  day_of_week INTEGER NOT NULL CHECK (day_of_week >= 0 AND day_of_week <= 6),
   start_time TIME NOT NULL,
   end_time TIME NOT NULL,
   area_id UUID NOT NULL REFERENCES areas(id) ON DELETE CASCADE,
@@ -162,11 +166,11 @@ CREATE TABLE IF NOT EXISTS blackout_dates (
   coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
   date DATE NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(coach_id, date) -- Prevent duplicate blackout dates
+  UNIQUE(coach_id, date)
 );
 
 -- ============================================
--- INDEXES for better performance
+-- INDEXES
 -- ============================================
 CREATE INDEX IF NOT EXISTS idx_students_coach_id ON students(coach_id);
 CREATE INDEX IF NOT EXISTS idx_students_contact ON students(contact);
@@ -186,11 +190,18 @@ CREATE INDEX IF NOT EXISTS idx_facilities_coach_id ON facilities(coach_id);
 CREATE INDEX IF NOT EXISTS idx_facilities_area_id ON facilities(area_id);
 CREATE INDEX IF NOT EXISTS idx_courts_coach_id ON courts(coach_id);
 CREATE INDEX IF NOT EXISTS idx_courts_facility_id ON courts(facility_id);
+CREATE INDEX IF NOT EXISTS idx_coaches_booking_link ON coaches(booking_link);
 
 -- ============================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- ROW LEVEL SECURITY (RLS)
 -- ============================================
--- Enable RLS on all tables
+-- Philosophy:
+--   • A coach can only read/write their OWN rows (auth.uid() = coach_id / id)
+--   • Students (anonymous) can INSERT booking_requests via QR/link — no login needed
+--   • Public can SELECT coaches, availability, lessons, areas, facilities, courts
+--     to power the public booking page (read-only, no PII on students/notes)
+-- ============================================
+
 ALTER TABLE coaches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE areas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE facilities ENABLE ROW LEVEL SECURITY;
@@ -202,40 +213,100 @@ ALTER TABLE booking_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_ranges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blackout_dates ENABLE ROW LEVEL SECURITY;
 
--- For now, allow all operations (you can restrict later based on user authentication)
--- This allows the app to work immediately. You can add user-based policies later.
-CREATE POLICY "Allow all operations for authenticated users" ON coaches
-  FOR ALL USING (true) WITH CHECK (true);
+-- ---- COACHES ----
+-- Full access to own profile only
+CREATE POLICY "coaches_own_profile" ON coaches
+  FOR ALL
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON areas
-  FOR ALL USING (true) WITH CHECK (true);
+-- Public booking page: anyone can read any coach profile (to display name/price)
+CREATE POLICY "coaches_public_read" ON coaches
+  FOR SELECT USING (true);
 
-CREATE POLICY "Allow all operations for authenticated users" ON facilities
-  FOR ALL USING (true) WITH CHECK (true);
+-- ---- AREAS ----
+CREATE POLICY "areas_own_data" ON areas
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON courts
-  FOR ALL USING (true) WITH CHECK (true);
+-- Public booking page: read-only
+CREATE POLICY "areas_public_read" ON areas
+  FOR SELECT USING (true);
 
-CREATE POLICY "Allow all operations for authenticated users" ON students
-  FOR ALL USING (true) WITH CHECK (true);
+-- ---- FACILITIES ----
+CREATE POLICY "facilities_own_data" ON facilities
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON student_notes
-  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "facilities_public_read" ON facilities
+  FOR SELECT USING (true);
 
-CREATE POLICY "Allow all operations for authenticated users" ON lessons
-  FOR ALL USING (true) WITH CHECK (true);
+-- ---- COURTS ----
+CREATE POLICY "courts_own_data" ON courts
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON booking_requests
-  FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "courts_public_read" ON courts
+  FOR SELECT USING (true);
 
-CREATE POLICY "Allow all operations for authenticated users" ON availability_ranges
-  FOR ALL USING (true) WITH CHECK (true);
+-- ---- STUDENTS (private — no public read) ----
+CREATE POLICY "students_own_data" ON students
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY "Allow all operations for authenticated users" ON blackout_dates
-  FOR ALL USING (true) WITH CHECK (true);
+-- ---- STUDENT NOTES (private) ----
+CREATE POLICY "student_notes_own_data" ON student_notes
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
+
+-- ---- LESSONS ----
+CREATE POLICY "lessons_own_data" ON lessons
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
+
+-- Public can read lesson date/time/status to check slot availability
+CREATE POLICY "lessons_public_availability_read" ON lessons
+  FOR SELECT USING (true);
+
+-- ---- BOOKING REQUESTS ----
+-- Coach manages their own requests
+CREATE POLICY "booking_requests_own_data" ON booking_requests
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
+
+-- Anyone (student via QR/link, no account required) can submit a booking request
+CREATE POLICY "booking_requests_public_insert" ON booking_requests
+  FOR INSERT WITH CHECK (true);
+
+-- ---- AVAILABILITY RANGES ----
+CREATE POLICY "availability_own_data" ON availability_ranges
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
+
+-- Public booking page: read to generate available slots
+CREATE POLICY "availability_public_read" ON availability_ranges
+  FOR SELECT USING (true);
+
+-- ---- BLACKOUT DATES ----
+CREATE POLICY "blackout_dates_own_data" ON blackout_dates
+  FOR ALL
+  USING (auth.uid() = coach_id)
+  WITH CHECK (auth.uid() = coach_id);
+
+-- Public booking page: read to exclude blacked-out days
+CREATE POLICY "blackout_dates_public_read" ON blackout_dates
+  FOR SELECT USING (true);
 
 -- ============================================
--- FUNCTIONS for automatic updated_at
+-- AUTO-UPDATE updated_at
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -245,35 +316,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add triggers to update updated_at automatically
 CREATE TRIGGER update_coaches_updated_at BEFORE UPDATE ON coaches
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_areas_updated_at BEFORE UPDATE ON areas
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_facilities_updated_at BEFORE UPDATE ON facilities
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_courts_updated_at BEFORE UPDATE ON courts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_students_updated_at BEFORE UPDATE ON students
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_student_notes_updated_at BEFORE UPDATE ON student_notes
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_lessons_updated_at BEFORE UPDATE ON lessons
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_booking_requests_updated_at BEFORE UPDATE ON booking_requests
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
 CREATE TRIGGER update_availability_ranges_updated_at BEFORE UPDATE ON availability_ranges
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- DONE! Your database is ready.
 -- ============================================
-

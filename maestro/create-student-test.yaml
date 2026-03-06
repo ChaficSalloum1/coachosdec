@@ -1,41 +1,40 @@
 # Create Student Test
-# Tests the core student creation flow
+# Verifies a coach can add a student and see them in the list.
+# PRE-REQUISITE: COACH_A account must already exist and have completed onboarding.
 
-appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+appId: ${APP_ID}
 
 ---
 - launchApp
 
-# Login (update credentials as needed)
-- tapOn: "Settings"
-- tapOn: "Login"
-- inputText: "coach-a@test.com"  # UPDATE with your test email
-- tapOn: "Password"
-- inputText: "password123"  # UPDATE with your test password
+# Sign in
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
 - tapOn: "Sign In"
 
-# Wait for app to load
+- waitForAnimationToEnd
 - assertVisible: "Today"
 
-# Navigate to Students screen
+# Navigate to Students
 - tapOn: "Students"
+- assertVisible: "Students"
 
-# Tap add button (could be "+" icon or "Add Student" text)
-- tapOn: 
-    id: "add-student-button"
-- tapOn: "Add Student"  # Fallback if testID doesn't work
+# Add student
+- tapOn: "Add Student"
 
-# Fill in student form
-- inputText: "Test Student"
-- tapOn: "Contact"  # Or tap on contact field
-- inputText: "test@example.com"
+# Fill in name
+- tapOn: "Name"
+- inputText: "E2E Test Student"
 
-# Save student
+# Fill in contact
+- tapOn: "Contact"
+- inputText: "e2e@test.com"
+
 - tapOn: "Save"
 
 # Verify student appears in list
-- assertVisible: "Test Student"
-
-# Verify student details are correct
-- assertVisible: "test@example.com"
-
+- assertVisible: "E2E Test Student"
+- assertVisible: "e2e@test.com"

@@ -1,36 +1,37 @@
 # Navigation Test
-# Tests basic navigation between main tabs
+# Verifies the coach can sign in and navigate all main tabs.
+# PRE-REQUISITE: COACH_A account must already exist and have completed onboarding.
 
-appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+appId: ${APP_ID}
 
 ---
 - launchApp
 
-# If not logged in, login first
-- tapOn: "Settings"
-- tapOn: "Login"
-- inputText: "coach-a@test.com"  # UPDATE with your test email
-- tapOn: "Password"
-- inputText: "password123"  # UPDATE with your test password
+# Login screen appears on launch
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
 - tapOn: "Sign In"
 
-# Test Today tab
-- tapOn: "Today"
-- assertVisible: "Today"  # Or some content on Today screen
+- waitForAnimationToEnd
 
-# Test Requests tab
-- tapOn: "Requests"
-- assertVisible: "Requests"  # Or "Pending Requests" or empty state
-
-# Test Students tab
-- tapOn: "Students"
-- assertVisible: "Students"  # Or student list or empty state
-
-# Test Settings tab
-- tapOn: "Settings"
-- assertVisible: "Settings"  # Or settings content
-
-# Navigate back to Today
-- tapOn: "Today"
+# Should land on Today tab
 - assertVisible: "Today"
 
+# Requests tab
+- tapOn: "Requests"
+- assertVisible: "Requests"
+
+# Students tab
+- tapOn: "Students"
+- assertVisible: "Students"
+
+# Settings tab
+- tapOn: "Settings"
+- assertVisible: "Settings"
+
+# Back to Today
+- tapOn: "Today"
+- assertVisible: "Today"

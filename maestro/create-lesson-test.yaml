@@ -1,48 +1,34 @@
 # Create Lesson Test
-# Tests creating a lesson for a student
+# Verifies a coach can schedule a lesson for a student.
+# PRE-REQUISITE: COACH_A must be signed in and "E2E Test Student" must exist
+#                (run create-student-test.yaml first).
 
-appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+appId: ${APP_ID}
 
 ---
 - launchApp
 
-# Login
-- tapOn: "Settings"
-- tapOn: "Login"
-- inputText: "coach-a@test.com"  # UPDATE with your test email
-- tapOn: "Password"
-- inputText: "password123"  # UPDATE with your test password
+# Sign in
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
 - tapOn: "Sign In"
 
+- waitForAnimationToEnd
 - assertVisible: "Today"
 
-# Navigate to Today screen (should already be there)
-# Look for "Add Lesson" or similar button
-- tapOn: "Add Lesson"  # Or look for "+" button on Today screen
+# Open add-lesson flow (+ button on Today screen)
+- tapOn:
+    id: "add-lesson-button"
 
-# Select student (if student picker appears)
-- tapOn: "Test Student"  # Use a student that exists
+# Select student
+- assertVisible: "E2E Test Student"
+- tapOn: "E2E Test Student"
 
-# Fill in lesson details
-- tapOn: "Date"
-- tapOn: "Tomorrow"  # Or select a specific date
-
-- tapOn: "Start Time"
-- inputText: "10:00"  # Or use time picker
-
-- tapOn: "End Time"
-- inputText: "11:00"
-
-- tapOn: "Duration"
-- inputText: "60"
-
-- tapOn: "Price"
-- inputText: "50"
-
-# Save lesson
+# The form should now be visible — confirm Save
 - tapOn: "Save"
 
-# Verify lesson appears on Today screen
-- assertVisible: "Test Student"
-- assertVisible: "10:00"
-
+# Lesson should appear on Today screen
+- assertVisible: "E2E Test Student"

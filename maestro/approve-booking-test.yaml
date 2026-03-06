@@ -1,46 +1,60 @@
 # Approve Booking Request Test
-# Tests the booking approval workflow
+# Verifies the full booking workflow: student submits a request,
+# coach sees it in Requests tab and approves it, lesson appears in Today.
+#
+# PRE-REQUISITE: Coach must be signed in with an availability schedule set.
+# The test submits a booking as a student (via the in-app public booking preview)
+# then switches to the coach view to approve it.
 
-appId: com.yourcompany.vibecode  # UPDATE THIS with your actual app bundle ID
+appId: ${APP_ID}
 
 ---
 - launchApp
 
-# Login
-- tapOn: "Settings"
-- tapOn: "Login"
-- inputText: "coach-a@test.com"  # UPDATE with your test email
-- tapOn: "Password"
-- inputText: "password123"  # UPDATE with your test password
+# Sign in as coach
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
 - tapOn: "Sign In"
 
+- waitForAnimationToEnd
 - assertVisible: "Today"
 
-# Navigate to Requests screen
+# Open the public booking preview (simulates student experience)
+- tapOn: "Settings"
+- assertVisible: "Booking Link"
+- tapOn: "Preview student booking page"
+
+# Select first available slot
+- assertVisible: "Available Times"
+- tapOn:
+    index: 0
+    text: ":"   # first time slot (contains ":")
+
+# Fill in student details
+- assertVisible: "Your Name"
+- tapOn: "Your Name"
+- inputText: "Booking Test Student"
+- tapOn: "Contact"
+- inputText: "booking@test.com"
+- tapOn: "Send Booking Request"
+
+# Confirm success and go back
+- waitForAnimationToEnd
+
+# Navigate to Requests tab
 - tapOn: "Requests"
+- assertVisible: "Booking Test Student"
 
-# Check if there are pending requests
-# If no requests exist, this test will need a booking request created first
-- assertVisible: "Requests"  # Or "Pending Requests"
-
-# Find a booking request (if exists)
-- tapOn: "Pending"  # Or look for request card
-
-# Approve the booking
-- swipe: 
-    direction: RIGHT
-    startPoint: "20%,50%"
-    endPoint: "80%,50%"
-# Or tap approve button
+# Approve the request (swipe right or tap Approve)
 - tapOn: "Approve"
+- tapOn: "Confirm"
 
-# Confirm approval
-- tapOn: "Confirm"  # Or "Yes"
-
-# Verify request is approved (should disappear from pending)
+# Verify it no longer shows as pending
 - assertNotVisible: "Pending"
 
-# Verify lesson was created (check Today screen)
+# Verify lesson was created on Today screen
 - tapOn: "Today"
-- assertVisible: "Lesson"  # Or student name from booking
-
+- assertVisible: "Booking Test Student"

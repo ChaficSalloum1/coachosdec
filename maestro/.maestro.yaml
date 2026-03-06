@@ -1,0 +1,21 @@
+# =============================================================
+# Maestro E2E Test Configuration
+# =============================================================
+# Edit the values below before running any test.
+# Run tests with: bun run test:maestro
+# =============================================================
+
+env:
+  # App bundle ID — must match what is built on the device/simulator.
+  # iOS:     app.coachos.mobile  (set in app.json → ios.bundleIdentifier)
+  # Android: app.coachos.mobile  (set in app.json → android.package)
+  APP_ID: app.coachos.mobile
+
+  # Test accounts — create these in Supabase Dashboard → Authentication → Users
+  # Use the "Invite user" button or the "Add user" option.
+  # Both accounts need to complete onboarding in the app before running RLS tests.
+  COACH_A_EMAIL: coach-a@test.com
+  COACH_A_PASSWORD: TestPassword123!
+
+  COACH_B_EMAIL: coach-b@test.com
+  COACH_B_PASSWORD: TestPassword123!
