@@ -1,0 +1,40 @@
+# Create Student Test
+# Verifies a coach can add a student and see them in the list.
+# PRE-REQUISITE: COACH_A account must already exist and have completed onboarding.
+
+appId: ${APP_ID}
+
+---
+- launchApp
+
+# Sign in
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
+- tapOn: "Sign In"
+
+- waitForAnimationToEnd
+- assertVisible: "Today"
+
+# Navigate to Students
+- tapOn: "Students"
+- assertVisible: "Students"
+
+# Add student
+- tapOn: "Add Student"
+
+# Fill in name
+- tapOn: "Name"
+- inputText: "E2E Test Student"
+
+# Fill in contact
+- tapOn: "Contact"
+- inputText: "e2e@test.com"
+
+- tapOn: "Save"
+
+# Verify student appears in list
+- assertVisible: "E2E Test Student"
+- assertVisible: "e2e@test.com"

@@ -1,0 +1,34 @@
+# Create Lesson Test
+# Verifies a coach can schedule a lesson for a student.
+# PRE-REQUISITE: COACH_A must be signed in and "E2E Test Student" must exist
+#                (run create-student-test.yaml first).
+
+appId: ${APP_ID}
+
+---
+- launchApp
+
+# Sign in
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
+- tapOn: "Sign In"
+
+- waitForAnimationToEnd
+- assertVisible: "Today"
+
+# Open add-lesson flow (+ button on Today screen)
+- tapOn:
+    id: "add-lesson-button"
+
+# Select student
+- assertVisible: "E2E Test Student"
+- tapOn: "E2E Test Student"
+
+# The form should now be visible — confirm Save
+- tapOn: "Save"
+
+# Lesson should appear on Today screen
+- assertVisible: "E2E Test Student"

@@ -1,0 +1,89 @@
+# RLS Security Test  ⚠️  CRITICAL — run after every schema change
+# =============================================================
+# Verifies that Supabase Row Level Security is working correctly:
+# Coach A must NOT be able to see Coach B's students (or any data).
+#
+# PRE-REQUISITES:
+#   1. supabase-schema.sql has been run in Supabase SQL Editor
+#   2. Both COACH_A and COACH_B accounts exist in Supabase Auth
+#      AND have completed in-app onboarding (so they have a coaches row)
+#   3. App is built and installed on device/simulator
+#   4. Credentials set in maestro/.maestro.yaml
+# =============================================================
+
+appId: ${APP_ID}
+
+---
+
+# -------------------------------------------------------
+# Step 1: Sign in as Coach A and create a student
+# -------------------------------------------------------
+- launchApp:
+    clearState: true
+
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
+- tapOn: "Sign In"
+
+- waitForAnimationToEnd
+- assertVisible: "Today"
+
+- tapOn: "Students"
+- tapOn: "Add Student"
+- tapOn: "Name"
+- inputText: "Coach A Private Student"
+- tapOn: "Contact"
+- inputText: "private-a@test.com"
+- tapOn: "Save"
+
+- assertVisible: "Coach A Private Student"
+
+# -------------------------------------------------------
+# Step 2: Sign out as Coach A
+# -------------------------------------------------------
+- tapOn: "Settings"
+- scrollToBottom
+- tapOn: "Sign Out"
+- tapOn: "Sign Out"   # confirm dialog
+
+- waitForAnimationToEnd
+- assertVisible: "CoachOS"   # back to login screen
+
+# -------------------------------------------------------
+# Step 3: Sign in as Coach B
+# -------------------------------------------------------
+- tapOn: "your@email.com"
+- inputText: "${COACH_B_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_B_PASSWORD}"
+- tapOn: "Sign In"
+
+- waitForAnimationToEnd
+- assertVisible: "Today"
+
+# -------------------------------------------------------
+# Step 4: CRITICAL ASSERTION — Coach B must NOT see Coach A's student
+# -------------------------------------------------------
+- tapOn: "Students"
+- assertNotVisible: "Coach A Private Student"
+
+# -------------------------------------------------------
+# Step 5: Coach B CAN create their own student
+# -------------------------------------------------------
+- tapOn: "Add Student"
+- tapOn: "Name"
+- inputText: "Coach B Own Student"
+- tapOn: "Contact"
+- inputText: "own-b@test.com"
+- tapOn: "Save"
+
+- assertVisible: "Coach B Own Student"
+- assertNotVisible: "Coach A Private Student"
+
+# -------------------------------------------------------
+# TEST PASSED if this point is reached without errors.
+# If assertNotVisible fails → RLS is broken → stop and fix schema.
+# -------------------------------------------------------

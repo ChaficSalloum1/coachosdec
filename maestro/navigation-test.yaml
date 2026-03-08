@@ -1,0 +1,37 @@
+# Navigation Test
+# Verifies the coach can sign in and navigate all main tabs.
+# PRE-REQUISITE: COACH_A account must already exist and have completed onboarding.
+
+appId: ${APP_ID}
+
+---
+- launchApp
+
+# Login screen appears on launch
+- assertVisible: "CoachOS"
+- tapOn: "your@email.com"
+- inputText: "${COACH_A_EMAIL}"
+- tapOn: "••••••••"
+- inputText: "${COACH_A_PASSWORD}"
+- tapOn: "Sign In"
+
+- waitForAnimationToEnd
+
+# Should land on Today tab
+- assertVisible: "Today"
+
+# Requests tab
+- tapOn: "Requests"
+- assertVisible: "Requests"
+
+# Students tab
+- tapOn: "Students"
+- assertVisible: "Students"
+
+# Settings tab
+- tapOn: "Settings"
+- assertVisible: "Settings"
+
+# Back to Today
+- tapOn: "Today"
+- assertVisible: "Today"

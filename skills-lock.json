@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "app-store-opportunity-research": {
+      "source": "froessell/app-store-opportunity-research",
+      "sourceType": "github",
+      "computedHash": "3f530fad3e4936a5292e84adf343de8be7bc383a4476fd03fff1ffa6b3a2530c"
+    }
+  }
+}
