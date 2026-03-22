@@ -11,10 +11,7 @@ env:
   COACH_B_PASSWORD: "password123"
   COACH_B_UID: "8b2a6acb-bbff-445c-8905-41062e435123"  # UPDATE: Add your Coach B UID from Supabase
   
-  # App bundle ID - UPDATE with your actual bundle ID
-  # For vibecodeapp.com, it's likely: com.vibecodeapp or com.vibecode.app
-  # After building, check the console output or run: npx expo config
-  APP_ID: "com.vibecodeapp"  # UPDATE: Verify this matches your actual bundle ID after building
+  APP_ID: "app.coachos.mobile"
 
 tags:
   - critical
