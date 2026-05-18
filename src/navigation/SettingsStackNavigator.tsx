@@ -5,6 +5,7 @@ import { LocationsScreen } from '../screens/LocationsScreen';
 import { AvailabilityScreen } from '../screens/AvailabilityScreen';
 import { PublicBookingPreview } from '../screens/PublicBookingPreview';
 import { PublicBookingWrapper } from '../screens/PublicBookingWrapper';
+import { PaywallScreen } from '../screens/PaywallScreen';
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
@@ -12,6 +13,7 @@ export type SettingsStackParamList = {
   Availability: undefined;
   PublicBookingPreview: { slug: string };
   PublicBooking: undefined;
+  Paywall: undefined;
 };
 
 const Stack = createNativeStackNavigator<SettingsStackParamList>();
@@ -50,9 +52,17 @@ export function SettingsStackNavigator() {
           presentation: 'modal',
         }}
       />
-      <Stack.Screen 
-        name="PublicBooking" 
+      <Stack.Screen
+        name="PublicBooking"
         component={PublicBookingWrapper}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+        }}
+      />
+      <Stack.Screen
+        name="Paywall"
+        component={PaywallScreen}
         options={{
           headerShown: false,
           presentation: 'modal',

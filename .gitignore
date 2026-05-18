@@ -45,3 +45,6 @@ expo.log
 .env
 .env.local
 .env.*.local
+
+EXPO_PUBLIC_VIBECODE_SUPABASE_URL=https://ldhfkvywfmjyuxuczgmc.supabase.co
+EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
