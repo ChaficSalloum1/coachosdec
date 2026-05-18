@@ -8,6 +8,7 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { getSession, onAuthStateChange } from '../services/authService';
 import { registerForPushNotifications } from '../services/pushNotificationsService';
 import { setSentryUser, clearSentryUser } from '../services/sentryService';
+import { initRevenueCat, identifyUser, resetUser } from '../services/revenueCatService';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -28,6 +29,9 @@ export function RootNavigator() {
   const supabaseReady = isSupabaseConfigured();
 
   useEffect(() => {
+    // Initialize RevenueCat early, before auth resolves
+    initRevenueCat();
+
     if (!supabaseReady) {
       // No Supabase — skip auth, go straight to the app
       setSession(null);
@@ -42,8 +46,10 @@ export function RootNavigator() {
       if (newSession?.user) {
         setSentryUser(newSession.user.id, newSession.user.email ?? undefined);
         registerForPushNotifications().catch(() => {});
+        identifyUser(newSession.user.id).catch(() => {});
       } else {
         clearSentryUser();
+        resetUser().catch(() => {});
       }
     });
 
