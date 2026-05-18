@@ -84,6 +84,26 @@ export function SettingsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
       >
         <View className="px-4 py-6">
+          {/* Upgrade CTA */}
+          <Pressable
+            onPress={() => navigation.navigate('Paywall' as never)}
+            style={{
+              backgroundColor: '#0B1220',
+              borderRadius: 14,
+              paddingVertical: 16,
+              paddingHorizontal: 20,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 28,
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+              ✨ Upgrade to CoachOS Pro
+            </Text>
+            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
+          </Pressable>
+
           {/* Quick Access — on-court essentials first */}
           <Section title={t('availability')}>
             <AvailabilityCard coach={coach} />
