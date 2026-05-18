@@ -35,8 +35,7 @@ export function StudentsScreen() {
     student.contact.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Bottom search bar height: 56px input + 16px vertical padding
-  const SEARCH_BAR_HEIGHT = 56;
+  const SEARCH_BAR_HEIGHT = 64;
 
   return (
     <KeyboardAvoidingView
@@ -55,7 +54,8 @@ export function StudentsScreen() {
 
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingBottom: SEARCH_BAR_HEIGHT + insets.bottom + 60 }}
+        style={{ marginBottom: SEARCH_BAR_HEIGHT + insets.bottom }}
+        contentContainerStyle={{ paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"
       >
         <View className="px-4 py-4">
@@ -80,7 +80,7 @@ export function StudentsScreen() {
       <View
         style={[
           styles.bottomSearchBar,
-          { bottom: insets.bottom + 60 }, // 60 = tab bar height
+          { bottom: insets.bottom },
         ]}
       >
         <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
@@ -380,7 +380,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
           </Text>
           {student.notes && (
             <Text className="text-small text-ink-600 mt-2 italic">
-              "{student.notes}"
+              {`"${student.notes}"`}
             </Text>
           )}
         </View>

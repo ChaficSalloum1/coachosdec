@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
 import { BookingRequest } from '../types/coach';
@@ -67,7 +68,7 @@ export function PublicBookingPreview() {
 
     const fullRequest: BookingRequest = {
       ...request,
-      id: `request_${Date.now()}`,
+      id: uuidv4(),
       status: 'pending',
       createdAt: new Date().toISOString(),
     };

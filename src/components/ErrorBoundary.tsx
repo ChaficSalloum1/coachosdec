@@ -75,7 +75,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               Something Went Wrong
             </Text>
             <Text className="text-base text-center" style={{ color: '#42526E' }}>
-              We encountered an unexpected error. Don't worry, your data is safe.
+              {"We encountered an unexpected error. Don't worry, your data is safe."}
             </Text>
           </View>
 

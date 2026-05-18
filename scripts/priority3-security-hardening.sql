@@ -13,14 +13,29 @@ BEGIN;
 -- ============================================
 DROP POLICY IF EXISTS "booking_requests_public_insert" ON booking_requests;
 
+-- Security-definer helper so anonymous booking inserts can validate a real
+-- coach without requiring public SELECT access to the coaches table.
+CREATE OR REPLACE FUNCTION public_coach_exists(p_coach_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM coaches
+    WHERE id = p_coach_id
+      AND deleted_at IS NULL
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public_coach_exists(UUID) TO anon, authenticated;
+
 -- New policy: Only allow insert if coach_id references an existing coach
 -- This prevents spam attacks with fake coach IDs
 CREATE POLICY "booking_requests_public_insert" ON booking_requests
   FOR INSERT
-  WITH CHECK (
-    -- Verify the coach exists
-    coach_id IN (SELECT id FROM coaches WHERE deleted_at IS NULL)
-  );
+  WITH CHECK (public_coach_exists(coach_id));
 
 -- ============================================
 -- 2. ADD RATE LIMITING TABLE FOR PUBLIC BOOKINGS

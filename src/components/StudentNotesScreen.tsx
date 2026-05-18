@@ -132,7 +132,7 @@ export function StudentNotesScreen({
 
             <View className="flex-1 items-center px-4">
               <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-                {studentName}'s Notes
+                {`${studentName}'s Notes`}
               </Text>
               <Text className="text-sm mt-1" style={{ color: '#6B7280' }}>
                 {notes.length} {notes.length === 1 ? 'note' : 'notes'}

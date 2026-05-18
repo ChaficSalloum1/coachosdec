@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDays, format } from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
 import { Coach, BookingRequest, Lesson, Student, StudentNote, Area, Facility, Court, AvailabilityRange, BlackoutDate } from '../types/coach';
 
 // Helper function to safely import CalendarService
@@ -275,7 +276,7 @@ export const useCoachStore = create<CoachState>()(
         
         if (!student) {
           student = {
-            id: `student_${Date.now()}`,
+            id: uuidv4(),
             coachId: request.coachId,
             name: request.studentName,
             contact: request.studentContact,
@@ -289,7 +290,7 @@ export const useCoachStore = create<CoachState>()(
         
         // Create lesson from approved request with proper student ID
         const lesson: Lesson = {
-          id: `lesson_${Date.now()}`,
+          id: uuidv4(),
           coachId: request.coachId,
           studentId: student.id, // Use proper student ID
           studentName: request.studentName,
@@ -361,7 +362,7 @@ export const useCoachStore = create<CoachState>()(
       createLesson: (params) => set((state) => {
         if (!state.coach) return state;
         const lesson: Lesson = {
-          id: `lesson_${Date.now()}`,
+          id: uuidv4(),
           coachId: state.coach.id,
           studentId: params.studentId,
           studentName: params.studentName,
@@ -585,7 +586,7 @@ export const useCoachStore = create<CoachState>()(
       addStudentNote: (note) => set((state) => {
         const newNote: StudentNote = {
           ...note,
-          id: `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          id: uuidv4(),
           createdAt: new Date().toISOString(),
         };
 

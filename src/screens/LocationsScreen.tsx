@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
 import { Area, Facility, Court } from '../types/coach';
@@ -164,7 +165,7 @@ function AreasTab() {
             updateArea(editingArea.id, { name });
           } else if (coach) {
             const newArea: Area = {
-              id: `area_${Date.now()}`,
+              id: uuidv4(),
               coachId: coach.id,
               name,
             };
@@ -293,7 +294,7 @@ function FacilitiesTab() {
             updateFacility(editingFacility.id, data);
           } else if (coach) {
             const newFacility: Facility = {
-              id: `facility_${Date.now()}`,
+              id: uuidv4(),
               coachId: coach.id,
               ...data,
             };
@@ -424,7 +425,7 @@ function CourtsTab() {
             updateCourt(editingCourt.id, data);
           } else if (coach) {
             const newCourt: Court = {
-              id: `court_${Date.now()}`,
+              id: uuidv4(),
               coachId: coach.id,
               ...data,
             };

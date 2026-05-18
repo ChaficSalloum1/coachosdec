@@ -496,7 +496,7 @@ export function BlackoutCalendarModal({
               Instructions:
             </Text>
             <Text className="text-sm" style={{ color: '#42526E' }}>
-              Tap dates to add/remove blackouts. Blacked out dates won't show available slots to students.
+              {"Tap dates to add/remove blackouts. Blacked out dates won't show available slots to students."}
             </Text>
           </View>
         </View>

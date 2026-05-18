@@ -79,7 +79,10 @@ export function SettingsScreen() {
         </Text>
       </View>
 
-      <ScrollView className="flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+      >
         <View className="px-4 py-6">
           {/* Quick Access — on-court essentials first */}
           <Section title={t('availability')}>

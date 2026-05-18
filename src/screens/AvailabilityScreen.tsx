@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
 import { AvailabilityRange, BlackoutDate } from '../types/coach';
@@ -343,7 +344,7 @@ export function AvailabilityScreen() {
             updateAvailabilityRange(editingRange.id, range);
           } else if (coach) {
             const newRange: AvailabilityRange = {
-              id: `range_${Date.now()}`,
+              id: uuidv4(),
               coachId: coach.id,
               ...range,
               dayOfWeek: selectedDay,
@@ -362,7 +363,7 @@ export function AvailabilityScreen() {
         onAddDate={(date) => {
           if (coach) {
             const blackout: BlackoutDate = {
-              id: `blackout_${Date.now()}`,
+              id: uuidv4(),
               coachId: coach.id,
               date,
             };

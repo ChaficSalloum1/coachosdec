@@ -124,6 +124,7 @@ export function SwipeableCard({
   });
 
   const panGesture = Gesture.Pan()
+    .activeOffsetX([-10, 10])
     .onUpdate((event) => {
       translateX.value = event.translationX;
       
@@ -147,6 +148,8 @@ export function SwipeableCard({
           opacity.value = withSpring(0.5, {}, () => {
             runOnJS(Haptics.notificationAsync)(Haptics.NotificationFeedbackType.Success);
             runOnJS(onSwipeRight)();
+            scale.value = withSpring(1);
+            opacity.value = withSpring(1);
           });
         } else if (direction === 'left' && leftSwipeEnabled && onSwipeLeft) {
           // Scale out and fade before action
@@ -154,6 +157,8 @@ export function SwipeableCard({
           opacity.value = withSpring(0.5, {}, () => {
             runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Heavy);
             runOnJS(onSwipeLeft)();
+            scale.value = withSpring(1);
+            opacity.value = withSpring(1);
           });
         }
       }
@@ -167,6 +172,7 @@ export function SwipeableCard({
     });
 
   const tapGesture = Gesture.Tap()
+    .maxDistance(10)
     .onTouchesDown(() => {
       scale.value = withSpring(0.97);
       runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
@@ -180,7 +186,7 @@ export function SwipeableCard({
       }
     });
 
-  const combinedGesture = Gesture.Simultaneous(panGesture, tapGesture);
+  const combinedGesture = Gesture.Exclusive(panGesture, tapGesture);
 
   return (
     <View style={{ position: 'relative' }}>

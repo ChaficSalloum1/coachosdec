@@ -5,6 +5,7 @@ import { BookingRequest } from '../types/coach';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveBookingRequestToSupabase } from '../services/supabaseSync';
+import { v4 as uuidv4 } from 'uuid';
 
 export function PublicBookingWrapper() {
   const insets = useSafeAreaInsets();
@@ -36,32 +37,26 @@ export function PublicBookingWrapper() {
     try {
       const fullRequest: BookingRequest = {
         ...request,
-        id: `request_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        id: uuidv4(),
         status: 'pending',
         createdAt: new Date().toISOString(),
       };
       
-      // Save to local store first (for immediate UI feedback)
-      addBookingRequest(fullRequest);
-      
-      // Save directly to Supabase (works for unauthenticated users via anon key)
-      // This allows public users (QR code/link) to create booking requests
-      try {
+      const hasSupabaseConfig =
+        Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL) &&
+        Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY);
+
+      if (hasSupabaseConfig) {
+        // Public booking links must reach Supabase so the coach can receive them.
         const result = await saveBookingRequestToSupabase(fullRequest);
         if (!result.success) {
-          // Log error but don't break the UI - request is saved locally
-          // It will sync when coach logs in, or user can try again
-          if (__DEV__) {
-            console.warn('Failed to save booking request to Supabase:', result.error);
-          }
-        }
-      } catch (supabaseError) {
-        // Supabase save failed, but don't break the user experience
-        // Request is saved locally and will sync when coach logs in
-        if (__DEV__) {
-          console.warn('Supabase save error (non-critical):', supabaseError);
+          throw new Error(result.error || 'Unable to submit booking request.');
         }
       }
+
+      // Save to local store after remote acceptance, or as the development
+      // fallback when Supabase is intentionally not configured.
+      addBookingRequest(fullRequest);
     } catch (error) {
       console.error('Failed to create booking request:', error);
       throw error; // Re-throw so the UI can handle it

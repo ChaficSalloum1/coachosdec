@@ -101,9 +101,7 @@ export function TodayScreen() {
     setCache(prev => {
       const newCache = { ...prev };
       datesToCache.forEach(dateISO => {
-        if (!newCache[dateISO]) {
-          newCache[dateISO] = computeFor(dateISO);
-        }
+        newCache[dateISO] = computeFor(dateISO);
       });
       return newCache;
     });
@@ -506,7 +504,21 @@ const AnimatedDayPage = React.memo(({
 }, (prevProps, nextProps) => {
   return prevProps.dateISO === nextProps.dateISO && 
          prevProps.lessons.length === nextProps.lessons.length &&
-         prevProps.lessons.every((l, i) => l.id === nextProps.lessons[i]?.id) &&
+         prevProps.lessons.every((lesson, i) => {
+           const nextLesson = nextProps.lessons[i];
+           return nextLesson &&
+             lesson.id === nextLesson.id &&
+             lesson.status === nextLesson.status &&
+             lesson.isPaid === nextLesson.isPaid &&
+             lesson.studentName === nextLesson.studentName &&
+             lesson.startTime === nextLesson.startTime &&
+             lesson.endTime === nextLesson.endTime &&
+             lesson.price === nextLesson.price &&
+             lesson.notes === nextLesson.notes &&
+             lesson.areaId === nextLesson.areaId &&
+             lesson.facilityId === nextLesson.facilityId &&
+             lesson.courtId === nextLesson.courtId;
+         }) &&
          prevProps.screenWidth === nextProps.screenWidth;
 });
 
@@ -740,8 +752,15 @@ interface LessonCardProps {
 
 const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: LessonCardProps) => {
   const { formatLocationText } = useCoachStore();
+  const cancelAlertOpenRef = useRef(false);
 
   const handleCancelSwipe = () => {
+    if (cancelAlertOpenRef.current) {
+      return;
+    }
+
+    cancelAlertOpenRef.current = true;
+
     Alert.alert(
       'Cancel Lesson',
       `Cancel lesson with ${lesson.studentName}?`,
@@ -749,16 +768,25 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
         {
           text: 'Keep Lesson',
           style: 'cancel',
+          onPress: () => {
+            cancelAlertOpenRef.current = false;
+          },
         },
         {
           text: 'Cancel Lesson',
           style: 'destructive',
           onPress: () => {
+            cancelAlertOpenRef.current = false;
             onCancel();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           },
         },
-      ]
+      ],
+      {
+        onDismiss: () => {
+          cancelAlertOpenRef.current = false;
+        },
+      }
     );
   };
 
@@ -780,7 +808,10 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
 
     actions.push({
       text: 'Cancel Lesson',
-      onPress: handleCancelSwipe,
+      onPress: () => {
+        onCancel();
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      },
       style: 'destructive',
     });
 

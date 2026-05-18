@@ -84,7 +84,10 @@ export function RequestsScreen() {
         </Text>
       </View>
 
-      <ScrollView className="flex-1">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
+      >
         <View className="px-4 py-6">
           {isLoading ? (
             <View className="space-y-3">
@@ -155,8 +158,16 @@ interface RequestCardProps {
 
 function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCardProps) {
   const { formatLocationText } = useCoachStore();
+  const approvalAlertOpenRef = React.useRef(false);
+  const declineAlertOpenRef = React.useRef(false);
 
   const handleApproveSwipe = () => {
+    if (approvalAlertOpenRef.current) {
+      return;
+    }
+
+    approvalAlertOpenRef.current = true;
+
     Alert.alert(
       'Approve Booking',
       `Approve lesson with ${request.studentName}?`,
@@ -164,20 +175,35 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
         {
           text: 'Cancel',
           style: 'cancel',
+          onPress: () => {
+            approvalAlertOpenRef.current = false;
+          },
         },
         {
           text: 'Approve',
           style: 'default',
           onPress: () => {
+            approvalAlertOpenRef.current = false;
             onApprove();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           },
         },
-      ]
+      ],
+      {
+        onDismiss: () => {
+          approvalAlertOpenRef.current = false;
+        },
+      }
     );
   };
 
   const handleDeclineSwipe = () => {
+    if (declineAlertOpenRef.current) {
+      return;
+    }
+
+    declineAlertOpenRef.current = true;
+
     Alert.alert(
       'Decline Booking',
       `Decline lesson request from ${request.studentName}?`,
@@ -185,16 +211,25 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
         {
           text: 'Cancel',
           style: 'cancel',
+          onPress: () => {
+            declineAlertOpenRef.current = false;
+          },
         },
         {
           text: 'Decline',
           style: 'destructive',
           onPress: () => {
+            declineAlertOpenRef.current = false;
             onDecline();
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           },
         },
-      ]
+      ],
+      {
+        onDismiss: () => {
+          declineAlertOpenRef.current = false;
+        },
+      }
     );
   };
 
@@ -205,12 +240,18 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
       [
         {
           text: 'Approve',
-          onPress: handleApproveSwipe,
+          onPress: () => {
+            onApprove();
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
           style: 'default',
         },
         {
           text: 'Decline',
-          onPress: handleDeclineSwipe,
+          onPress: () => {
+            onDecline();
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          },
           style: 'destructive',
         },
         {
@@ -371,7 +412,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
               color: DesignTokens.colors.grey
             }}
           >
-            "{request.note}"
+            {`"${request.note}"`}
           </Text>
         </View>
       )}
