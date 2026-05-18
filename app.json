@@ -13,7 +13,11 @@
       "infoPlist": {
         "NSCalendarsUsageDescription": "CoachOS needs access to your calendar to sync approved lessons with your device calendar.",
         "NSRemindersUsageDescription": "CoachOS needs access to your reminders to help you stay on top of your coaching schedule.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -25,6 +29,11 @@
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d625f8c5-ed49-43e3-a39b-9e54ae4a53f8"
+      }
     }
   }
 }
