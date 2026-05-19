@@ -13,8 +13,10 @@
       "infoPlist": {
         "NSCalendarsUsageDescription": "CoachOS needs access to your calendar to sync approved lessons with your device calendar.",
         "NSRemindersUsageDescription": "CoachOS needs access to your reminders to help you stay on top of your coaching schedule.",
+        "NSCameraUsageDescription": "CoachOS requires camera access to allow coaches and athletes to record training sessions and upload profile videos.",
+        "NSContactsUsageDescription": "CoachOS accesses your contacts to easily invite your clients, athletes, and team members to your coaching portal.",
+        "NSLocationWhenInUseUsageDescription": "CoachOS uses your location to map out local running routes, tracking outdoor athletic performance accurately.",
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
         ],
         "ITSAppUsesNonExemptEncryption": false
@@ -37,3 +39,4 @@
     }
   }
 }
+
