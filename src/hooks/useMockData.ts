@@ -4,7 +4,7 @@ import { mockCoach, mockBookingRequests, mockLessons, mockStudents } from '../ut
 import { mockAreas, mockFacilities, mockCourts } from '../utils/mockLocationData';
 import { mockAvailabilityRanges, mockBlackoutDates } from '../utils/mockAvailabilityData';
 
-export function useMockData() {
+export function useMockData(enabled = true) {
   const { 
     coach, setCoach, 
     bookingRequests, addBookingRequest, 
@@ -19,6 +19,10 @@ export function useMockData() {
   } = useCoachStore();
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     // Add location data first (this runs every time to ensure locations exist)
     mockAreas.forEach(area => {
       const existingArea = areas.find(a => a.id === area.id);
@@ -79,5 +83,5 @@ export function useMockData() {
     
     // Run migration for existing data
     migrateExistingData();
-  }, []);
+  }, [enabled]);
 }

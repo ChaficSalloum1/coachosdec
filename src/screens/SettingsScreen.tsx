@@ -552,7 +552,7 @@ interface OnboardingScreenProps {
   onComplete: (coach: Coach) => void;
 }
 
-function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [sports, setSports] = useState('');

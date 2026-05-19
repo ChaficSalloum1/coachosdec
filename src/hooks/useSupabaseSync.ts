@@ -2,7 +2,7 @@
 Hook to automatically sync Zustand store with Supabase
 This runs in the background and keeps your data synced
 */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCoachStore } from "../state/coachStore";
 import { loadCoachDataFromSupabase } from "../services/supabaseSync";
 import { getSupabaseClient } from "../api/supabase";
@@ -31,8 +31,6 @@ import type {
   BlackoutDate,
 } from "../types/coach";
 
-let isInitialized = false;
-
 // Define the state type for the subscription
 interface SyncState {
   students: Student[];
@@ -53,36 +51,59 @@ interface SyncState {
 export const useSupabaseSync = () => {
   const coach = useCoachStore((state) => state.coach);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const loadedCoachIdRef = useRef<string | null>(null);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
 
-  // Load data from Supabase on mount (if coach exists)
+  const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
+  const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
+  const supabaseReady = Boolean(supabaseUrl && supabaseKey);
+
   useEffect(() => {
-    if (!coach?.id || isInitialized) return;
+    if (!supabaseReady) {
+      if (__DEV__) {
+        console.log("ℹ️ Supabase not configured - app will work with local storage only");
+      }
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+
+    supabase.auth.getUser().then(({ data }) => {
+      setAuthUserId(data.user?.id ?? null);
+    }).catch(() => {
+      setAuthUserId(null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUserId(session?.user?.id ?? null);
+      loadedCoachIdRef.current = null;
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabaseReady]);
+
+  // Load data from Supabase for the authenticated user. On a fresh install,
+  // coach is null, so auth.uid() is the only reliable profile lookup key.
+  useEffect(() => {
+    if (!supabaseReady) return;
+
+    const coachId = coach?.id || authUserId;
+    if (!coachId || loadedCoachIdRef.current === coachId) return;
 
     // Validate that coach ID is a proper UUID before syncing
-    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coach.id);
+    const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coachId);
     if (!isValidUUID) {
       if (__DEV__) {
-        console.warn("⚠️ Skipping Supabase sync - coach ID is not a valid UUID:", coach.id);
+        console.warn("⚠️ Skipping Supabase sync - coach ID is not a valid UUID:", coachId);
       }
-      isInitialized = true; // Mark as initialized to prevent retries
+      loadedCoachIdRef.current = coachId;
       return;
     }
 
     const loadData = async () => {
       try {
-        // Check if Supabase is configured
-        const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-        const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-
-        if (!supabaseUrl || !supabaseKey) {
-          if (__DEV__) {
-            console.log("ℹ️ Supabase not configured - app will work with local storage only");
-          }
-          return;
-        }
-
         console.log("🔄 Loading data from Supabase...");
-        const data = await loadCoachDataFromSupabase(coach.id);
+        const data = await loadCoachDataFromSupabase(coachId);
 
         // Update store with loaded data
         useCoachStore.setState({
@@ -100,24 +121,24 @@ export const useSupabaseSync = () => {
         // Update coach if it exists in database
         if (data.coach) {
           useCoachStore.setState({ coach: data.coach });
-        } else {
+        } else if (coach) {
           // Save current coach to database if it doesn't exist
           await saveCoachToSupabase(coach);
         }
 
         console.log("✅ Data loaded from Supabase");
-        isInitialized = true;
+        loadedCoachIdRef.current = coachId;
       } catch (error) {
         // Don't break the app if Supabase fails - just log and continue
         if (__DEV__) {
           console.warn("⚠️ Could not load data from Supabase (app will continue with local data):", error);
         }
-        isInitialized = true; // Mark as initialized so we don't keep retrying
+        loadedCoachIdRef.current = coachId;
       }
     };
 
     loadData();
-  }, [coach?.id]);
+  }, [authUserId, coach, coach?.id, supabaseReady]);
 
   // Auto-save coach when it changes
   useEffect(() => {
@@ -489,5 +510,4 @@ export const useSupabaseSync = () => {
     };
   }, [coach?.id]);
 };
-
 

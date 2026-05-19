@@ -101,7 +101,7 @@ export const signOut = async (): Promise<{ error: any | null }> => {
     // Forcefully wipe the UI layout memory no matter what happened above.
     try {
       if (useCoachStore && useCoachStore.getState) {
-        useCoachStore.getState().setCoach(null);
+        useCoachStore.getState().clearAllData();
       }
     } catch (storeError) {
       console.error("Critical: Failed to manually clear Zustand cache:", storeError);
@@ -205,4 +205,3 @@ export const updateUserMetadata = async (
     return { user: null, error: error as AuthError };
   }
 };
-

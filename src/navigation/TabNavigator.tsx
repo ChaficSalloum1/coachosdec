@@ -10,6 +10,7 @@ import { RequestsScreen } from '../screens/RequestsScreen';
 import { StudentsScreen } from '../screens/StudentsScreen';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { useCoachStore } from '../state/coachStore';
+import { OnboardingScreen } from '../screens/SettingsScreen';
 
 export type TabParamList = {
   Today: undefined;
@@ -23,9 +24,15 @@ const Tab = createBottomTabNavigator<TabParamList>();
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const coach = useCoachStore(s => s.coach);
+  const setCoach = useCoachStore(s => s.setCoach);
   const pendingCount = useCoachStore(
     s => s.bookingRequests.filter(r => r.status === 'pending').length
   );
+
+  if (!coach) {
+    return <OnboardingScreen onComplete={setCoach} />;
+  }
 
   return (
     <Tab.Navigator

@@ -44,7 +44,7 @@ interface CoachState {
   blackoutDates: BlackoutDate[];
   
   // Actions
-  setCoach: (coach: Coach) => void;
+  setCoach: (coach: Coach | null) => void;
   updateCoach: (updates: Partial<Coach>) => void;
   
   // Booking request actions
