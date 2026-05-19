@@ -2,9 +2,11 @@
 Authentication service for Supabase
 Handles user authentication, session management, and user profile operations
 */
+import { useCoachStore } from '../state/coachStore';
 import { getSupabaseClient } from "../api/supabase";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 
+// ... your interfaces and rest of the code follow below
 export interface SignUpCredentials {
   email: string;
   password: string;
@@ -80,18 +82,35 @@ export const signIn = async (
 };
 
 /**
- * Sign out the current user
+ * Sign out the current user, clear the remote session, 
+ * and force-evict any local ghost sessions.
  */
-export const signOut = async (): Promise<{ error: AuthError | null }> => {
+export const signOut = async (): Promise<{ error: any | null }> => {
   try {
     const supabase = getSupabaseClient();
+    // 1. Tell the Supabase backend to terminate the session token
     const { error } = await supabase.auth.signOut();
-    return { error };
+    if (error) {
+      console.warn("Supabase remote signout rejected request:", error.message);
+    }
   } catch (error) {
-    return { error: error as AuthError };
+    // 2. Catch network crashes or ghost-account failures silently
+    console.warn("Network or session missing during signout, bypassing to local wipe:", error);
+  } finally {
+    // 3. THE BULLETPROOF LOCK-PICK:
+    // Forcefully wipe the UI layout memory no matter what happened above.
+    try {
+      if (useCoachStore && useCoachStore.getState) {
+        useCoachStore.getState().setCoach(null);
+      }
+    } catch (storeError) {
+      console.error("Critical: Failed to manually clear Zustand cache:", storeError);
+    }
   }
+  
+  // Always return a clean exit status so the UI thread can finish safely
+  return { error: null };
 };
-
 /**
  * Get the current session
  */
