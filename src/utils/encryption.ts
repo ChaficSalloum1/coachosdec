@@ -5,9 +5,20 @@ Uses AES-256 encryption for payment information and contact details
 
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
+import { gcm } from '@noble/ciphers/aes';
+import { bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from '@noble/ciphers/utils';
 
 const ENCRYPTION_KEY_STORAGE_KEY = 'coachos_encryption_key';
-const ENCRYPTION_ALGORITHM = 'AES-256-GCM';
+const ENCRYPTION_VERSION = 'v2';
+const PAYMENT_SETTINGS_ENCRYPTED_FIELDS = [
+  'phoneId',
+  'qrCode',
+  'revolutLink',
+  'irisAlias',
+  'iban',
+  'ibanBeneficiaryName',
+  'cancellationPolicy',
+];
 
 /**
  * Get or generate encryption key
@@ -38,37 +49,7 @@ async function getEncryptionKey(): Promise<string> {
 }
 
 /**
- * Simple base64 encoding for React Native (without Buffer)
- */
-function base64Encode(str: string): string {
-  // Use btoa if available (web), otherwise use manual encoding
-  if (typeof btoa !== 'undefined') {
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  
-  // Manual base64 encoding for React Native
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let result = '';
-  let i = 0;
-  
-  while (i < str.length) {
-    const a = str.charCodeAt(i++);
-    const b = i < str.length ? str.charCodeAt(i++) : 0;
-    const c = i < str.length ? str.charCodeAt(i++) : 0;
-    
-    const bitmap = (a << 16) | (b << 8) | c;
-    
-    result += chars.charAt((bitmap >> 18) & 63);
-    result += chars.charAt((bitmap >> 12) & 63);
-    result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : '=';
-    result += i - 1 < str.length ? chars.charAt(bitmap & 63) : '=';
-  }
-  
-  return result;
-}
-
-/**
- * Simple base64 decoding for React Native (without Buffer)
+ * Legacy base64 decoding for pre-v2 values.
  */
 function base64Decode(str: string): string {
   // Use atob if available (web), otherwise use manual decoding
@@ -99,28 +80,19 @@ function base64Decode(str: string): string {
 }
 
 /**
- * Encrypt a field value
- * Returns base64-encoded encrypted string
- * SECURITY: Fails closed - throws on encryption failure
+ * Encrypt a field value with AES-256-GCM.
+ * Returns enc:v2:<nonce-hex>:<ciphertext-and-tag-hex>
  */
 export async function encryptField(value: string): Promise<string> {
   if (!value || value.trim() === '') {
     return value; // Don't encrypt empty strings
   }
 
-  // SECURITY: Fail closed - if encryption fails, throw error instead of returning plaintext
-  const key = await getEncryptionKey();
+  const key = hexToBytes(await getEncryptionKey());
+  const nonce = await Crypto.getRandomBytesAsync(12);
+  const ciphertext = gcm(key, nonce).encrypt(utf8ToBytes(value));
 
-  // WARNING: This is basic obfuscation, NOT true encryption
-  // The data is base64 encoded with a hash prefix for integrity checking
-  // For highly sensitive data, implement proper AES-256-GCM using a native module
-  const encoded = base64Encode(value);
-  const keyHash = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    key + encoded
-  );
-
-  return `enc:${keyHash.substring(0, 16)}:${encoded}`;
+  return `enc:${ENCRYPTION_VERSION}:${bytesToHex(nonce)}:${bytesToHex(ciphertext)}`;
 }
 
 /**
@@ -133,18 +105,26 @@ export async function decryptField(encryptedValue: string): Promise<string> {
   }
 
   try {
-    const key = await getEncryptionKey();
-    
-    // Extract encoded value from encrypted string
     const parts = encryptedValue.split(':');
-    if (parts.length !== 3 || parts[0] !== 'enc') {
+
+    if (parts.length === 4 && parts[0] === 'enc' && parts[1] === ENCRYPTION_VERSION) {
+      const key = hexToBytes(await getEncryptionKey());
+      const nonce = hexToBytes(parts[2]);
+      const ciphertext = hexToBytes(parts[3]);
+      return bytesToUtf8(gcm(key, nonce).decrypt(ciphertext));
+    }
+
+    // Legacy v1 format was enc:<hash-prefix>:<base64>. It was obfuscation,
+    // not encryption, so decode it once and let the next save re-encrypt as v2.
+    if (parts.length === 3 && parts[0] === 'enc') {
+      return base64Decode(parts[2]);
+    }
+
+    if (parts[0] !== 'enc') {
       return encryptedValue; // Invalid format, return as-is
     }
-    
-    const encoded = parts[2];
-    const decoded = base64Decode(encoded);
-    
-    return decoded;
+
+    return encryptedValue;
   } catch (error) {
     console.error('Error decrypting field:', error);
     // Return original value if decryption fails
@@ -164,17 +144,11 @@ export async function encryptPaymentSettings(
 
   const encrypted: Record<string, any> = { ...paymentSettings };
 
-  // Encrypt sensitive fields
-  if (paymentSettings.phoneId && typeof paymentSettings.phoneId === 'string') {
-    encrypted.phoneId = await encryptField(paymentSettings.phoneId);
+  for (const field of PAYMENT_SETTINGS_ENCRYPTED_FIELDS) {
+    if (paymentSettings[field] && typeof paymentSettings[field] === 'string') {
+      encrypted[field] = await encryptField(paymentSettings[field]);
+    }
   }
-
-  if (paymentSettings.qrCode && typeof paymentSettings.qrCode === 'string') {
-    encrypted.qrCode = await encryptField(paymentSettings.qrCode);
-  }
-
-  // Encrypt any other sensitive fields in payment settings
-  // Add more fields as needed
 
   return encrypted;
 }
@@ -191,13 +165,10 @@ export async function decryptPaymentSettings(
 
   const decrypted: Record<string, any> = { ...paymentSettings };
 
-  // Decrypt sensitive fields
-  if (paymentSettings.phoneId && typeof paymentSettings.phoneId === 'string') {
-    decrypted.phoneId = await decryptField(paymentSettings.phoneId);
-  }
-
-  if (paymentSettings.qrCode && typeof paymentSettings.qrCode === 'string') {
-    decrypted.qrCode = await decryptField(paymentSettings.qrCode);
+  for (const field of PAYMENT_SETTINGS_ENCRYPTED_FIELDS) {
+    if (paymentSettings[field] && typeof paymentSettings[field] === 'string') {
+      decrypted[field] = await decryptField(paymentSettings[field]);
+    }
   }
 
   return decrypted;
@@ -229,4 +200,3 @@ export async function decryptContact(contact: string): Promise<string> {
 export function isEncrypted(value: string): boolean {
   return Boolean(value && value.startsWith('enc:'));
 }
-

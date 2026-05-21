@@ -14,6 +14,10 @@ import { addDays, format } from 'date-fns';
 
 import { Coach, BookingRequest, TimeSlot, AvailabilityRange, Lesson } from '../types/coach';
 
+const MAX_STUDENT_NAME_LENGTH = 80;
+const MAX_CONTACT_LENGTH = 120;
+const MAX_NOTE_LENGTH = 500;
+
 interface PublicBookingScreenProps {
   coach: Coach;
   availabilityRanges: AvailabilityRange[];
@@ -66,6 +70,21 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
     // Validate name length
     if (studentName.trim().length < 2) {
       Alert.alert('Invalid Name', 'Please enter a valid name (at least 2 characters).');
+      return;
+    }
+
+    if (studentName.trim().length > MAX_STUDENT_NAME_LENGTH) {
+      Alert.alert('Invalid Name', 'Please keep the name under 80 characters.');
+      return;
+    }
+
+    if (studentContact.trim().length > MAX_CONTACT_LENGTH) {
+      Alert.alert('Invalid Contact', 'Please keep the contact under 120 characters.');
+      return;
+    }
+
+    if (note.trim().length > MAX_NOTE_LENGTH) {
+      Alert.alert('Note Too Long', 'Please keep the note under 500 characters.');
       return;
     }
 
@@ -206,6 +225,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 onChangeText={setStudentName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="John Smith"
+                maxLength={MAX_STUDENT_NAME_LENGTH}
                 style={{ color: '#0B1220' }}
               />
             </View>
@@ -219,6 +239,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 onChangeText={setStudentContact}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="john@email.com or (555) 123-4567"
+                maxLength={MAX_CONTACT_LENGTH}
                 style={{ color: '#0B1220' }}
               />
             </View>
@@ -248,6 +269,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 placeholder="Any specific requests or goals..."
                 multiline
                 numberOfLines={3}
+                maxLength={MAX_NOTE_LENGTH}
                 style={{ color: '#0B1220', textAlignVertical: 'top' }}
               />
             </View>

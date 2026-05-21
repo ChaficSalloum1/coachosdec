@@ -112,6 +112,12 @@ CREATE TABLE IF NOT EXISTS lessons (
   duration INTEGER NOT NULL,
   price DECIMAL(10, 2) NOT NULL,
   is_paid BOOLEAN DEFAULT false,
+  payment_status TEXT NOT NULL DEFAULT 'NOT_REQUESTED' CHECK (payment_status IN ('NOT_REQUESTED', 'REQUESTED', 'REMINDER_SENT', 'PAID_CONFIRMED', 'FAILED_OR_CANCELLED')),
+  payment_method_requested TEXT CHECK (payment_method_requested IN ('REVOLUT', 'IRIS', 'IBAN', 'CASH', 'MULTIPLE')),
+  payment_reference_code TEXT,
+  payment_requested_at TIMESTAMPTZ,
+  last_reminder_sent_at TIMESTAMPTZ,
+  paid_confirmed_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'completed', 'cancelled')),
   notes TEXT,
   area_id UUID REFERENCES areas(id) ON DELETE SET NULL,
@@ -128,18 +134,29 @@ CREATE TABLE IF NOT EXISTS lessons (
 CREATE TABLE IF NOT EXISTS booking_requests (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
-  student_name TEXT NOT NULL,
-  student_contact TEXT NOT NULL,
+  student_name TEXT NOT NULL CHECK (length(trim(student_name)) BETWEEN 2 AND 80),
+  student_contact TEXT NOT NULL CHECK (length(trim(student_contact)) BETWEEN 3 AND 120),
   requested_date DATE NOT NULL,
   requested_time TIME NOT NULL,
-  duration INTEGER NOT NULL,
-  note TEXT,
+  duration INTEGER NOT NULL CHECK (duration BETWEEN 15 AND 240),
+  note TEXT CHECK (note IS NULL OR length(trim(note)) <= 500),
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
   area_id UUID REFERENCES areas(id) ON DELETE SET NULL,
   facility_id UUID REFERENCES facilities(id) ON DELETE SET NULL,
   court_id UUID REFERENCES courts(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS booking_rate_limits (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  identifier TEXT NOT NULL,
+  coach_id UUID NOT NULL REFERENCES coaches(id) ON DELETE CASCADE,
+  attempt_count INTEGER DEFAULT 1,
+  first_attempt_at TIMESTAMPTZ DEFAULT NOW(),
+  last_attempt_at TIMESTAMPTZ DEFAULT NOW(),
+  blocked_until TIMESTAMPTZ DEFAULT NULL,
+  UNIQUE(identifier, coach_id)
 );
 
 -- ============================================
@@ -191,6 +208,8 @@ CREATE INDEX IF NOT EXISTS idx_facilities_area_id ON facilities(area_id);
 CREATE INDEX IF NOT EXISTS idx_courts_coach_id ON courts(coach_id);
 CREATE INDEX IF NOT EXISTS idx_courts_facility_id ON courts(facility_id);
 CREATE INDEX IF NOT EXISTS idx_coaches_booking_link ON coaches(booking_link);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_identifier ON booking_rate_limits(identifier, coach_id);
+CREATE INDEX IF NOT EXISTS idx_rate_limits_blocked ON booking_rate_limits(blocked_until) WHERE blocked_until IS NOT NULL;
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -212,6 +231,7 @@ ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE booking_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE availability_ranges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blackout_dates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE booking_rate_limits ENABLE ROW LEVEL SECURITY;
 
 -- ---- COACHES ----
 -- Full access to own profile only
@@ -221,8 +241,7 @@ CREATE POLICY "coaches_own_profile" ON coaches
   WITH CHECK (auth.uid() = id);
 
 -- Public booking page: anyone can read any coach profile (to display name/price)
-CREATE POLICY "coaches_public_read" ON coaches
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
 
 -- ---- AREAS ----
 CREATE POLICY "areas_own_data" ON areas
@@ -231,8 +250,7 @@ CREATE POLICY "areas_own_data" ON areas
   WITH CHECK (auth.uid() = coach_id);
 
 -- Public booking page: read-only
-CREATE POLICY "areas_public_read" ON areas
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
 
 -- ---- FACILITIES ----
 CREATE POLICY "facilities_own_data" ON facilities
@@ -240,8 +258,7 @@ CREATE POLICY "facilities_own_data" ON facilities
   USING (auth.uid() = coach_id)
   WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY "facilities_public_read" ON facilities
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
 
 -- ---- COURTS ----
 CREATE POLICY "courts_own_data" ON courts
@@ -249,8 +266,7 @@ CREATE POLICY "courts_own_data" ON courts
   USING (auth.uid() = coach_id)
   WITH CHECK (auth.uid() = coach_id);
 
-CREATE POLICY "courts_public_read" ON courts
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
 
 -- ---- STUDENTS (private — no public read) ----
 CREATE POLICY "students_own_data" ON students
@@ -271,8 +287,7 @@ CREATE POLICY "lessons_own_data" ON lessons
   WITH CHECK (auth.uid() = coach_id);
 
 -- Public can read lesson date/time/status to check slot availability
-CREATE POLICY "lessons_public_availability_read" ON lessons
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
 
 -- ---- BOOKING REQUESTS ----
 -- Coach manages their own requests
@@ -281,9 +296,106 @@ CREATE POLICY "booking_requests_own_data" ON booking_requests
   USING (auth.uid() = coach_id)
   WITH CHECK (auth.uid() = coach_id);
 
--- Anyone (student via QR/link, no account required) can submit a booking request
-CREATE POLICY "booking_requests_public_insert" ON booking_requests
-  FOR INSERT WITH CHECK (true);
+-- Validate public booking inserts without granting public SELECT on coaches.
+CREATE OR REPLACE FUNCTION public_coach_exists(p_coach_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM coaches
+    WHERE id = p_coach_id
+  );
+$$;
+
+GRANT EXECUTE ON FUNCTION public_coach_exists(UUID) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION submit_public_booking_request(p_request JSONB)
+RETURNS UUID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_id UUID := COALESCE((p_request->>'id')::UUID, uuid_generate_v4());
+  v_coach_id UUID := (p_request->>'coach_id')::UUID;
+  v_student_name TEXT := trim(COALESCE(p_request->>'student_name', ''));
+  v_student_contact TEXT := trim(COALESCE(p_request->>'student_contact', ''));
+  v_identifier TEXT := md5(lower(v_student_contact));
+  v_rate booking_rate_limits%ROWTYPE;
+BEGIN
+  IF NOT public_coach_exists(v_coach_id) THEN
+    RAISE EXCEPTION 'Invalid coach';
+  END IF;
+
+  IF length(v_student_name) < 2
+    OR length(v_student_name) > 80
+    OR length(v_student_contact) < 3
+    OR length(v_student_contact) > 120
+    OR length(trim(COALESCE(p_request->>'note', ''))) > 500
+    OR (p_request->>'duration')::INTEGER NOT BETWEEN 15 AND 240 THEN
+    RAISE EXCEPTION 'Invalid booking request';
+  END IF;
+
+  INSERT INTO booking_rate_limits (identifier, coach_id)
+  VALUES (v_identifier, v_coach_id)
+  ON CONFLICT (identifier, coach_id) DO UPDATE SET
+    attempt_count = CASE
+      WHEN booking_rate_limits.first_attempt_at < NOW() - INTERVAL '15 minutes' THEN 1
+      ELSE booking_rate_limits.attempt_count + 1
+    END,
+    first_attempt_at = CASE
+      WHEN booking_rate_limits.first_attempt_at < NOW() - INTERVAL '15 minutes' THEN NOW()
+      ELSE booking_rate_limits.first_attempt_at
+    END,
+    last_attempt_at = NOW(),
+    blocked_until = CASE
+      WHEN booking_rate_limits.first_attempt_at >= NOW() - INTERVAL '15 minutes'
+        AND booking_rate_limits.attempt_count >= 5
+      THEN NOW() + INTERVAL '1 hour'
+      ELSE booking_rate_limits.blocked_until
+    END
+  RETURNING * INTO v_rate;
+
+  IF v_rate.blocked_until IS NOT NULL AND v_rate.blocked_until > NOW() THEN
+    RAISE EXCEPTION 'Too many booking attempts. Please try again later.';
+  END IF;
+
+  INSERT INTO booking_requests (
+    id,
+    coach_id,
+    student_name,
+    student_contact,
+    requested_date,
+    requested_time,
+    duration,
+    note,
+    status,
+    area_id,
+    facility_id,
+    court_id
+  ) VALUES (
+    v_id,
+    v_coach_id,
+    v_student_name,
+    v_student_contact,
+    (p_request->>'requested_date')::DATE,
+    (p_request->>'requested_time')::TIME,
+    (p_request->>'duration')::INTEGER,
+    NULLIF(trim(COALESCE(p_request->>'note', '')), ''),
+    'pending',
+    NULLIF(p_request->>'area_id', '')::UUID,
+    NULLIF(p_request->>'facility_id', '')::UUID,
+    NULLIF(p_request->>'court_id', '')::UUID
+  );
+
+  RETURN v_id;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION submit_public_booking_request(JSONB) TO anon, authenticated;
 
 -- ---- AVAILABILITY RANGES ----
 CREATE POLICY "availability_own_data" ON availability_ranges
@@ -292,8 +404,7 @@ CREATE POLICY "availability_own_data" ON availability_ranges
   WITH CHECK (auth.uid() = coach_id);
 
 -- Public booking page: read to generate available slots
-CREATE POLICY "availability_public_read" ON availability_ranges
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
 
 -- ---- BLACKOUT DATES ----
 CREATE POLICY "blackout_dates_own_data" ON blackout_dates
@@ -302,8 +413,87 @@ CREATE POLICY "blackout_dates_own_data" ON blackout_dates
   WITH CHECK (auth.uid() = coach_id);
 
 -- Public booking page: read to exclude blacked-out days
-CREATE POLICY "blackout_dates_public_read" ON blackout_dates
-  FOR SELECT USING (true);
+-- Public reads are served through narrow SECURITY DEFINER RPCs below.
+
+CREATE POLICY "rate_limits_own_data" ON booking_rate_limits
+  FOR SELECT USING (auth.uid() = coach_id);
+
+CREATE OR REPLACE FUNCTION get_public_booking_profile(p_booking_link TEXT)
+RETURNS TABLE (
+  id UUID,
+  name TEXT,
+  sports TEXT[],
+  price_per_hour DECIMAL,
+  booking_link TEXT
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT c.id, c.name, c.sports, c.price_per_hour, c.booking_link
+  FROM coaches c
+  WHERE c.booking_link = p_booking_link;
+$$;
+
+CREATE OR REPLACE FUNCTION get_public_booking_availability(p_coach_id UUID)
+RETURNS TABLE (
+  kind TEXT,
+  id UUID,
+  day_of_week INTEGER,
+  date DATE,
+  start_time TIME,
+  end_time TIME,
+  area_id UUID,
+  facility_id UUID,
+  court_id UUID
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    'availability'::TEXT,
+    ar.id,
+    ar.day_of_week,
+    NULL::DATE,
+    ar.start_time,
+    ar.end_time,
+    ar.area_id,
+    ar.facility_id,
+    ar.court_id
+  FROM availability_ranges ar
+  WHERE ar.coach_id = p_coach_id
+  UNION ALL
+  SELECT
+    'lesson'::TEXT,
+    l.id,
+    NULL::INTEGER,
+    l.date,
+    l.start_time,
+    l.end_time,
+    l.area_id,
+    l.facility_id,
+    l.court_id
+  FROM lessons l
+  WHERE l.coach_id = p_coach_id
+    AND l.status <> 'cancelled'
+  UNION ALL
+  SELECT
+    'blackout'::TEXT,
+    b.id,
+    NULL::INTEGER,
+    b.date,
+    NULL::TIME,
+    NULL::TIME,
+    NULL::UUID,
+    NULL::UUID,
+    NULL::UUID
+  FROM blackout_dates b
+  WHERE b.coach_id = p_coach_id;
+$$;
+
+GRANT EXECUTE ON FUNCTION get_public_booking_profile(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_public_booking_availability(UUID) TO anon, authenticated;
 
 -- ============================================
 -- AUTO-UPDATE updated_at

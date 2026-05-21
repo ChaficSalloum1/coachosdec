@@ -6,6 +6,12 @@ import { useCoachStore } from '../state/coachStore';
 import { getSupabaseClient } from "../api/supabase";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 
+const getPasswordResetRedirectUrl = () => {
+  return __DEV__
+    ? "exp://localhost:8081/--/reset-password"
+    : "coachos://reset-password";
+};
+
 // ... your interfaces and rest of the code follow below
 export interface SignUpCredentials {
   email: string;
@@ -164,7 +170,7 @@ export const resetPassword = async (
   try {
     const supabase = getSupabaseClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: "exp://localhost:8081/--/reset-password",
+      redirectTo: getPasswordResetRedirectUrl(),
     });
     return { error };
   } catch (error) {

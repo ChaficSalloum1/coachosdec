@@ -44,7 +44,7 @@ export function RootNavigator() {
       setSession(newSession);
 
       if (newSession?.user) {
-        setSentryUser(newSession.user.id, newSession.user.email ?? undefined);
+        setSentryUser(newSession.user.id);
         registerForPushNotifications().catch(() => {});
         identifyUser(newSession.user.id).catch(() => {});
       } else {

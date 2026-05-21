@@ -22,6 +22,12 @@ import type {
   AvailabilityRange,
   BlackoutDate,
 } from "../types/coach";
+import {
+  generatePaymentReferenceCode,
+  getDefaultPaymentMethod,
+  normalizePaymentSettings,
+  normalizePaymentStatus,
+} from "../modules/payments";
 
 // Helper to convert database snake_case to camelCase
 const toCamelCase = (obj: any): any => {
@@ -115,6 +121,7 @@ export const loadCoachDataFromSupabase = async (
       coachData.paymentSettings = await decryptPaymentSettings(
         coachData.paymentSettings
       );
+      coachData.paymentSettings = normalizePaymentSettings(coachData.paymentSettings);
     }
 
     const studentsData = await Promise.all(
@@ -130,7 +137,21 @@ export const loadCoachDataFromSupabase = async (
     return {
       coach: coachData,
       students: studentsData,
-      lessons: ((lessonsResult as any).data || []).map(toCamelCase),
+      lessons: ((lessonsResult as any).data || []).map((lesson: any) => {
+        const converted = toCamelCase(lesson) as Lesson;
+        return {
+          ...converted,
+          paymentStatus: normalizePaymentStatus(converted.paymentStatus, converted.isPaid),
+          paymentReferenceCode: converted.paymentReferenceCode ?? (
+            coachData ? generatePaymentReferenceCode(coachData.name, converted.id) : converted.paymentReferenceCode
+          ),
+          paymentMethodRequested: converted.paymentMethodRequested ?? (
+            coachData
+              ? getDefaultPaymentMethod(coachData.paymentSettings?.paymentPreference, coachData.paymentSettings)
+              : converted.paymentMethodRequested
+          ),
+        };
+      }),
       bookingRequests: ((bookingRequestsResult as any).data || []).map(toCamelCase),
       studentNotes: ((studentNotesResult as any).data || []).map(toCamelCase),
       areas: ((areasResult as any).data || []).map(toCamelCase),
@@ -187,7 +208,10 @@ export const saveCoachToSupabase = async (
     const supabase = getSupabaseClient();
 
     // Encrypt sensitive fields before saving
-    const coachToSave: Coach = { ...coach };
+    const coachToSave: Coach = {
+      ...coach,
+      paymentSettings: normalizePaymentSettings(coach.paymentSettings),
+    };
     if (coachToSave.paymentSettings) {
       coachToSave.paymentSettings = await encryptPaymentSettings(
         coachToSave.paymentSettings
@@ -349,6 +373,23 @@ export const saveBookingRequestToSupabase = async (
   try {
     const supabase = getSupabaseClient();
     const data = toSnakeCase(request);
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user && expectedVersion === undefined) {
+      const { error } = await (supabase as any).rpc("submit_public_booking_request", {
+        p_request: data,
+      });
+
+      if (error) {
+        console.error("Error submitting public booking request:", error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    }
 
     let query = supabase.from("booking_requests").upsert(data, { onConflict: "id" });
 
@@ -701,4 +742,3 @@ export const deleteFromSupabase = async (
     };
   }
 };
-

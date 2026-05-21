@@ -30,15 +30,15 @@ export function initSentry(): void {
     environment: __DEV__ ? 'development' : 'production',
     // Capture 20% of sessions for performance tracing in production
     tracesSampleRate: __DEV__ ? 1.0 : 0.2,
-    // Capture 10% of sessions for replays in production
-    replaysSessionSampleRate: __DEV__ ? 1.0 : 0.1,
-    replaysOnErrorSampleRate: 1.0,
+    // Keep mobile replays off until masking/allow-listing is explicitly configured.
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0,
   });
 }
 
-/** Set the currently authenticated coach so errors are attributed. */
-export function setSentryUser(userId: string, email?: string): void {
-  Sentry.setUser({ id: userId, email });
+/** Set the currently authenticated coach so errors are attributed without PII. */
+export function setSentryUser(userId: string): void {
+  Sentry.setUser({ id: userId });
 }
 
 /** Clear user on sign-out. */

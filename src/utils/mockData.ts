@@ -24,6 +24,7 @@ export const mockCoach: Coach = {
   paymentSettings: {
     qrCode: 'venmo @sarah-tennis',
     phoneId: '(555) 123-4567',
+    paymentPreference: 'CASH',
     cashEnabled: true,
   },
   availability: {

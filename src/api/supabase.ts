@@ -7,22 +7,26 @@ Environment variables required:
 - EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY: Your Supabase anonymous/public key
 */
 import { createClient } from "@supabase/supabase-js";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 
-// Custom storage adapter for React Native using AsyncStorage
-const AsyncStorageAdapter = {
+// Store Supabase refresh/access tokens in the platform keychain/keystore.
+const SecureStoreAdapter = {
   getItem: async (key: string): Promise<string | null> => {
-    return await AsyncStorage.getItem(key);
+    return await SecureStore.getItemAsync(key);
   },
   setItem: async (key: string, value: string): Promise<void> => {
-    await AsyncStorage.setItem(key, value);
+    await SecureStore.setItemAsync(key, value);
   },
   removeItem: async (key: string): Promise<void> => {
-    await AsyncStorage.removeItem(key);
+    await SecureStore.deleteItemAsync(key);
   },
 };
 
 let supabaseClient: ReturnType<typeof createClient> | null = null;
+
+const normalizeSupabaseUrl = (url: string) => {
+  return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+};
 
 export const getSupabaseClient = () => {
   // Return existing client if already created
@@ -44,9 +48,9 @@ export const getSupabaseClient = () => {
     );
   }
 
-  supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+  supabaseClient = createClient(normalizeSupabaseUrl(supabaseUrl), supabaseAnonKey, {
     auth: {
-      storage: AsyncStorageAdapter,
+      storage: SecureStoreAdapter,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,
@@ -70,4 +74,3 @@ export const getSupabaseClient = () => {
 export const resetSupabaseClient = () => {
   supabaseClient = null;
 };
-

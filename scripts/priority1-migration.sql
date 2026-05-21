@@ -21,6 +21,12 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
 ALTER TABLE lessons ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
 ALTER TABLE booking_requests ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
 ALTER TABLE student_notes ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'NOT_REQUESTED';
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS payment_method_requested TEXT;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS payment_reference_code TEXT;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS payment_requested_at TIMESTAMPTZ;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS last_reminder_sent_at TIMESTAMPTZ;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS paid_confirmed_at TIMESTAMPTZ;
 
 -- ============================================
 -- 2. CREATE VERSION INCREMENT FUNCTION & TRIGGERS
@@ -77,6 +83,14 @@ ALTER TABLE lessons ADD CONSTRAINT check_lesson_duration
 ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_price;
 ALTER TABLE lessons ADD CONSTRAINT check_lesson_price
   CHECK (price >= 0);
+
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_payment_status;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_payment_status
+  CHECK (payment_status IN ('NOT_REQUESTED', 'REQUESTED', 'REMINDER_SENT', 'PAID_CONFIRMED', 'FAILED_OR_CANCELLED'));
+
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_payment_method_requested;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_payment_method_requested
+  CHECK (payment_method_requested IS NULL OR payment_method_requested IN ('REVOLUT', 'IRIS', 'IBAN', 'CASH', 'MULTIPLE'));
 
 ALTER TABLE coaches DROP CONSTRAINT IF EXISTS check_price_per_hour;
 ALTER TABLE coaches ADD CONSTRAINT check_price_per_hour
@@ -169,10 +183,11 @@ CREATE POLICY "lessons_delete_own_coach" ON lessons
     coach_id IN (SELECT id FROM coaches WHERE auth.uid() = id)
   );
 
--- BOOKING_REQUESTS table (special: allow public creation)
+-- BOOKING_REQUESTS table
+-- Public creation is handled by submit_public_booking_request() in
+-- fix-public-booking-rls.sql / priority3-security-hardening.sql so it can be
+-- validated and rate-limited. Do not grant direct anonymous INSERT here.
 DROP POLICY IF EXISTS "booking_requests_public_insert" ON booking_requests;
-CREATE POLICY "booking_requests_public_insert" ON booking_requests
-  FOR INSERT WITH CHECK (true);  -- Anyone can create booking request
 
 DROP POLICY IF EXISTS "booking_requests_coach_access" ON booking_requests;
 CREATE POLICY "booking_requests_coach_access" ON booking_requests
@@ -372,4 +387,3 @@ COMMIT;
 -- WHERE schemaname = 'public' AND policyname LIKE '%_own%' OR policyname LIKE '%_coach%'
 -- ORDER BY tablename, policyname;
 -- (Should show many rows with secure policies)
-
