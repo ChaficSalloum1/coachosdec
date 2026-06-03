@@ -9,6 +9,7 @@ import { getSession, onAuthStateChange } from '../services/authService';
 import { registerForPushNotifications } from '../services/pushNotificationsService';
 import { setSentryUser, clearSentryUser } from '../services/sentryService';
 import { initRevenueCat, identifyUser, resetUser } from '../services/revenueCatService';
+import { useCoachStore } from '../state/coachStore';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -27,10 +28,18 @@ export function RootNavigator() {
   // undefined = still checking, null = no session, Session = authenticated
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const supabaseReady = isSupabaseConfigured();
+  const isDemoMode = useCoachStore(s => s.isDemoMode);
 
   useEffect(() => {
     // Initialize RevenueCat early, before auth resolves
     initRevenueCat();
+
+    if (isDemoMode) {
+      setSession(null);
+      clearSentryUser();
+      resetUser().catch(() => {});
+      return;
+    }
 
     if (!supabaseReady) {
       // No Supabase — skip auth, go straight to the app
@@ -54,7 +63,7 @@ export function RootNavigator() {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabaseReady]);
+  }, [isDemoMode, supabaseReady]);
 
   if (session === undefined) {
     return (
@@ -65,7 +74,7 @@ export function RootNavigator() {
   }
 
   // When Supabase is not configured, always show the app (local-only mode)
-  const isAuthenticated = !supabaseReady || session !== null;
+  const isAuthenticated = isDemoMode || !supabaseReady || session !== null;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'fade' }}>

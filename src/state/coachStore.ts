@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDays, format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Coach, BookingRequest, Lesson, Student, StudentNote, Area, Facility, Court, AvailabilityRange, BlackoutDate } from '../types/coach';
+import { createDemoWorkspace } from '../utils/demoWorkspace';
 import {
   cancelPaymentStatus,
   confirmPaidStatus,
@@ -50,6 +51,9 @@ const withInitialPaymentFields = (lesson: Lesson, coach: Coach): Lesson => {
 };
 
 interface CoachState {
+  // Demo workspace mode
+  isDemoMode: boolean;
+
   // Current coach profile
   coach: Coach | null;
   
@@ -75,6 +79,8 @@ interface CoachState {
   blackoutDates: BlackoutDate[];
   
   // Actions
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
   setCoach: (coach: Coach | null) => void;
   updateCoach: (updates: Partial<Coach>) => void;
   
@@ -172,6 +178,7 @@ interface CoachState {
 export const useCoachStore = create<CoachState>()(
   persist(
     (set, get) => ({
+      isDemoMode: false,
       coach: null,
       bookingRequests: [],
       lessons: [],
@@ -182,6 +189,37 @@ export const useCoachStore = create<CoachState>()(
       courts: [],
       availabilityRanges: [],
       blackoutDates: [],
+
+      enterDemoMode: () => {
+        const demo = createDemoWorkspace();
+        set({
+          isDemoMode: true,
+          coach: demo.coach,
+          bookingRequests: demo.bookingRequests,
+          lessons: demo.lessons,
+          students: demo.students,
+          studentNotes: demo.studentNotes,
+          areas: demo.areas,
+          facilities: demo.facilities,
+          courts: demo.courts,
+          availabilityRanges: demo.availabilityRanges,
+          blackoutDates: demo.blackoutDates,
+        });
+      },
+
+      exitDemoMode: () => set({
+        isDemoMode: false,
+        coach: null,
+        bookingRequests: [],
+        lessons: [],
+        students: [],
+        studentNotes: [],
+        areas: [],
+        facilities: [],
+        courts: [],
+        availabilityRanges: [],
+        blackoutDates: [],
+      }),
 
       setCoach: (coach) => set({ coach }),
 
@@ -1183,6 +1221,7 @@ export const useCoachStore = create<CoachState>()(
       },
       
       clearAllData: () => set(() => ({
+        isDemoMode: false,
         coach: null,
         bookingRequests: [],
         lessons: [],
@@ -1198,7 +1237,7 @@ export const useCoachStore = create<CoachState>()(
     {
       name: 'coach-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 3,
+      version: 4,
       migrate: (persistedState: any) => {
         if (!persistedState) {
           return persistedState;
@@ -1220,9 +1259,12 @@ export const useCoachStore = create<CoachState>()(
                 })
           : [];
 
-        if (!isSupabaseConfigured()) {
+        const isDemoMode = persistedState.isDemoMode === true;
+
+        if (isDemoMode || !isSupabaseConfigured()) {
           return {
             ...persistedState,
+            isDemoMode,
             coach,
             lessons: migratedLessons,
           };
@@ -1230,6 +1272,7 @@ export const useCoachStore = create<CoachState>()(
 
         return {
           ...persistedState,
+          isDemoMode: false,
           coach: coach
             ? {
                 ...coach,
@@ -1246,7 +1289,8 @@ export const useCoachStore = create<CoachState>()(
         };
       },
       partialize: (state) => ({
-        coach: state.coach && isSupabaseConfigured()
+        isDemoMode: state.isDemoMode,
+        coach: state.coach && isSupabaseConfigured() && !state.isDemoMode
           ? {
               ...state.coach,
               paymentSettings: {
@@ -1255,10 +1299,10 @@ export const useCoachStore = create<CoachState>()(
               },
             }
           : state.coach,
-        bookingRequests: isSupabaseConfigured() ? [] : state.bookingRequests,
-        lessons: isSupabaseConfigured() ? [] : state.lessons,
-        students: isSupabaseConfigured() ? [] : state.students,
-        studentNotes: isSupabaseConfigured() ? [] : state.studentNotes,
+        bookingRequests: isSupabaseConfigured() && !state.isDemoMode ? [] : state.bookingRequests,
+        lessons: isSupabaseConfigured() && !state.isDemoMode ? [] : state.lessons,
+        students: isSupabaseConfigured() && !state.isDemoMode ? [] : state.students,
+        studentNotes: isSupabaseConfigured() && !state.isDemoMode ? [] : state.studentNotes,
         areas: state.areas,
         facilities: state.facilities,
         courts: state.courts,

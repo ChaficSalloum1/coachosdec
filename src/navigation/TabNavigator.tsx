@@ -1,7 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -11,6 +11,7 @@ import { StudentsScreen } from '../screens/StudentsScreen';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { useCoachStore } from '../state/coachStore';
 import { OnboardingScreen } from '../screens/SettingsScreen';
+import { DemoBanner } from '../components/DemoBanner';
 
 export type TabParamList = {
   Today: undefined;
@@ -26,6 +27,7 @@ export function TabNavigator() {
   const { t } = useTranslation();
   const coach = useCoachStore(s => s.coach);
   const setCoach = useCoachStore(s => s.setCoach);
+  const isDemoMode = useCoachStore(s => s.isDemoMode);
   const pendingCount = useCoachStore(
     s => s.bookingRequests.filter(r => r.status === 'pending').length
   );
@@ -34,7 +36,7 @@ export function TabNavigator() {
     return <OnboardingScreen onComplete={setCoach} />;
   }
 
-  return (
+  const tabs = (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
@@ -123,4 +125,15 @@ export function TabNavigator() {
       />
     </Tab.Navigator>
   );
+
+  if (isDemoMode) {
+    return (
+      <View style={{ flex: 1 }}>
+        <DemoBanner />
+        {tabs}
+      </View>
+    );
+  }
+
+  return tabs;
 }

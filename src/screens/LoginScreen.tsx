@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signIn, signUp, resetPassword } from '../services/authService';
+import { useCoachStore } from '../state/coachStore';
 
 type Mode = 'login' | 'signup';
 
@@ -23,11 +24,17 @@ export function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const enterDemoMode = useCoachStore(s => s.enterDemoMode);
 
   const handleSubmit = async () => {
-    const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail || !password) {
       Alert.alert('Missing fields', 'Please enter your email and password.');
+      return;
+    }
+
+    if (mode === 'signup' && password.length < 6) {
+      Alert.alert('Password too short', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -49,6 +56,11 @@ export function LoginScreen() {
         );
       }
       // On success with session, RootNavigator's onAuthStateChange handles navigation
+    } catch (error) {
+      Alert.alert(
+        mode === 'login' ? 'Sign in failed' : 'Sign up failed',
+        error instanceof Error ? error.message : 'Authentication failed. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -66,6 +78,10 @@ export function LoginScreen() {
     } else {
       Alert.alert('Email sent', 'Check your inbox for a password reset link.');
     }
+  };
+
+  const handleViewDemo = () => {
+    enterDemoMode();
   };
 
   return (
@@ -128,6 +144,8 @@ export function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
                 returnKeyType="next"
               />
             </View>
@@ -152,6 +170,8 @@ export function LoginScreen() {
                 placeholder={mode === 'signup' ? 'Minimum 6 characters' : '••••••••'}
                 placeholderTextColor="#9BA3AF"
                 secureTextEntry
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                textContentType={mode === 'signup' ? 'newPassword' : 'password'}
                 returnKeyType="done"
                 onSubmitEditing={handleSubmit}
               />
@@ -186,6 +206,32 @@ export function LoginScreen() {
               </Text>
             )}
           </Pressable>
+
+          <Pressable
+            onPress={handleViewDemo}
+            disabled={isLoading}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#1E88E5',
+              borderWidth: 1,
+              borderRadius: 12,
+              paddingVertical: 15,
+              alignItems: 'center',
+              marginBottom: 10,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Ionicons name="sparkles-outline" size={18} color="#1E88E5" />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E88E5' }}>
+              Explore a demo workspace
+            </Text>
+          </Pressable>
+
+          <Text style={{ textAlign: 'center', fontSize: 13, color: '#42526E', lineHeight: 18, marginBottom: 20 }}>
+            No account needed. Sample bookings, payments, and students are preloaded.
+          </Text>
 
           {/* Toggle */}
           <Pressable onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>

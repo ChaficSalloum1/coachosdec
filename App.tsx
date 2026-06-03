@@ -45,7 +45,9 @@ const isSupabaseConfigured = () => {
 };
 
 function AppContent() {
-  useMockData(!isSupabaseConfigured());
+  const isDemoMode = useCoachStore(s => s.isDemoMode);
+
+  useMockData(!isSupabaseConfigured() && !isDemoMode);
   useSupabaseSync();
 
   useEffect(() => {

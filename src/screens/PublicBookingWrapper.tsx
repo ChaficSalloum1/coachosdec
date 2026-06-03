@@ -20,6 +20,7 @@ export function PublicBookingWrapper() {
     formatLocationText,
     generateSlotsForNext14Days,
     addBookingRequest,
+    isDemoMode,
   } = useCoachStore();
 
   if (!coach) {
@@ -46,7 +47,7 @@ export function PublicBookingWrapper() {
         Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL) &&
         Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY);
 
-      if (hasSupabaseConfig) {
+      if (hasSupabaseConfig && !isDemoMode) {
         // Public booking links must reach Supabase so the coach can receive them.
         const result = await saveBookingRequestToSupabase(fullRequest);
         if (!result.success) {

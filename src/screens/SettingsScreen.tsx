@@ -26,7 +26,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { t } = useTranslation();
-  const { coach, updateCoach, setCoach, bookingRequests, lessons, students } = useCoachStore();
+  const { coach, updateCoach, setCoach, bookingRequests, lessons, students, isDemoMode, exitDemoMode } = useCoachStore();
   const [isEditing, setIsEditing] = useState(false);
 
   if (!coach) {
@@ -72,6 +72,21 @@ export function SettingsScreen() {
     );
   };
 
+  const handleExitDemo = () => {
+    Alert.alert(
+      'Exit demo workspace?',
+      'This will clear demo data and return you to sign up or sign in.',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: 'Exit Demo',
+          style: 'destructive',
+          onPress: exitDemoMode,
+        },
+      ]
+    );
+  };
+
   return (
     <View className="flex-1 bg-white">
       {/* Header */}
@@ -86,25 +101,47 @@ export function SettingsScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}
       >
         <View className="px-4 py-6">
+          {isDemoMode && (
+            <View
+              style={{
+                backgroundColor: '#FFF7E0',
+                borderColor: '#F2D28A',
+                borderWidth: 1,
+                borderRadius: 10,
+                padding: 14,
+                marginBottom: 20,
+              }}
+            >
+              <Text style={{ color: '#8A5A00', fontSize: 15, fontWeight: '700', marginBottom: 4 }}>
+                Demo workspace
+              </Text>
+              <Text style={{ color: '#8A5A00', fontSize: 13, lineHeight: 18 }}>
+                You are exploring sample data locally. Nothing is synced to Supabase.
+              </Text>
+            </View>
+          )}
+
           {/* Upgrade CTA */}
-          <Pressable
-            onPress={() => navigation.navigate('Paywall' as never)}
-            style={{
-              backgroundColor: '#0B1220',
-              borderRadius: 14,
-              paddingVertical: 16,
-              paddingHorizontal: 20,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 28,
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
-              ✨ Upgrade to CoachOS Pro
-            </Text>
-            <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
-          </Pressable>
+          {!isDemoMode && (
+            <Pressable
+              onPress={() => navigation.navigate('Paywall' as never)}
+              style={{
+                backgroundColor: '#0B1220',
+                borderRadius: 14,
+                paddingVertical: 16,
+                paddingHorizontal: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 28,
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+                Upgrade to CoachOS Pro
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
+            </Pressable>
+          )}
 
           {/* Quick Access — on-court essentials first */}
           <Section title={t('availability')}>
@@ -176,6 +213,24 @@ export function SettingsScreen() {
 
           {/* Account */}
           <Section title="Account">
+            {isDemoMode ? (
+              <Pressable
+                onPress={handleExitDemo}
+                className="bg-blue-50 rounded-xl p-4 active:bg-blue-100"
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1 pr-3">
+                    <Text className="text-base font-medium mb-1" style={{ color: '#1E88E5' }}>
+                      Exit Demo & Create Account
+                    </Text>
+                    <Text className="text-sm" style={{ color: '#42526E' }}>
+                      Clear sample data and return to sign up or sign in.
+                    </Text>
+                  </View>
+                  <Ionicons name="person-add-outline" size={20} color="#1E88E5" />
+                </View>
+              </Pressable>
+            ) : (
             <Pressable
               onPress={handleSignOut}
               className="bg-red-50 rounded-xl p-4 active:bg-red-100"
@@ -187,6 +242,7 @@ export function SettingsScreen() {
                 <Ionicons name="log-out-outline" size={20} color="#D32F2F" />
               </View>
             </Pressable>
+            )}
           </Section>
         </View>
       </ScrollView>

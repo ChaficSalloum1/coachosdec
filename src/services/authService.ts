@@ -5,6 +5,7 @@ Handles user authentication, session management, and user profile operations
 import { useCoachStore } from '../state/coachStore';
 import { getSupabaseClient } from "../api/supabase";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
+import { makeAuthError, normalizeAuthError } from './authErrors';
 
 const getPasswordResetRedirectUrl = () => {
   return __DEV__
@@ -30,6 +31,24 @@ export interface AuthResponse {
   error: AuthError | null;
 }
 
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const validateEmailPassword = (email: string, password: string, isSignUp: boolean): AuthError | null => {
+  if (!emailRegex.test(email.trim())) {
+    return makeAuthError("Please enter a valid email address.");
+  }
+
+  if (!password) {
+    return makeAuthError("Please enter your password.");
+  }
+
+  if (isSignUp && password.length < 6) {
+    return makeAuthError("Password must be at least 6 characters.");
+  }
+
+  return null;
+};
+
 /**
  * Sign up a new user
  */
@@ -37,9 +56,15 @@ export const signUp = async (
   credentials: SignUpCredentials
 ): Promise<AuthResponse> => {
   try {
+    const email = credentials.email.trim().toLowerCase();
+    const validationError = validateEmailPassword(email, credentials.password, true);
+    if (validationError) {
+      return { user: null, session: null, error: validationError };
+    }
+
     const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.signUp({
-      email: credentials.email,
+      email,
       password: credentials.password,
       options: {
         data: credentials.metadata || {},
@@ -55,7 +80,7 @@ export const signUp = async (
     return {
       user: null,
       session: null,
-      error: error as AuthError,
+      error: normalizeAuthError(error),
     };
   }
 };
@@ -67,9 +92,15 @@ export const signIn = async (
   credentials: SignInCredentials
 ): Promise<AuthResponse> => {
   try {
+    const email = credentials.email.trim().toLowerCase();
+    const validationError = validateEmailPassword(email, credentials.password, false);
+    if (validationError) {
+      return { user: null, session: null, error: validationError };
+    }
+
     const supabase = getSupabaseClient();
     const { data, error } = await supabase.auth.signInWithPassword({
-      email: credentials.email,
+      email,
       password: credentials.password,
     });
 
@@ -82,7 +113,7 @@ export const signIn = async (
     return {
       user: null,
       session: null,
-      error: error as AuthError,
+      error: normalizeAuthError(error),
     };
   }
 };
@@ -128,7 +159,7 @@ export const getSession = async (): Promise<Session | null> => {
     } = await supabase.auth.getSession();
     return session;
   } catch (error) {
-    console.error("Error getting session:", error);
+    console.error("Error getting session:", normalizeAuthError(error).message);
     return null;
   }
 };
@@ -144,7 +175,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
     } = await supabase.auth.getUser();
     return user;
   } catch (error) {
-    console.error("Error getting user:", error);
+    console.error("Error getting user:", normalizeAuthError(error).message);
     return null;
   }
 };
@@ -174,7 +205,7 @@ export const resetPassword = async (
     });
     return { error };
   } catch (error) {
-    return { error: error as AuthError };
+    return { error: normalizeAuthError(error) };
   }
 };
 
@@ -191,7 +222,7 @@ export const updatePassword = async (
     });
     return { error };
   } catch (error) {
-    return { error: error as AuthError };
+    return { error: normalizeAuthError(error) };
   }
 };
 
@@ -208,6 +239,6 @@ export const updateUserMetadata = async (
     });
     return { user: data.user, error };
   } catch (error) {
-    return { user: null, error: error as AuthError };
+    return { user: null, error: normalizeAuthError(error) };
   }
 };
