@@ -38,6 +38,7 @@
       }
     },
     "plugins": [
+      "./plugins/fix-fmt-consteval",
       "@react-native-community/datetimepicker",
       "@sentry/react-native",
       "expo-asset",
@@ -45,8 +46,7 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "15.1",
-            "extraGCCPreprocessorDefinitions": ["FMT_USE_CONSTEVAL=0"]
+            "deploymentTarget": "15.1"
           }
         }
       ],
