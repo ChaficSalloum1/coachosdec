@@ -41,7 +41,15 @@
       "@react-native-community/datetimepicker",
       "@sentry/react-native",
       "expo-asset",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1",
+            "extraGCCPreprocessorDefinitions": ["FMT_USE_CONSTEVAL=0"]
+          }
+        }
+      ],
       "expo-mail-composer",
       "expo-secure-store",
       "expo-sqlite",
