@@ -90,13 +90,7 @@ No action needed here.
 
 ## Step 5 — Optional Services
 
-Both are free tier. Skip any you don't want right now.
-
-### Sentry (Crash Reporting)
-
-1. [sentry.io](https://sentry.io) → New Project → React Native → name: `coachos`
-2. Copy the DSN (looks like `https://abc@o123.ingest.sentry.io/456`)
-3. Open `.env` → paste as `EXPO_PUBLIC_SENTRY_DSN=<paste here>`
+Skip any you don't want right now.
 
 ### PostHog (Analytics — which screens coaches use most)
 
@@ -186,6 +180,5 @@ maestro test maestro/rls-security-test.yaml   # ← run this one after every sch
 | Student / lesson management | Supabase + schema run ⚠️ |
 | Public booking (QR / link) | Supabase + schema run ⚠️ |
 | Booking push notifications | Expo Project ID + Apple/Firebase certs ⚠️ |
-| Crash reports | Sentry DSN ⚠️ |
 | Usage analytics | PostHog key ⚠️ |
 | Calendar sync | iOS/Android calendar permission (asked at runtime) ✅ |

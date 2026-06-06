@@ -11,7 +11,6 @@ import { useMockData } from "./src/hooks/useMockData";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
-import { initSentry, withSentry } from "./src/services/sentryService";
 import { POSTHOG_KEY, POSTHOG_HOST } from "./src/services/analyticsService";
 
 /*
@@ -34,9 +33,6 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 //don't use expo-constants, its depreicated
 
 */
-
-// Initialise Sentry as early as possible (no-ops if DSN not set)
-initSentry();
 
 const isSupabaseConfigured = () => {
   const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
@@ -97,4 +93,4 @@ function App() {
   return <AppContent />;
 }
 
-export default withSentry(App);
+export default App;

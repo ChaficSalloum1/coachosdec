@@ -21,6 +21,7 @@ import { saveLanguage } from '../i18n/config';
 import { getCurrentUser, signOut } from '../services/authService';
 import type { PaymentPreference } from '../modules/payments';
 import { normalizePaymentSettings } from '../modules/payments';
+import { SPORT_OPTIONS } from '../constants/sports';
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -326,6 +327,114 @@ function LanguageSelector() {
   );
 }
 
+interface SportsTileSelectorProps {
+  selectedSports: string[];
+  onChange: (sports: string[]) => void;
+  otherSport: string;
+  onOtherSportChange: (sport: string) => void;
+  compact?: boolean;
+}
+
+function SportsTileSelector({
+  selectedSports,
+  onChange,
+  otherSport,
+  onOtherSportChange,
+  compact = false,
+}: SportsTileSelectorProps) {
+  const toggleSport = (sport: string) => {
+    if (sport === 'Other') {
+      if (selectedSports.includes('Other')) {
+        onOtherSportChange('');
+        onChange(selectedSports.filter(item => item !== 'Other'));
+      } else {
+        onChange([...selectedSports, 'Other']);
+      }
+      return;
+    }
+
+    if (selectedSports.includes(sport)) {
+      onChange(selectedSports.filter(item => item !== sport));
+      return;
+    }
+
+    onChange([...selectedSports, sport]);
+  };
+
+  return (
+    <View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+        {SPORT_OPTIONS.map(option => {
+          const selected = selectedSports.includes(option.label);
+          return (
+            <Pressable
+              key={option.label}
+              onPress={() => toggleSport(option.label)}
+              style={{
+                width: compact ? '31%' : '48%',
+                minHeight: compact ? 86 : 104,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: selected ? '#1E88E5' : '#D7DEE8',
+                backgroundColor: selected ? '#E8F2FF' : '#FFFFFF',
+                padding: compact ? 10 : 14,
+                justifyContent: 'space-between',
+              }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <Ionicons
+                  name={option.icon}
+                  size={compact ? 22 : 26}
+                  color={selected ? '#1E88E5' : '#42526E'}
+                />
+                {selected && <Ionicons name="checkmark-circle" size={18} color="#1E88E5" />}
+              </View>
+              <Text
+                style={{
+                  color: selected ? '#1E88E5' : '#0B1220',
+                  fontSize: compact ? 13 : 15,
+                  fontWeight: '700',
+                  marginTop: 10,
+                }}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {selectedSports.includes('Other') && (
+        <TextInput
+          value={otherSport}
+          onChangeText={onOtherSportChange}
+          className="bg-white rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200 mt-3"
+          placeholder="Add your sport"
+          autoCapitalize="words"
+        />
+      )}
+    </View>
+  );
+}
+
+function buildSportsSelection(selectedSports: string[], otherSport: string): string[] {
+  const baseSports = selectedSports.filter(sport => sport !== 'Other');
+  const customSport = otherSport.trim();
+  return customSport ? [...baseSports, customSport] : baseSports;
+}
+
+function splitSportsForSelection(sports: string[]): { selectedSports: string[]; otherSport: string } {
+  const optionLabels = SPORT_OPTIONS.map(option => option.label);
+  const selectedKnownSports = sports.filter(sport => optionLabels.includes(sport));
+  const customSports = sports.filter(sport => !optionLabels.includes(sport));
+  return {
+    selectedSports: customSports.length > 0
+      ? [...selectedKnownSports, 'Other']
+      : selectedKnownSports,
+    otherSport: customSports.join(', '),
+  };
+}
+
 interface ProfileCardProps {
   coach: Coach;
   isEditing: boolean;
@@ -335,14 +444,16 @@ interface ProfileCardProps {
 function ProfileCard({ coach, isEditing, onUpdate }: ProfileCardProps) {
   const { t } = useTranslation();
   const [name, setName] = useState(coach.name);
-  const [sports, setSports] = useState(coach.sports.join(', '));
+  const initialSports = splitSportsForSelection(coach.sports);
+  const [selectedSports, setSelectedSports] = useState<string[]>(initialSports.selectedSports);
+  const [otherSport, setOtherSport] = useState(initialSports.otherSport);
   const [price, setPrice] = useState(coach.pricePerHour.toString());
 
   React.useEffect(() => {
     if (!isEditing) {
       onUpdate({
         name,
-        sports: sports.split(',').map(s => s.trim()).filter(Boolean),
+        sports: buildSportsSelection(selectedSports, otherSport),
         pricePerHour: parseFloat(price) || 0,
       });
     }
@@ -367,11 +478,12 @@ function ProfileCard({ coach, isEditing, onUpdate }: ProfileCardProps) {
       <View className="mb-4">
         <Text className="text-small font-medium text-ink-900 mb-2">{t('sports')}</Text>
         {isEditing ? (
-          <TextInput
-            value={sports}
-            onChangeText={setSports}
-            className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
-            placeholder={t('sportsPlaceholder')}
+          <SportsTileSelector
+            selectedSports={selectedSports}
+            onChange={setSelectedSports}
+            otherSport={otherSport}
+            onOtherSportChange={setOtherSport}
+            compact
           />
         ) : (
           <Text className="text-body text-ink-900">{coach.sports.join(', ')}</Text>
@@ -710,13 +822,20 @@ interface OnboardingScreenProps {
 
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
-  const [sports, setSports] = useState('');
+  const [selectedSports, setSelectedSports] = useState<string[]>([]);
+  const [otherSport, setOtherSport] = useState('');
   const [price, setPrice] = useState('');
 
   const handleComplete = async () => {
-    if (!name.trim() || !sports.trim() || !price.trim()) {
-      Alert.alert(t('missingInformation'), t('fillAllFields'));
+    const sports = buildSportsSelection(selectedSports, otherSport);
+
+    if (!name.trim() || sports.length === 0 || !price.trim()) {
+      Alert.alert(
+        t('missingInformation'),
+        'Add your name, choose at least one sport, and set your starting hourly price.'
+      );
       return;
     }
 
@@ -733,7 +852,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     const coach: Coach = {
       id: user.id, // Use auth.uid() instead of generated ID for RLS security
       name: name.trim(),
-      sports: sports.split(',').map(s => s.trim()).filter(Boolean),
+      sports,
       pricePerHour: parseFloat(price) || 0,
       paymentSettings: {
         cashEnabled: true,
@@ -748,61 +867,90 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   };
 
   return (
-    <View className="flex-1 bg-white px-4 py-6">
-      <View className="items-center mb-8">
-        <Ionicons name="person-circle-outline" size={80} color="#1E88E5" />
-        <Text className="text-title font-semibold text-ink-900 mt-4 mb-2">
-          {t('welcomeToCoachOS')}
-        </Text>
-        <Text className="text-body text-ink-600 text-center">
-          {t('setupProfile')}
-        </Text>
-      </View>
-
-      <View className="space-y-4">
-        <View>
-          <Text className="text-small font-medium text-ink-900 mb-2">{t('yourName')}</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            className="bg-gray-50 rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200"
-            placeholder="John Smith"
-          />
+    <View className="flex-1 bg-white">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingTop: insets.top + 28,
+          paddingBottom: insets.bottom + 28,
+          paddingHorizontal: 16,
+        }}
+      >
+        <View className="mb-7">
+          <View
+            style={{
+              width: 54,
+              height: 54,
+              borderRadius: 16,
+              backgroundColor: '#E8F2FF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 18,
+            }}
+          >
+            <Ionicons name="briefcase-outline" size={28} color="#1E88E5" />
+          </View>
+          <Text style={{ color: '#0B1220', fontSize: 28, fontWeight: '800', lineHeight: 34 }}>
+            Set up your coaching profile
+          </Text>
+          <Text style={{ color: '#42526E', fontSize: 15, lineHeight: 22, marginTop: 8 }}>
+            Start with the essentials. Payments, availability, locations, and booking link can all be finished later in Settings.
+          </Text>
         </View>
 
-        <View>
-          <Text className="text-small font-medium text-ink-900 mb-2">{t('sportsYouCoach')}</Text>
-          <TextInput
-            value={sports}
-            onChangeText={setSports}
-            className="bg-gray-50 rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200"
-            placeholder={t('sportsPlaceholder')}
-          />
-        </View>
-
-        <View>
-          <Text className="text-small font-medium text-ink-900 mb-2">{t('pricePerHour')}</Text>
-          <View className="flex-row items-center">
-            <Text className="text-body text-ink-900 mr-2">$</Text>
+        <View style={{ gap: 22 }}>
+          <View>
+            <Text className="text-small font-medium text-ink-900 mb-2">Display name</Text>
             <TextInput
-              value={price}
-              onChangeText={setPrice}
-              className="flex-1 bg-gray-50 rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200"
-              placeholder="50"
-              keyboardType="numeric"
+              value={name}
+              onChangeText={setName}
+              className="bg-gray-50 rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200"
+              placeholder="Nikos Papadakis"
+              autoCapitalize="words"
             />
           </View>
-        </View>
-      </View>
 
-      <Pressable
-        onPress={handleComplete}
-        className="mt-8 bg-primary rounded-default py-4 px-4 active:bg-primary/80"
-      >
-        <Text className="text-body font-medium text-white text-center">
-          {t('getStarted')}
+          <View>
+            <Text className="text-small font-medium text-ink-900 mb-2">Sports you coach</Text>
+            <Text style={{ color: '#42526E', fontSize: 13, lineHeight: 18, marginBottom: 12 }}>
+              Choose one or more. You can change this later.
+            </Text>
+            <SportsTileSelector
+              selectedSports={selectedSports}
+              onChange={setSelectedSports}
+              otherSport={otherSport}
+              onOtherSportChange={setOtherSport}
+            />
+          </View>
+
+          <View>
+            <Text className="text-small font-medium text-ink-900 mb-2">Starting hourly price</Text>
+            <View className="flex-row items-center">
+              <Text className="text-body text-ink-900 mr-2">€</Text>
+              <TextInput
+                value={price}
+                onChangeText={setPrice}
+                className="flex-1 bg-gray-50 rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200"
+                placeholder="45"
+                keyboardType="numeric"
+              />
+            </View>
+          </View>
+        </View>
+
+        <Pressable
+          onPress={handleComplete}
+          className="mt-8 bg-primary rounded-default py-4 px-4 active:bg-primary/80"
+        >
+          <Text className="text-body font-medium text-white text-center">
+            Create workspace
+          </Text>
+        </Pressable>
+
+        <Text style={{ color: '#42526E', fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 14 }}>
+          Optional setup steps are waiting in Settings whenever you are ready.
         </Text>
-      </Pressable>
+      </ScrollView>
     </View>
   );
 }

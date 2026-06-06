@@ -40,7 +40,6 @@
     "plugins": [
       "./plugins/fix-fmt-consteval",
       "@react-native-community/datetimepicker",
-      "@sentry/react-native",
       "expo-asset",
       [
         "expo-build-properties",

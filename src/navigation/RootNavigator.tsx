@@ -7,7 +7,6 @@ import { TabNavigator } from './TabNavigator';
 import { LoginScreen } from '../screens/LoginScreen';
 import { getSession, onAuthStateChange } from '../services/authService';
 import { registerForPushNotifications } from '../services/pushNotificationsService';
-import { setSentryUser, clearSentryUser } from '../services/sentryService';
 import { initRevenueCat, identifyUser, resetUser } from '../services/revenueCatService';
 import { useCoachStore } from '../state/coachStore';
 
@@ -36,7 +35,6 @@ export function RootNavigator() {
 
     if (isDemoMode) {
       setSession(null);
-      clearSentryUser();
       resetUser().catch(() => {});
       return;
     }
@@ -53,11 +51,9 @@ export function RootNavigator() {
       setSession(newSession);
 
       if (newSession?.user) {
-        setSentryUser(newSession.user.id);
         registerForPushNotifications().catch(() => {});
         identifyUser(newSession.user.id).catch(() => {});
       } else {
-        clearSentryUser();
         resetUser().catch(() => {});
       }
     });
