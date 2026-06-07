@@ -11,12 +11,14 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signIn, signUp, resetPassword } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
 
 type Mode = 'login' | 'signup';
+type Feedback = { type: 'error' | 'success' | 'info'; title: string; message: string };
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -24,14 +26,31 @@ export function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'error' | 'success' | 'info'; title: string; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
   const enterDemoMode = useCoachStore(s => s.enterDemoMode);
 
+  const triggerAuthFeedback = (type: Feedback['type']) => {
+    if (Platform.OS === 'web') return;
+
+    if (type === 'success') {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      return;
+    }
+
+    if (type === 'error') {
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   const showFeedback = (
-    type: 'error' | 'success' | 'info',
+    type: Feedback['type'],
     title: string,
     message: string
   ) => {
+    triggerAuthFeedback(type);
     setFeedback({ type, title, message });
     Alert.alert(title, message);
   };
@@ -56,6 +75,15 @@ export function LoginScreen() {
     }
 
     setIsLoading(true);
+    if (mode === 'signup') {
+      triggerAuthFeedback('info');
+      setFeedback({
+        type: 'info',
+        title: 'Creating account',
+        message: 'Securely creating your coach workspace...',
+      });
+    }
+
     try {
       const result = mode === 'login'
         ? await signIn({ email: trimmedEmail, password })
@@ -74,6 +102,7 @@ export function LoginScreen() {
           'We sent you a confirmation link. Please verify your email before signing in.'
         );
       } else if (mode === 'signup') {
+        triggerAuthFeedback('success');
         setFeedback({
           type: 'success',
           title: 'Account created',
@@ -221,27 +250,36 @@ export function LoginScreen() {
                 backgroundColor: feedback.type === 'error' ? '#FFF1F1' : feedback.type === 'success' ? '#F0FFF4' : '#F1F8FF',
                 padding: 14,
                 marginBottom: 16,
+                flexDirection: 'row',
+                gap: 10,
               }}
             >
-              <Text
-                style={{
-                  color: feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E',
-                  fontSize: 14,
-                  fontWeight: '700',
-                  marginBottom: 4,
-                }}
-              >
-                {feedback.title}
-              </Text>
-              <Text
-                style={{
-                  color: feedback.type === 'error' ? '#7A271A' : feedback.type === 'success' ? '#276749' : '#42526E',
-                  fontSize: 13,
-                  lineHeight: 18,
-                }}
-              >
-                {feedback.message}
-              </Text>
+              <Ionicons
+                name={feedback.type === 'error' ? 'alert-circle' : feedback.type === 'success' ? 'checkmark-circle' : 'time-outline'}
+                size={22}
+                color={feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E'}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E',
+                    fontSize: 14,
+                    fontWeight: '700',
+                    marginBottom: 4,
+                  }}
+                >
+                  {feedback.title}
+                </Text>
+                <Text
+                  style={{
+                    color: feedback.type === 'error' ? '#7A271A' : feedback.type === 'success' ? '#276749' : '#42526E',
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  {feedback.message}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -250,15 +288,25 @@ export function LoginScreen() {
             onPress={handleSubmit}
             disabled={isLoading}
             style={{
-              backgroundColor: isLoading ? '#90CAF9' : '#1E88E5',
+              backgroundColor: feedback?.type === 'success' ? '#1F7A3A' : isLoading ? '#90CAF9' : '#1E88E5',
               borderRadius: 12,
               paddingVertical: 16,
               alignItems: 'center',
               marginBottom: 20,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
             }}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
+            ) : feedback?.type === 'success' ? (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+                  {mode === 'signup' ? 'Account Created' : 'Success'}
+                </Text>
+              </>
             ) : (
               <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
                 {mode === 'login' ? 'Sign In' : 'Create Account'}
