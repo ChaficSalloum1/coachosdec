@@ -32,6 +32,25 @@ export interface AuthResponse {
 }
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const AUTH_TIMEOUT_MS = 15000;
+
+const withAuthTimeout = async <T,>(promise: Promise<T>, action: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${action} timed out. Please check your internet connection and Supabase configuration, then try again.`));
+    }, AUTH_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+};
 
 const validateEmailPassword = (email: string, password: string, isSignUp: boolean): AuthError | null => {
   if (!emailRegex.test(email.trim())) {
@@ -63,13 +82,16 @@ export const signUp = async (
     }
 
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password: credentials.password,
-      options: {
-        data: credentials.metadata || {},
-      },
-    });
+    const { data, error } = await withAuthTimeout(
+      supabase.auth.signUp({
+        email,
+        password: credentials.password,
+        options: {
+          data: credentials.metadata || {},
+        },
+      }),
+      "Sign up"
+    );
 
     return {
       user: data.user,
@@ -99,10 +121,13 @@ export const signIn = async (
     }
 
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: credentials.password,
-    });
+    const { data, error } = await withAuthTimeout(
+      supabase.auth.signInWithPassword({
+        email,
+        password: credentials.password,
+      }),
+      "Sign in"
+    );
 
     return {
       user: data.user,
