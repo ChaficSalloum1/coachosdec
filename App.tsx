@@ -3,7 +3,6 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
-import { PostHogProvider } from "posthog-react-native";
 import "./src/i18n/config";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
@@ -11,7 +10,6 @@ import { useMockData } from "./src/hooks/useMockData";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
-import { POSTHOG_KEY, POSTHOG_HOST } from "./src/services/analyticsService";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -83,13 +81,6 @@ function AppContent() {
 }
 
 function App() {
-  if (POSTHOG_KEY) {
-    return (
-      <PostHogProvider apiKey={POSTHOG_KEY} options={{ host: POSTHOG_HOST }}>
-        <AppContent />
-      </PostHogProvider>
-    );
-  }
   return <AppContent />;
 }
 

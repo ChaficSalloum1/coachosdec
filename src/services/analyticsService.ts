@@ -9,22 +9,11 @@
  *  2. Add your keys to .env:
  *       EXPO_PUBLIC_POSTHOG_KEY=phc_xxxx
  *       EXPO_PUBLIC_POSTHOG_HOST=https://eu.posthog.com   # or https://app.posthog.com
- *  3. Wrap your app root with <PostHogProvider> (see App.tsx integration note below).
+ *  3. Re-enable the provider only after the core app startup path is stable.
  *
- * App.tsx integration:
- *   import { PostHogProvider } from 'posthog-react-native';
- *   import { POSTHOG_KEY, POSTHOG_HOST } from './src/services/analyticsService';
- *
- *   export default function App() {
- *     return (
- *       <PostHogProvider apiKey={POSTHOG_KEY} options={{ host: POSTHOG_HOST }}>
- *         <RootNavigator />
- *       </PostHogProvider>
- *     );
- *   }
+ * Analytics is intentionally disabled at startup while the TestFlight build is
+ * stabilized. Reintroduce the provider only after the core app opens reliably.
  */
-
-import { usePostHog } from 'posthog-react-native';
 
 // posthog-react-native's event properties are JSON-serialisable values
 type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
@@ -76,33 +65,26 @@ export type AnalyticsEventName =
  *   track(AnalyticsEvent.LESSON_CREATED, { duration: 60 });
  */
 export function useAnalytics() {
-  const posthog = usePostHog();
-
   return (
-    event: AnalyticsEventName,
-    properties?: AnalyticsProperties,
+    _event: AnalyticsEventName,
+    _properties?: AnalyticsProperties,
   ): void => {
-    if (!POSTHOG_KEY) return;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    posthog?.capture(event, properties as any);
+    return;
   };
 }
 
 /** Identify the authenticated coach. Call after login. */
 export function identifyCoach(
-  posthog: ReturnType<typeof usePostHog>,
-  userId: string,
-  properties?: AnalyticsProperties,
+  _posthog: unknown,
+  _userId: string,
+  _properties?: AnalyticsProperties,
 ): void {
-  if (!POSTHOG_KEY || !posthog) return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  posthog.identify(userId, properties as any);
+  return;
 }
 
 /** Reset identity on sign-out. */
 export function resetAnalyticsUser(
-  posthog: ReturnType<typeof usePostHog>,
+  _posthog: unknown,
 ): void {
-  if (!posthog) return;
-  posthog.reset();
+  return;
 }

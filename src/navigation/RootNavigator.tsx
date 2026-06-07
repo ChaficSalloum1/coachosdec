@@ -6,8 +6,6 @@ import type { Session } from '@supabase/supabase-js';
 import { TabNavigator } from './TabNavigator';
 import { LoginScreen } from '../screens/LoginScreen';
 import { getSession, onAuthStateChange } from '../services/authService';
-import { registerForPushNotifications } from '../services/pushNotificationsService';
-import { initRevenueCat, identifyUser, resetUser } from '../services/revenueCatService';
 import { useCoachStore } from '../state/coachStore';
 
 export type RootStackParamList = {
@@ -21,6 +19,42 @@ const isSupabaseConfigured = () => {
   const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
   const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
   return !!(url && key && !url.includes('your_supabase') && !key.includes('your_supabase'));
+};
+
+const initSubscriptions = async () => {
+  try {
+    const { initRevenueCat } = await import('../services/revenueCatService');
+    initRevenueCat();
+  } catch {
+    // Subscription features should never block app startup.
+  }
+};
+
+const identifySubscriptionUser = async (userId: string) => {
+  try {
+    const { identifyUser } = await import('../services/revenueCatService');
+    await identifyUser(userId);
+  } catch {
+    // Ignore subscription identity failures during auth routing.
+  }
+};
+
+const resetSubscriptionUser = async () => {
+  try {
+    const { resetUser } = await import('../services/revenueCatService');
+    await resetUser();
+  } catch {
+    // Ignore subscription identity failures during auth routing.
+  }
+};
+
+const registerPushToken = async () => {
+  try {
+    const { registerForPushNotifications } = await import('../services/pushNotificationsService');
+    await registerForPushNotifications();
+  } catch {
+    // Push setup should not affect first paint or auth routing.
+  }
 };
 
 export function RootNavigator() {
@@ -38,16 +72,11 @@ export function RootNavigator() {
       }
     }, 3000);
 
-    // Initialize RevenueCat early, before auth resolves. Never block first paint.
-    try {
-      initRevenueCat();
-    } catch {
-      // Subscription features can recover later; auth routing should still render.
-    }
+    initSubscriptions();
 
     if (isDemoMode) {
       setSession(null);
-      resetUser().catch(() => {});
+      resetSubscriptionUser();
       clearTimeout(startupTimeout);
       return () => {
         mounted = false;
@@ -87,10 +116,10 @@ export function RootNavigator() {
         setSession(newSession);
 
         if (newSession?.user) {
-          registerForPushNotifications().catch(() => {});
-          identifyUser(newSession.user.id).catch(() => {});
+          registerPushToken();
+          identifySubscriptionUser(newSession.user.id);
         } else {
-          resetUser().catch(() => {});
+          resetSubscriptionUser();
         }
       });
       subscription = authSubscription.data.subscription;
