@@ -7,6 +7,7 @@ import {
   TextInput,
   Alert,
   Switch,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -73,16 +74,32 @@ export function SettingsScreen() {
     );
   };
 
+  const confirmExitDemo = async () => {
+    await signOut();
+    exitDemoMode();
+  };
+
   const handleExitDemo = () => {
+    const message = 'This will clear demo data and return you to sign up or sign in.';
+
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm?.(`Exit demo workspace?\n\n${message}`)) {
+        void confirmExitDemo();
+      }
+      return;
+    }
+
     Alert.alert(
       'Exit demo workspace?',
-      'This will clear demo data and return you to sign up or sign in.',
+      message,
       [
         { text: t('cancel'), style: 'cancel' },
         {
           text: 'Exit Demo',
           style: 'destructive',
-          onPress: exitDemoMode,
+          onPress: () => {
+            void confirmExitDemo();
+          },
         },
       ]
     );
