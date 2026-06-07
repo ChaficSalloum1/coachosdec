@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { Session } from '@supabase/supabase-js';
 
@@ -138,6 +138,9 @@ export function RootNavigator() {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
         <ActivityIndicator color="#1E88E5" size="large" />
+        <Text style={{ color: '#42526E', fontSize: 14, marginTop: 12 }}>
+          CoachOS is opening...
+        </Text>
       </View>
     );
   }

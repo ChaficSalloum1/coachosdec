@@ -3,6 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
+import { View } from "react-native";
 import "./src/i18n/config";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
@@ -68,12 +69,14 @@ function AppContent() {
 
   return (
     <ErrorBoundary>
-      <GestureHandlerRootView className="flex-1">
-        <SafeAreaProvider>
-          <NavigationContainer>
-            <StatusBar style="dark" />
-            <RootNavigator />
-          </NavigationContainer>
+      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+            <NavigationContainer>
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NavigationContainer>
+          </View>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </ErrorBoundary>
