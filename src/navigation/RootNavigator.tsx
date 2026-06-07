@@ -30,35 +30,79 @@ export function RootNavigator() {
   const isDemoMode = useCoachStore(s => s.isDemoMode);
 
   useEffect(() => {
-    // Initialize RevenueCat early, before auth resolves
-    initRevenueCat();
+    let mounted = true;
+    let subscription: { unsubscribe: () => void } | undefined;
+    const startupTimeout = setTimeout(() => {
+      if (mounted) {
+        setSession(null);
+      }
+    }, 3000);
+
+    // Initialize RevenueCat early, before auth resolves. Never block first paint.
+    try {
+      initRevenueCat();
+    } catch {
+      // Subscription features can recover later; auth routing should still render.
+    }
 
     if (isDemoMode) {
       setSession(null);
       resetUser().catch(() => {});
-      return;
+      clearTimeout(startupTimeout);
+      return () => {
+        mounted = false;
+        clearTimeout(startupTimeout);
+      };
     }
 
     if (!supabaseReady) {
       // No Supabase — skip auth, go straight to the app
       setSession(null);
-      return;
+      clearTimeout(startupTimeout);
+      return () => {
+        mounted = false;
+        clearTimeout(startupTimeout);
+      };
     }
 
-    getSession().then(setSession);
+    getSession()
+      .then(nextSession => {
+        if (mounted) {
+          setSession(nextSession);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setSession(null);
+        }
+      })
+      .finally(() => {
+        clearTimeout(startupTimeout);
+      });
 
-    const { data: { subscription } } = onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
+    try {
+      const authSubscription = onAuthStateChange((_event, newSession) => {
+        if (!mounted) return;
 
-      if (newSession?.user) {
-        registerForPushNotifications().catch(() => {});
-        identifyUser(newSession.user.id).catch(() => {});
-      } else {
-        resetUser().catch(() => {});
-      }
-    });
+        setSession(newSession);
 
-    return () => subscription.unsubscribe();
+        if (newSession?.user) {
+          registerForPushNotifications().catch(() => {});
+          identifyUser(newSession.user.id).catch(() => {});
+        } else {
+          resetUser().catch(() => {});
+        }
+      });
+      subscription = authSubscription.data.subscription;
+    } catch {
+      setSession(null);
+    }
+
+    return () => {
+      mounted = false;
+      clearTimeout(startupTimeout);
+      subscription?.unsubscribe();
+    };
   }, [isDemoMode, supabaseReady]);
 
   if (session === undefined) {
