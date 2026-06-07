@@ -68,23 +68,25 @@ function AppContent() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-        <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-          <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-            <NavigationContainer>
-              <StatusBar style="dark" />
-              <RootNavigator />
-            </NavigationContainer>
-          </View>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </ErrorBoundary>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          <NavigationContainer>
+            <StatusBar style="dark" />
+            <RootNavigator />
+          </NavigationContainer>
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 function App() {
-  return <AppContent />;
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 }
 
 export default App;

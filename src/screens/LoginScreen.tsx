@@ -11,7 +11,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signIn, signUp, resetPassword } from '../services/authService';
@@ -29,20 +28,26 @@ export function LoginScreen() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const enterDemoMode = useCoachStore(s => s.enterDemoMode);
 
-  const triggerAuthFeedback = (type: Feedback['type']) => {
+  const triggerAuthFeedback = async (type: Feedback['type']) => {
     if (Platform.OS === 'web') return;
 
-    if (type === 'success') {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      return;
-    }
+    try {
+      const Haptics = await import('expo-haptics');
 
-    if (type === 'error') {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
+      if (type === 'success') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
 
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (type === 'error') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      // Haptics should never block auth feedback.
+    }
   };
 
   const showFeedback = (
@@ -50,7 +55,7 @@ export function LoginScreen() {
     title: string,
     message: string
   ) => {
-    triggerAuthFeedback(type);
+    void triggerAuthFeedback(type);
     setFeedback({ type, title, message });
     Alert.alert(title, message);
   };
@@ -76,7 +81,7 @@ export function LoginScreen() {
 
     setIsLoading(true);
     if (mode === 'signup') {
-      triggerAuthFeedback('info');
+      void triggerAuthFeedback('info');
       setFeedback({
         type: 'info',
         title: 'Creating account',
@@ -102,7 +107,7 @@ export function LoginScreen() {
           'We sent you a confirmation link. Please verify your email before signing in.'
         );
       } else if (mode === 'signup') {
-        triggerAuthFeedback('success');
+        void triggerAuthFeedback('success');
         setFeedback({
           type: 'success',
           title: 'Account created',
