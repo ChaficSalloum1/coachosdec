@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import type * as ZustandMiddleware from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDays, format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +15,8 @@ import {
   requestPaymentStatus,
   sendReminderStatus,
 } from '../modules/payments';
+
+const { persist, createJSONStorage } = require('zustand/middleware.js') as typeof ZustandMiddleware;
 
 // Helper function to safely import CalendarService
 const getCalendarService = async () => {

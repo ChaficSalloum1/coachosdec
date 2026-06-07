@@ -2,7 +2,9 @@
 // DO NOTE USE THIS FILE, create new ones in the state folder.
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
+import type * as ZustandMiddleware from "zustand/middleware";
+
+const { persist, createJSONStorage } = require("zustand/middleware.js") as typeof ZustandMiddleware;
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface RootStore {}
