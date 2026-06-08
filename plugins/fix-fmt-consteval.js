@@ -8,7 +8,7 @@ const PODFILE_PATCH = `
     ${PATCH_MARKER}
     # fmt 11.0.2 can trip Apple Clang/Xcode consteval checks during EAS iOS builds.
     # Disable fmt consteval support for pod targets that include fmt headers, and keep
-    # the fmt pod itself on C++17 so the consteval path is not selected.
+    # fmt/RCT-Folly on C++17 so the consteval path is not selected.
     installer.pods_project.targets.each do |target|
       target.build_configurations.each do |config|
         definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS']
@@ -23,7 +23,7 @@ const PODFILE_PATCH = `
         cplusplus_flags << '-DFMT_USE_CONSTEVAL=0' unless cplusplus_flags.include?('-DFMT_USE_CONSTEVAL=0')
         config.build_settings['OTHER_CPLUSPLUSFLAGS'] = cplusplus_flags
 
-        if target.name == 'fmt'
+        if target.name == 'fmt' || target.name == 'RCT-Folly'
           config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
         end
       end
