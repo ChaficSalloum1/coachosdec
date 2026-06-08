@@ -29,66 +29,91 @@ import { Platform } from 'react-native';
 
 const IOS_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '';
 const ANDROID_KEY = process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '';
+const REVENUECAT_ENABLED = process.env.EXPO_PUBLIC_REVENUECAT_ENABLED === 'true';
 
 const PRO_ENTITLEMENT = 'pro';
+let isConfigured = false;
+
+const logRevenueCatIssue = (message: string, error?: unknown) => {
+  if (__DEV__) {
+    console.warn(message, error ?? '');
+  }
+};
 
 export function initRevenueCat(userId?: string): void {
   const apiKey = Platform.OS === 'ios' ? IOS_KEY : ANDROID_KEY;
 
+  if (!REVENUECAT_ENABLED) {
+    isConfigured = false;
+    if (__DEV__) {
+      console.log('[RevenueCat] Subscription features disabled.');
+    }
+    return;
+  }
+
   if (!apiKey) {
-    console.warn('[RevenueCat] API key not set. Subscription features disabled.');
+    logRevenueCatIssue('[RevenueCat] API key not set. Subscription features disabled.');
     return;
   }
 
   if (__DEV__) {
-    Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    Purchases.setLogLevel(LOG_LEVEL.ERROR);
   }
 
   Purchases.configure({ apiKey });
+  isConfigured = true;
 
   if (userId) {
     Purchases.logIn(userId).catch((e) =>
-      console.error('[RevenueCat] logIn error', e),
+      logRevenueCatIssue('[RevenueCat] logIn error', e),
     );
   }
 }
 
 /** Call after Supabase auth.signIn to link the coach's account. */
 export async function identifyUser(userId: string): Promise<void> {
+  if (!isConfigured) return;
+
   try {
     await Purchases.logIn(userId);
   } catch (e) {
-    console.error('[RevenueCat] identifyUser error', e);
+    logRevenueCatIssue('[RevenueCat] identifyUser error', e);
   }
 }
 
 /** Call on sign-out to reset to anonymous user. */
 export async function resetUser(): Promise<void> {
+  if (!isConfigured) return;
+
   try {
     await Purchases.logOut();
   } catch (e) {
-    console.error('[RevenueCat] resetUser error', e);
+    logRevenueCatIssue('[RevenueCat] resetUser error', e);
   }
 }
 
 /** Returns true if the coach has an active Pro entitlement. */
 export async function hasProAccess(): Promise<boolean> {
+  if (!isConfigured) return false;
+
   try {
     const info: CustomerInfo = await Purchases.getCustomerInfo();
     return info.entitlements.active[PRO_ENTITLEMENT] !== undefined;
   } catch (e) {
-    console.error('[RevenueCat] hasProAccess error', e);
+    logRevenueCatIssue('[RevenueCat] hasProAccess error', e);
     return false;
   }
 }
 
 /** Fetch the current offering (packages available for purchase). */
 export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
+  if (!isConfigured) return null;
+
   try {
     const offerings = await Purchases.getOfferings();
     return offerings.current;
   } catch (e) {
-    console.error('[RevenueCat] getCurrentOffering error', e);
+    logRevenueCatIssue('[RevenueCat] getCurrentOffering error', e);
     return null;
   }
 }
@@ -100,13 +125,15 @@ export async function getCurrentOffering(): Promise<PurchasesOffering | null> {
 export async function purchasePackage(
   pkg: import('react-native-purchases').PurchasesPackage,
 ): Promise<CustomerInfo | null> {
+  if (!isConfigured) return null;
+
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     return customerInfo;
   } catch (e: unknown) {
     const err = e as { userCancelled?: boolean };
     if (!err.userCancelled) {
-      console.error('[RevenueCat] purchasePackage error', e);
+      logRevenueCatIssue('[RevenueCat] purchasePackage error', e);
     }
     return null;
   }
@@ -114,10 +141,12 @@ export async function purchasePackage(
 
 /** Restore previously purchased subscriptions. */
 export async function restorePurchases(): Promise<CustomerInfo | null> {
+  if (!isConfigured) return null;
+
   try {
     return await Purchases.restorePurchases();
   } catch (e) {
-    console.error('[RevenueCat] restorePurchases error', e);
+    logRevenueCatIssue('[RevenueCat] restorePurchases error', e);
     return null;
   }
 }
