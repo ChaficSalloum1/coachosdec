@@ -46,7 +46,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     });
 
     // In production, you would send this to an error reporting service
-    // Example: Sentry.captureException(error, { extra: errorInfo });
+    // Future crash reporting can be wired here without blocking app startup.
   }
 
   resetError = (): void => {

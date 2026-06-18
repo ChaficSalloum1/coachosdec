@@ -7,6 +7,7 @@ import {
   Pressable,
   AlertButton,
   FlatList,
+  Modal,
   Share,
   useWindowDimensions,
   ViewToken,
@@ -48,6 +49,18 @@ import {
   getTimeOfDayColor,
 } from '../utils/dayNav';
 import { DesignTokens } from '../utils/designTokens';
+import { PaymentRequestPanel } from '../components/payments/PaymentRequestPanel';
+import { PaymentStatusBadge } from '../components/payments/PaymentStatusBadge';
+import {
+  buildPaymentReminderMessage,
+  buildPaymentRequestMessage,
+  canSendPaymentReminder,
+  createInstructionFromSettings,
+  eurosToCents,
+  generatePaymentReferenceCode,
+  normalizePaymentSettings,
+  normalizePaymentStatus,
+} from '../modules/payments';
 
 const PAGE_WINDOW_SIZE = 61; // ±30 days from today
 const CENTER_PAGE_INDEX = 30; // Today's index
@@ -510,6 +523,10 @@ const AnimatedDayPage = React.memo(({
              lesson.id === nextLesson.id &&
              lesson.status === nextLesson.status &&
              lesson.isPaid === nextLesson.isPaid &&
+             lesson.paymentStatus === nextLesson.paymentStatus &&
+             lesson.paymentReferenceCode === nextLesson.paymentReferenceCode &&
+             lesson.lastReminderSentAt === nextLesson.lastReminderSentAt &&
+             lesson.paidConfirmedAt === nextLesson.paidConfirmedAt &&
              lesson.studentName === nextLesson.studentName &&
              lesson.startTime === nextLesson.startTime &&
              lesson.endTime === nextLesson.endTime &&
@@ -751,8 +768,15 @@ interface LessonCardProps {
 }
 
 const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: LessonCardProps) => {
-  const { formatLocationText } = useCoachStore();
+  const {
+    coach,
+    formatLocationText,
+    requestLessonPayment,
+    sendLessonPaymentReminder,
+    cancelLessonPayment,
+  } = useCoachStore();
   const cancelAlertOpenRef = useRef(false);
+  const [paymentPanelVisible, setPaymentPanelVisible] = useState(false);
 
   const handleCancelSwipe = () => {
     if (cancelAlertOpenRef.current) {
@@ -807,6 +831,12 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
     }
 
     actions.push({
+      text: 'Payment Request',
+      onPress: () => setPaymentPanelVisible(true),
+      style: 'default',
+    });
+
+    actions.push({
       text: 'Cancel Lesson',
       onPress: () => {
         onCancel();
@@ -833,115 +863,181 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
 
   const locationText = formatLocationText(lesson.areaId, lesson.facilityId, lesson.courtId);
   const timeColor = getTimeOfDayColor(lesson.startTime);
+  const paymentSettings = normalizePaymentSettings(coach?.paymentSettings);
+  const paymentStatus = normalizePaymentStatus(lesson.paymentStatus, lesson.isPaid);
+  const reference = lesson.paymentReferenceCode
+    ?? (coach ? generatePaymentReferenceCode(coach.name, lesson.id) : lesson.id);
+  const instruction = createInstructionFromSettings({
+    settings: paymentSettings,
+    method: lesson.paymentMethodRequested ?? paymentSettings.paymentPreference,
+    amountCents: eurosToCents(lesson.price),
+    reference,
+  });
+  const requestMessage = buildPaymentRequestMessage({
+    coachName: coach?.name ?? 'your coach',
+    clientName: lesson.studentName,
+    sessionTitle: 'lesson',
+    startsAt: `${lesson.date} at ${formatTime(lesson.startTime)}`,
+    amountCents: eurosToCents(lesson.price),
+    paymentInstructions: instruction.displayText,
+    cancellationPolicy: paymentSettings.cancellationPolicy,
+  });
+  const reminderMessage = buildPaymentReminderMessage({
+    clientName: lesson.studentName,
+    sessionTitle: 'lesson',
+    amountCents: eurosToCents(lesson.price),
+    paymentInstructions: instruction.displayText,
+  });
 
   return (
-    <SwipeableCard
-      onSwipeRight={!lesson.isPaid ? handleMarkPaidSwipe : undefined}
-      onSwipeLeft={handleCancelSwipe}
-      onPress={showQuickActions}
-      rightSwipeEnabled={!lesson.isPaid}
-      rightSwipeText="Swipe right to mark paid →"
-      leftSwipeText="← Swipe left to cancel"
-      hideSwipeHints={false}
-    >
-      <View className="flex-row items-center">
-        {/* Student Avatar */}
-        <LessonAvatar name={lesson.studentName} size={40} />
+    <>
+      <SwipeableCard
+        onSwipeRight={!lesson.isPaid ? handleMarkPaidSwipe : undefined}
+        onSwipeLeft={handleCancelSwipe}
+        onPress={showQuickActions}
+        rightSwipeEnabled={!lesson.isPaid}
+        rightSwipeText="Swipe right to mark paid →"
+        leftSwipeText="← Swipe left to cancel"
+        hideSwipeHints={false}
+      >
+        <View className="flex-row items-center">
+          <LessonAvatar name={lesson.studentName} size={40} />
 
-        {/* Time-of-day colored edge */}
-        <View
-          style={{
-            width: 4,
-            height: 40,
-            backgroundColor: timeColor,
-            borderRadius: 2,
-            marginLeft: DesignTokens.spacing.md,
-            marginRight: DesignTokens.spacing.md
-          }}
-        />
+          <View
+            style={{
+              width: 4,
+              height: 40,
+              backgroundColor: timeColor,
+              borderRadius: 2,
+              marginLeft: DesignTokens.spacing.md,
+              marginRight: DesignTokens.spacing.md
+            }}
+          />
 
-        {/* Card content */}
-        <View className="flex-1">
-          <View className="flex-row items-center justify-between">
-            <Text
-              style={{
-                ...DesignTokens.typography.callout,
-                fontWeight: '600',
-                color: DesignTokens.colors.graphite,
-                flex: 1
-              }}
-              numberOfLines={1}
-              ellipsizeMode="tail"
-            >
-              {formatTime(lesson.startTime)} • {lesson.studentName}
-            </Text>
-            <Text
-              style={{
-                ...DesignTokens.typography.callout,
-                fontWeight: '600',
-                color: DesignTokens.colors.graphite,
-                marginLeft: DesignTokens.spacing.lg
-              }}
-            >
-              ${lesson.price}
-            </Text>
+          <View className="flex-1">
+            <View className="flex-row items-center justify-between">
+              <Text
+                style={{
+                  ...DesignTokens.typography.callout,
+                  fontWeight: '600',
+                  color: DesignTokens.colors.graphite,
+                  flex: 1
+                }}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {formatTime(lesson.startTime)} • {lesson.studentName}
+              </Text>
+              <Text
+                style={{
+                  ...DesignTokens.typography.callout,
+                  fontWeight: '600',
+                  color: DesignTokens.colors.graphite,
+                  marginLeft: DesignTokens.spacing.lg
+                }}
+              >
+                €{lesson.price}
+              </Text>
+            </View>
+
+            {locationText && (
+              <Text
+                style={{
+                  ...DesignTokens.typography.footnote,
+                  color: DesignTokens.colors.grey,
+                  marginTop: 2
+                }}
+              >
+                {locationText}
+              </Text>
+            )}
+
+            {lesson.notes && (
+              <Text
+                style={{
+                  ...DesignTokens.typography.footnote,
+                  fontStyle: 'italic',
+                  color: DesignTokens.colors.grey,
+                  marginTop: 2
+                }}
+              >
+                {lesson.notes}
+              </Text>
+            )}
+
+            <View style={{ marginTop: DesignTokens.spacing.sm }}>
+              <PaymentStatusBadge status={paymentStatus} isPaid={lesson.isPaid} />
+            </View>
           </View>
 
-          {locationText && (
-            <Text
-              style={{
-                ...DesignTokens.typography.footnote,
-                color: DesignTokens.colors.grey,
-                marginTop: 2
-              }}
-            >
-              {locationText}
-            </Text>
-          )}
-
-          {lesson.notes && (
-            <Text
-              style={{
-                ...DesignTokens.typography.footnote,
-                fontStyle: 'italic',
-                color: DesignTokens.colors.grey,
-                marginTop: 2
-              }}
-            >
-              {lesson.notes}
-            </Text>
-          )}
-
-          {!lesson.isPaid && (
-            <Text
-              style={{
-                ...DesignTokens.typography.caption1,
-                fontWeight: '600',
-                color: DesignTokens.colors.warning,
-                marginTop: DesignTokens.spacing.sm
-              }}
-            >
-              Payment Pending
-            </Text>
-          )}
+          <Pressable
+            onPress={(e) => { e.stopPropagation(); onNotePress(); }}
+            style={{
+              width: 44,
+              height: 44,
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: DesignTokens.spacing.sm,
+            }}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          >
+            <Ionicons name="document-text-outline" size={20} color={DesignTokens.colors.grey} />
+          </Pressable>
         </View>
+      </SwipeableCard>
 
-        {/* Quick note button */}
-        <Pressable
-          onPress={(e) => { e.stopPropagation(); onNotePress(); }}
-          style={{
-            width: 44,
-            height: 44,
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginLeft: DesignTokens.spacing.sm,
-          }}
-          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-        >
-          <Ionicons name="document-text-outline" size={20} color={DesignTokens.colors.grey} />
-        </Pressable>
-      </View>
-    </SwipeableCard>
+      <Modal
+        visible={paymentPanelVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setPaymentPanelVisible(false)}
+      >
+        <ScrollView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+          <View style={{ padding: 20, paddingTop: 24, gap: 18 }}>
+            <View className="flex-row items-center justify-between">
+              <View>
+                <Text style={{ ...DesignTokens.typography.title2, color: DesignTokens.colors.graphite }}>
+                  Payment
+                </Text>
+                <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
+                  {lesson.studentName} • {formatTime(lesson.startTime)}
+                </Text>
+              </View>
+              <Pressable
+                onPress={() => setPaymentPanelVisible(false)}
+                style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="close" size={24} color={DesignTokens.colors.graphite} />
+              </Pressable>
+            </View>
+
+            <PaymentRequestPanel
+              instruction={instruction}
+              message={paymentStatus === 'REMINDER_SENT' ? reminderMessage : requestMessage}
+              canSendReminder={canSendPaymentReminder(paymentStatus)}
+              onRequestPayment={() => {
+                requestLessonPayment(lesson.id);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+              onSendReminder={() => {
+                sendLessonPaymentReminder(lesson.id);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+              onMarkPaid={() => {
+                onMarkPaid();
+                setPaymentPanelVisible(false);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+              onCancelPayment={() => {
+                cancelLessonPayment(lesson.id);
+                setPaymentPanelVisible(false);
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              }}
+            />
+          </View>
+        </ScrollView>
+      </Modal>
+    </>
   );
 });
 

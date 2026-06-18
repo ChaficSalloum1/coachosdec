@@ -4,9 +4,9 @@ This runs in the background and keeps your data synced
 */
 import { useEffect, useRef, useState } from "react";
 import { useCoachStore } from "../state/coachStore";
-import { loadCoachDataFromSupabase } from "../services/supabaseSync";
 import { getSupabaseClient } from "../api/supabase";
 import {
+  loadCoachDataFromSupabase,
   saveCoachToSupabase,
   saveStudentToSupabase,
   saveLessonToSupabase,
@@ -50,6 +50,7 @@ interface SyncState {
  */
 export const useSupabaseSync = () => {
   const coach = useCoachStore((state) => state.coach);
+  const isDemoMode = useCoachStore((state) => state.isDemoMode);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadedCoachIdRef = useRef<string | null>(null);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -59,6 +60,10 @@ export const useSupabaseSync = () => {
   const supabaseReady = Boolean(supabaseUrl && supabaseKey);
 
   useEffect(() => {
+    if (isDemoMode) {
+      return;
+    }
+
     if (!supabaseReady) {
       if (__DEV__) {
         console.log("ℹ️ Supabase not configured - app will work with local storage only");
@@ -80,12 +85,12 @@ export const useSupabaseSync = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabaseReady]);
+  }, [isDemoMode, supabaseReady]);
 
   // Load data from Supabase for the authenticated user. On a fresh install,
   // coach is null, so auth.uid() is the only reliable profile lookup key.
   useEffect(() => {
-    if (!supabaseReady) return;
+    if (isDemoMode || !supabaseReady) return;
 
     const coachId = coach?.id || authUserId;
     if (!coachId || loadedCoachIdRef.current === coachId) return;
@@ -138,11 +143,11 @@ export const useSupabaseSync = () => {
     };
 
     loadData();
-  }, [authUserId, coach, coach?.id, supabaseReady]);
+  }, [authUserId, coach, coach?.id, isDemoMode, supabaseReady]);
 
   // Auto-save coach when it changes
   useEffect(() => {
-    if (!coach?.id) return;
+    if (isDemoMode || !coach?.id) return;
 
     // Validate that coach ID is a proper UUID before saving
     const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(coach.id);
@@ -193,11 +198,11 @@ export const useSupabaseSync = () => {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [coach]);
+  }, [coach, isDemoMode]);
 
   // Subscribe to store changes and sync to Supabase
   useEffect(() => {
-    if (!coach?.id) return;
+    if (isDemoMode || !coach?.id) return;
 
     // Check if Supabase is configured
     const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
@@ -450,11 +455,11 @@ export const useSupabaseSync = () => {
         clearTimeout(syncTimeoutRef.current);
       }
     };
-  }, [coach?.id]);
+  }, [coach?.id, isDemoMode]);
 
   // Real-time subscription: new booking requests arrive instantly
   useEffect(() => {
-    if (!coach?.id) return;
+    if (isDemoMode || !coach?.id) return;
     const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
     const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
     if (!supabaseUrl || !supabaseKey) return;
@@ -508,6 +513,5 @@ export const useSupabaseSync = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [coach?.id]);
+  }, [coach?.id, isDemoMode]);
 };
-

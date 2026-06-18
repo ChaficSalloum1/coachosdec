@@ -3,7 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
-import { PostHogProvider } from "posthog-react-native";
+import { View } from "react-native";
 import "./src/i18n/config";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
@@ -11,8 +11,6 @@ import { useMockData } from "./src/hooks/useMockData";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
-import { initSentry, withSentry } from "./src/services/sentryService";
-import { POSTHOG_KEY, POSTHOG_HOST } from "./src/services/analyticsService";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -35,9 +33,6 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 */
 
-// Initialise Sentry as early as possible (no-ops if DSN not set)
-initSentry();
-
 const isSupabaseConfigured = () => {
   const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
   const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
@@ -45,7 +40,9 @@ const isSupabaseConfigured = () => {
 };
 
 function AppContent() {
-  useMockData(!isSupabaseConfigured());
+  const isDemoMode = useCoachStore(s => s.isDemoMode);
+
+  useMockData(!isSupabaseConfigured() && !isDemoMode);
   useSupabaseSync();
 
   useEffect(() => {
@@ -71,28 +68,25 @@ function AppContent() {
   }, []);
 
   return (
-    <ErrorBoundary>
-      <GestureHandlerRootView className="flex-1">
-        <SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
           <NavigationContainer>
             <StatusBar style="dark" />
             <RootNavigator />
           </NavigationContainer>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
-    </ErrorBoundary>
+        </View>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
 
 function App() {
-  if (POSTHOG_KEY) {
-    return (
-      <PostHogProvider apiKey={POSTHOG_KEY} options={{ host: POSTHOG_HOST }}>
-        <AppContent />
-      </PostHogProvider>
-    );
-  }
-  return <AppContent />;
+  return (
+    <ErrorBoundary>
+      <AppContent />
+    </ErrorBoundary>
+  );
 }
 
-export default withSentry(App);
+export default App;

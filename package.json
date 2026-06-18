@@ -7,6 +7,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "test:payments": "vitest run src/modules/payments",
     "test:maestro": "maestro test maestro/",
     "test:maestro:ios": "maestro test maestro/ --ios",
     "test:maestro:android": "maestro test maestro/ --android"
@@ -32,7 +33,6 @@
     "@react-navigation/native": "^7.1.6",
     "@react-navigation/native-stack": "^7.3.2",
     "@react-navigation/stack": "^7.1.1",
-    "@sentry/react-native": "^8.3.0",
     "@shopify/flash-list": "1.7.6",
     "@shopify/react-native-skia": "v2.0.0-next.4",
     "@supabase/supabase-js": "^2.86.0",
@@ -123,6 +123,7 @@
     "uuid": "^13.0.0",
     "victory-native": "^41.16.2",
     "zeego": "^3.0.6",
+    "zod": "^4.4.3",
     "zustand": "^5.0.4"
   },
   "devDependencies": {
@@ -136,7 +137,8 @@
     "eslint-config-expo": "~9.2.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vitest": "^4.1.7"
   },
   "private": true,
   "patchedDependencies": {

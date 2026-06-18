@@ -34,7 +34,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_VIBECODE_SUPABASE_URL": "https://ldhfkvywfmjyuxuczgmc.supabase.co/rest/v1/",
+        "EXPO_PUBLIC_VIBECODE_SUPABASE_URL": "https://ldhfkvywfmjyuxuczgmc.supabase.co",
         "EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY": "sb_publishable_uQU2-4BxtnrNwRdK722daA_FpRez2uE"
       }
     }

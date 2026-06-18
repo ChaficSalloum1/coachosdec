@@ -1,3 +1,9 @@
+import type {
+  CoachPaymentSettings,
+  PaymentPreference,
+  PaymentStatus,
+} from '../modules/payments';
+
 export interface Coach {
   id: string;
   name: string;
@@ -36,11 +42,17 @@ export interface Court {
   sport?: string;
 }
 
-export interface PaymentSettings {
+export interface PaymentSettings extends CoachPaymentSettings {
   /** @encrypted QR code data for payment */
   qrCode?: string;
   /** @encrypted Phone ID for payment (Venmo, etc.) */
   phoneId?: string;
+  paymentPreference: PaymentPreference;
+  revolutLink?: string;
+  irisAlias?: string;
+  iban?: string;
+  ibanBeneficiaryName?: string;
+  cancellationPolicy?: string;
   cashEnabled: boolean;
 }
 
@@ -102,6 +114,12 @@ export interface Lesson {
   duration: number; // minutes
   price: number;
   isPaid: boolean;
+  paymentStatus?: PaymentStatus;
+  paymentMethodRequested?: PaymentPreference;
+  paymentReferenceCode?: string;
+  paymentRequestedAt?: string;
+  lastReminderSentAt?: string;
+  paidConfirmedAt?: string;
   status: 'scheduled' | 'completed' | 'cancelled';
   notes?: string;
   createdAt: string;

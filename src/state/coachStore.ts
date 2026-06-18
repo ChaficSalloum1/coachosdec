@@ -1,9 +1,22 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import type * as ZustandMiddleware from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDays, format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Coach, BookingRequest, Lesson, Student, StudentNote, Area, Facility, Court, AvailabilityRange, BlackoutDate } from '../types/coach';
+import { createDemoWorkspace } from '../utils/demoWorkspace';
+import {
+  cancelPaymentStatus,
+  confirmPaidStatus,
+  generatePaymentReferenceCode,
+  getDefaultPaymentMethod,
+  normalizePaymentSettings,
+  normalizePaymentStatus,
+  requestPaymentStatus,
+  sendReminderStatus,
+} from '../modules/payments';
+
+const { persist, createJSONStorage } = require('zustand/middleware.js') as typeof ZustandMiddleware;
 
 // Helper function to safely import CalendarService
 const getCalendarService = async () => {
@@ -18,7 +31,31 @@ const getCalendarService = async () => {
   }
 };
 
+const isSupabaseConfigured = () => {
+  const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
+  const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
+  return Boolean(url && key && !url.includes('your_supabase') && !key.includes('your_supabase'));
+};
+
+const withInitialPaymentFields = (lesson: Lesson, coach: Coach): Lesson => {
+  const paymentSettings = normalizePaymentSettings(coach.paymentSettings);
+  return {
+    ...lesson,
+    paymentStatus: normalizePaymentStatus(lesson.paymentStatus, lesson.isPaid),
+    paymentMethodRequested: lesson.paymentMethodRequested
+      ?? getDefaultPaymentMethod(paymentSettings.paymentPreference, paymentSettings),
+    paymentReferenceCode: lesson.paymentReferenceCode
+      ?? generatePaymentReferenceCode(coach.name, lesson.id),
+    paidConfirmedAt: lesson.isPaid && !lesson.paidConfirmedAt
+      ? new Date().toISOString()
+      : lesson.paidConfirmedAt,
+  };
+};
+
 interface CoachState {
+  // Demo workspace mode
+  isDemoMode: boolean;
+
   // Current coach profile
   coach: Coach | null;
   
@@ -44,6 +81,8 @@ interface CoachState {
   blackoutDates: BlackoutDate[];
   
   // Actions
+  enterDemoMode: () => void;
+  exitDemoMode: () => void;
   setCoach: (coach: Coach | null) => void;
   updateCoach: (updates: Partial<Coach>) => void;
   
@@ -66,6 +105,9 @@ interface CoachState {
   }) => void;
   addLesson: (lesson: Lesson) => void;
   updateLesson: (lessonId: string, updates: Partial<Lesson>) => void;
+  requestLessonPayment: (lessonId: string) => void;
+  sendLessonPaymentReminder: (lessonId: string) => void;
+  cancelLessonPayment: (lessonId: string) => void;
   markLessonPaid: (lessonId: string) => void;
   cancelLesson: (lessonId: string) => void;
   completeLesson: (lessonId: string) => void;
@@ -138,6 +180,7 @@ interface CoachState {
 export const useCoachStore = create<CoachState>()(
   persist(
     (set, get) => ({
+      isDemoMode: false,
       coach: null,
       bookingRequests: [],
       lessons: [],
@@ -148,6 +191,37 @@ export const useCoachStore = create<CoachState>()(
       courts: [],
       availabilityRanges: [],
       blackoutDates: [],
+
+      enterDemoMode: () => {
+        const demo = createDemoWorkspace();
+        set({
+          isDemoMode: true,
+          coach: demo.coach,
+          bookingRequests: demo.bookingRequests,
+          lessons: demo.lessons,
+          students: demo.students,
+          studentNotes: demo.studentNotes,
+          areas: demo.areas,
+          facilities: demo.facilities,
+          courts: demo.courts,
+          availabilityRanges: demo.availabilityRanges,
+          blackoutDates: demo.blackoutDates,
+        });
+      },
+
+      exitDemoMode: () => set({
+        isDemoMode: false,
+        coach: null,
+        bookingRequests: [],
+        lessons: [],
+        students: [],
+        studentNotes: [],
+        areas: [],
+        facilities: [],
+        courts: [],
+        availabilityRanges: [],
+        blackoutDates: [],
+      }),
 
       setCoach: (coach) => set({ coach }),
 
@@ -289,7 +363,7 @@ export const useCoachStore = create<CoachState>()(
         }
         
         // Create lesson from approved request with proper student ID
-        const lesson: Lesson = {
+        const lesson: Lesson = withInitialPaymentFields({
           id: uuidv4(),
           coachId: request.coachId,
           studentId: student.id, // Use proper student ID
@@ -306,7 +380,7 @@ export const useCoachStore = create<CoachState>()(
           areaId: request.areaId,
           facilityId: request.facilityId,
           courtId: request.courtId
-        };
+        }, state.coach);
         
         // Sync to device calendar if enabled
         if (state.coach.calendarSyncEnabled) {
@@ -361,7 +435,7 @@ export const useCoachStore = create<CoachState>()(
       
       createLesson: (params) => set((state) => {
         if (!state.coach) return state;
-        const lesson: Lesson = {
+        const lesson: Lesson = withInitialPaymentFields({
           id: uuidv4(),
           coachId: state.coach.id,
           studentId: params.studentId,
@@ -377,7 +451,7 @@ export const useCoachStore = create<CoachState>()(
           areaId: params.areaId,
           facilityId: params.facilityId,
           courtId: params.courtId,
-        };
+        }, state.coach);
         const updatedStudents = state.students.map(s => {
           if (s.id !== params.studentId) return s;
           return {
@@ -395,7 +469,7 @@ export const useCoachStore = create<CoachState>()(
       }),
 
       addLesson: (lesson) => set((state) => ({
-        lessons: [lesson, ...state.lessons]
+        lessons: [state.coach ? withInitialPaymentFields(lesson, state.coach) : lesson, ...state.lessons]
       })),
       
       updateLesson: (lessonId, updates) => set((state) => ({
@@ -403,14 +477,72 @@ export const useCoachStore = create<CoachState>()(
           l.id === lessonId ? { ...l, ...updates } : l
         )
       })),
+
+      requestLessonPayment: (lessonId) => set((state) => {
+        const now = new Date().toISOString();
+        return {
+          lessons: state.lessons.map(l => {
+            if (l.id !== lessonId || l.paymentStatus === 'PAID_CONFIRMED') return l;
+            const paymentStatus = requestPaymentStatus(normalizePaymentStatus(l.paymentStatus, l.isPaid));
+            return {
+              ...l,
+              paymentStatus,
+              paymentRequestedAt: l.paymentRequestedAt ?? now,
+              paymentReferenceCode: l.paymentReferenceCode ?? (
+                state.coach ? generatePaymentReferenceCode(state.coach.name, l.id) : l.id
+              ),
+            };
+          }),
+        };
+      }),
+
+      sendLessonPaymentReminder: (lessonId) => set((state) => {
+        const now = new Date().toISOString();
+        return {
+          lessons: state.lessons.map(l => {
+            if (l.id !== lessonId) return l;
+            const paymentStatus = sendReminderStatus(normalizePaymentStatus(l.paymentStatus, l.isPaid));
+            return paymentStatus === l.paymentStatus
+              ? l
+              : { ...l, paymentStatus, lastReminderSentAt: now };
+          }),
+        };
+      }),
+
+      cancelLessonPayment: (lessonId) => set((state) => {
+        const lesson = state.lessons.find(l => l.id === lessonId);
+        if (!lesson) return state;
+
+        return {
+          lessons: state.lessons.map(l =>
+            l.id === lessonId
+              ? { ...l, paymentStatus: cancelPaymentStatus(), isPaid: false }
+              : l
+          ),
+          students: lesson.isPaid
+            ? state.students.map(s =>
+                s.id === lesson.studentId
+                  ? { ...s, balance: s.balance + lesson.price }
+                  : s
+              )
+            : state.students,
+        };
+      }),
       
       markLessonPaid: (lessonId) => set((state) => {
         const lesson = state.lessons.find(l => l.id === lessonId);
-        if (!lesson) return state;
+        if (!lesson || lesson.isPaid) return state;
         
         return {
           lessons: state.lessons.map(l => 
-            l.id === lessonId ? { ...l, isPaid: true } : l
+            l.id === lessonId
+              ? {
+                  ...l,
+                  isPaid: true,
+                  paymentStatus: confirmPaidStatus(),
+                  paidConfirmedAt: new Date().toISOString(),
+                }
+              : l
           ),
           students: state.students.map(s => 
             s.id === lesson.studentId 
@@ -1091,6 +1223,7 @@ export const useCoachStore = create<CoachState>()(
       },
       
       clearAllData: () => set(() => ({
+        isDemoMode: false,
         coach: null,
         bookingRequests: [],
         lessons: [],
@@ -1106,12 +1239,72 @@ export const useCoachStore = create<CoachState>()(
     {
       name: 'coach-storage',
       storage: createJSONStorage(() => AsyncStorage),
+      version: 4,
+      migrate: (persistedState: any) => {
+        if (!persistedState) {
+          return persistedState;
+        }
+
+        const coach = persistedState.coach
+          ? {
+              ...persistedState.coach,
+              paymentSettings: normalizePaymentSettings(persistedState.coach.paymentSettings),
+            }
+          : null;
+
+        const migratedLessons = Array.isArray(persistedState.lessons)
+          ? persistedState.lessons.map((lesson: Lesson) => coach
+              ? withInitialPaymentFields(lesson, coach)
+              : {
+                  ...lesson,
+                  paymentStatus: normalizePaymentStatus(lesson.paymentStatus, lesson.isPaid),
+                })
+          : [];
+
+        const isDemoMode = persistedState.isDemoMode === true;
+
+        if (isDemoMode || !isSupabaseConfigured()) {
+          return {
+            ...persistedState,
+            isDemoMode,
+            coach,
+            lessons: migratedLessons,
+          };
+        }
+
+        return {
+          ...persistedState,
+          isDemoMode: false,
+          coach: coach
+            ? {
+                ...coach,
+                paymentSettings: {
+                  cashEnabled: coach.paymentSettings?.cashEnabled ?? true,
+                  paymentPreference: coach.paymentSettings?.paymentPreference ?? 'CASH',
+                },
+              }
+            : null,
+          bookingRequests: [],
+          lessons: [],
+          students: [],
+          studentNotes: [],
+        };
+      },
       partialize: (state) => ({
-        coach: state.coach,
-        bookingRequests: state.bookingRequests,
-        lessons: state.lessons,
-        students: state.students,
-        studentNotes: state.studentNotes,
+        isDemoMode: state.isDemoMode,
+        coach: state.coach && isSupabaseConfigured() && !state.isDemoMode
+          ? {
+              ...state.coach,
+              paymentSettings: {
+                cashEnabled: state.coach.paymentSettings.cashEnabled,
+                paymentPreference: state.coach.paymentSettings.paymentPreference ?? 'CASH',
+              },
+            }
+          : state.coach,
+        bookingRequests: isSupabaseConfigured() && !state.isDemoMode ? [] : state.bookingRequests,
+        lessons: isSupabaseConfigured() && !state.isDemoMode ? [] : state.lessons,
+        students: isSupabaseConfigured() && !state.isDemoMode ? [] : state.students,
+        studentNotes: isSupabaseConfigured() && !state.isDemoMode ? [] : state.studentNotes,
         areas: state.areas,
         facilities: state.facilities,
         courts: state.courts,

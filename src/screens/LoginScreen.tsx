@@ -14,8 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signIn, signUp, resetPassword } from '../services/authService';
+import { useCoachStore } from '../state/coachStore';
 
 type Mode = 'login' | 'signup';
+type Feedback = { type: 'error' | 'success' | 'info'; title: string; message: string };
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -23,32 +25,102 @@ export function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const enterDemoMode = useCoachStore(s => s.enterDemoMode);
+
+  const triggerAuthFeedback = async (type: Feedback['type']) => {
+    if (Platform.OS === 'web') return;
+
+    try {
+      const Haptics = await import('expo-haptics');
+
+      if (type === 'success') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        return;
+      }
+
+      if (type === 'error') {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch {
+      // Haptics should never block auth feedback.
+    }
+  };
+
+  const showFeedback = (
+    type: Feedback['type'],
+    title: string,
+    message: string
+  ) => {
+    void triggerAuthFeedback(type);
+    setFeedback({ type, title, message });
+    Alert.alert(title, message);
+  };
+
+  const switchMode = () => {
+    setMode(mode === 'login' ? 'signup' : 'login');
+    setFeedback(null);
+  };
 
   const handleSubmit = async () => {
-    const trimmedEmail = email.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    setFeedback(null);
+
     if (!trimmedEmail || !password) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+      showFeedback('error', 'Missing fields', 'Please enter your email and password.');
+      return;
+    }
+
+    if (mode === 'signup' && password.length < 6) {
+      showFeedback('error', 'Password too short', 'Password must be at least 6 characters.');
       return;
     }
 
     setIsLoading(true);
+    if (mode === 'signup') {
+      void triggerAuthFeedback('info');
+      setFeedback({
+        type: 'info',
+        title: 'Creating account',
+        message: 'Securely creating your coach workspace...',
+      });
+    }
+
     try {
       const result = mode === 'login'
         ? await signIn({ email: trimmedEmail, password })
         : await signUp({ email: trimmedEmail, password });
 
       if (result.error) {
-        Alert.alert(
+        showFeedback(
+          'error',
           mode === 'login' ? 'Sign in failed' : 'Sign up failed',
           result.error.message
         );
       } else if (mode === 'signup' && !result.session) {
-        Alert.alert(
+        showFeedback(
+          'success',
           'Check your email',
           'We sent you a confirmation link. Please verify your email before signing in.'
         );
+      } else if (mode === 'signup') {
+        void triggerAuthFeedback('success');
+        setFeedback({
+          type: 'success',
+          title: 'Account created',
+          message: 'Opening your coach workspace...',
+        });
       }
       // On success with session, RootNavigator's onAuthStateChange handles navigation
+    } catch (error) {
+      showFeedback(
+        'error',
+        mode === 'login' ? 'Sign in failed' : 'Sign up failed',
+        error instanceof Error ? error.message : 'Authentication failed. Please try again.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -57,15 +129,19 @@ export function LoginScreen() {
   const handleForgotPassword = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      Alert.alert('Enter your email', 'Please enter your email address above first.');
+      showFeedback('error', 'Enter your email', 'Please enter your email address above first.');
       return;
     }
     const { error } = await resetPassword(trimmedEmail);
     if (error) {
-      Alert.alert('Error', error.message);
+      showFeedback('error', 'Error', error.message);
     } else {
-      Alert.alert('Email sent', 'Check your inbox for a password reset link.');
+      showFeedback('success', 'Email sent', 'Check your inbox for a password reset link.');
     }
+  };
+
+  const handleViewDemo = () => {
+    enterDemoMode();
   };
 
   return (
@@ -128,6 +204,8 @@ export function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
                 returnKeyType="next"
               />
             </View>
@@ -152,6 +230,8 @@ export function LoginScreen() {
                 placeholder={mode === 'signup' ? 'Minimum 6 characters' : '••••••••'}
                 placeholderTextColor="#9BA3AF"
                 secureTextEntry
+                autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                textContentType={mode === 'signup' ? 'newPassword' : 'password'}
                 returnKeyType="done"
                 onSubmitEditing={handleSubmit}
               />
@@ -166,20 +246,72 @@ export function LoginScreen() {
           )}
           {mode === 'signup' && <View style={{ height: 24 }} />}
 
+          {feedback && (
+            <View
+              style={{
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: feedback.type === 'error' ? '#F5B5B5' : feedback.type === 'success' ? '#A7D7B3' : '#B8D7F4',
+                backgroundColor: feedback.type === 'error' ? '#FFF1F1' : feedback.type === 'success' ? '#F0FFF4' : '#F1F8FF',
+                padding: 14,
+                marginBottom: 16,
+                flexDirection: 'row',
+                gap: 10,
+              }}
+            >
+              <Ionicons
+                name={feedback.type === 'error' ? 'alert-circle' : feedback.type === 'success' ? 'checkmark-circle' : 'time-outline'}
+                size={22}
+                color={feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E'}
+              />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E',
+                    fontSize: 14,
+                    fontWeight: '700',
+                    marginBottom: 4,
+                  }}
+                >
+                  {feedback.title}
+                </Text>
+                <Text
+                  style={{
+                    color: feedback.type === 'error' ? '#7A271A' : feedback.type === 'success' ? '#276749' : '#42526E',
+                    fontSize: 13,
+                    lineHeight: 18,
+                  }}
+                >
+                  {feedback.message}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Submit */}
           <Pressable
             onPress={handleSubmit}
             disabled={isLoading}
             style={{
-              backgroundColor: isLoading ? '#90CAF9' : '#1E88E5',
+              backgroundColor: feedback?.type === 'success' ? '#1F7A3A' : isLoading ? '#90CAF9' : '#1E88E5',
               borderRadius: 12,
               paddingVertical: 16,
               alignItems: 'center',
               marginBottom: 20,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
             }}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
+            ) : feedback?.type === 'success' ? (
+              <>
+                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
+                  {mode === 'signup' ? 'Account Created' : 'Success'}
+                </Text>
+              </>
             ) : (
               <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
                 {mode === 'login' ? 'Sign In' : 'Create Account'}
@@ -187,8 +319,34 @@ export function LoginScreen() {
             )}
           </Pressable>
 
+          <Pressable
+            onPress={handleViewDemo}
+            disabled={isLoading}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderColor: '#1E88E5',
+              borderWidth: 1,
+              borderRadius: 12,
+              paddingVertical: 15,
+              alignItems: 'center',
+              marginBottom: 10,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Ionicons name="sparkles-outline" size={18} color="#1E88E5" />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E88E5' }}>
+              Explore a demo workspace
+            </Text>
+          </Pressable>
+
+          <Text style={{ textAlign: 'center', fontSize: 13, color: '#42526E', lineHeight: 18, marginBottom: 20 }}>
+            No account needed. Sample bookings, payments, and students are preloaded.
+          </Text>
+
           {/* Toggle */}
-          <Pressable onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}>
+          <Pressable onPress={switchMode}>
             <Text style={{ textAlign: 'center', fontSize: 15, color: '#42526E' }}>
               {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
               <Text style={{ color: '#1E88E5', fontWeight: '600' }}>
