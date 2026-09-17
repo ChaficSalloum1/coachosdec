@@ -10,7 +10,15 @@ import { bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from '@noble/ciphers
 
 const ENCRYPTION_KEY_STORAGE_KEY = 'coachos_encryption_key';
 const ENCRYPTION_VERSION = 'v2';
-const PAYMENT_SETTINGS_ENCRYPTED_FIELDS = [
+
+// New writes are no longer encrypted (see decryptField/decrypt* below) — we
+// rely on Supabase RLS + at-rest encryption instead. This list only drives
+// which fields get checked for legacy encrypted values on read, so old rows
+// keep decrypting and transparently migrate to plain text on next save.
+// `cancellationPolicy` is plain text and was never meant to be here, but a
+// small number of old rows may still have it encrypted, so it stays for
+// decrypt purposes only.
+const LEGACY_ENCRYPTED_FIELDS = [
   'phoneId',
   'qrCode',
   'revolutLink',
@@ -115,25 +123,27 @@ export async function decryptField(encryptedValue: string): Promise<string> {
     }
 
     // Legacy v1 format was enc:<hash-prefix>:<base64>. It was obfuscation,
-    // not encryption, so decode it once and let the next save re-encrypt as v2.
+    // not encryption, so decode it once and let the next save persist it as
+    // plain text.
     if (parts.length === 3 && parts[0] === 'enc') {
       return base64Decode(parts[2]);
     }
 
-    if (parts[0] !== 'enc') {
-      return encryptedValue; // Invalid format, return as-is
-    }
-
-    return encryptedValue;
+    console.warn('Unrecognized encrypted field format; returning empty string');
+    return '';
   } catch (error) {
-    console.error('Error decrypting field:', error);
-    // Return original value if decryption fails
-    return encryptedValue;
+    console.warn('Error decrypting field, returning empty string:', error);
+    // Never surface raw ciphertext to the UI.
+    return '';
   }
 }
 
 /**
  * Encrypt payment settings object
+ * New writes are no longer encrypted (see LEGACY_ENCRYPTED_FIELDS comment
+ * above) — this returns a shallow copy unchanged, which also lets any
+ * legacy encrypted values decrypted on load persist back as plain text on
+ * the next save.
  */
 export async function encryptPaymentSettings(
   paymentSettings: Record<string, any>
@@ -142,15 +152,7 @@ export async function encryptPaymentSettings(
     return paymentSettings;
   }
 
-  const encrypted: Record<string, any> = { ...paymentSettings };
-
-  for (const field of PAYMENT_SETTINGS_ENCRYPTED_FIELDS) {
-    if (paymentSettings[field] && typeof paymentSettings[field] === 'string') {
-      encrypted[field] = await encryptField(paymentSettings[field]);
-    }
-  }
-
-  return encrypted;
+  return { ...paymentSettings };
 }
 
 /**
@@ -165,7 +167,7 @@ export async function decryptPaymentSettings(
 
   const decrypted: Record<string, any> = { ...paymentSettings };
 
-  for (const field of PAYMENT_SETTINGS_ENCRYPTED_FIELDS) {
+  for (const field of LEGACY_ENCRYPTED_FIELDS) {
     if (paymentSettings[field] && typeof paymentSettings[field] === 'string') {
       decrypted[field] = await decryptField(paymentSettings[field]);
     }
@@ -176,12 +178,11 @@ export async function decryptPaymentSettings(
 
 /**
  * Encrypt student contact information
+ * New writes are no longer encrypted (see LEGACY_ENCRYPTED_FIELDS comment
+ * above) — this returns the value unchanged.
  */
 export async function encryptContact(contact: string): Promise<string> {
-  if (!contact) {
-    return contact;
-  }
-  return await encryptField(contact);
+  return contact;
 }
 
 /**
