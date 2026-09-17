@@ -18,10 +18,9 @@ import { DesignTokens } from '../utils/designTokens';
 
 export function RequestsScreen() {
   const insets = useSafeAreaInsets();
-  const { getPendingRequests, approveBookingRequest, declineBookingRequest, availabilityRanges, lessons, bookingRequests } = useCoachStore();
-  const [isLoading, setIsLoading] = React.useState(true);
+  const { getPendingRequests, approveBookingRequest, declineBookingRequest, availabilityRanges, lessons, bookingRequests, isInitialSyncComplete } = useCoachStore();
   const [approvingId, setApprovingId] = React.useState<string | null>(null);
-  React.useEffect(() => { const t = setTimeout(() => setIsLoading(false), 500); return () => clearTimeout(t); }, []);
+  const isLoading = !isInitialSyncComplete;
   const pendingRequests = getPendingRequests();
 
   const getOpenSlotsForRequest = (requestId: string): string[] => {

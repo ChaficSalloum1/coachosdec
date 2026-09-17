@@ -56,6 +56,12 @@ interface CoachState {
   // Demo workspace mode
   isDemoMode: boolean;
 
+  // True once the initial load from Supabase (or the decision that there's
+  // nothing to load, e.g. demo mode / no backend configured) has settled.
+  // Resets to false on each app launch; screens use it to show a real
+  // loading state instead of a fixed timer.
+  isInitialSyncComplete: boolean;
+
   // Current coach profile
   coach: Coach | null;
   
@@ -181,6 +187,7 @@ export const useCoachStore = create<CoachState>()(
   persist(
     (set, get) => ({
       isDemoMode: false,
+      isInitialSyncComplete: false,
       coach: null,
       bookingRequests: [],
       lessons: [],
@@ -196,6 +203,7 @@ export const useCoachStore = create<CoachState>()(
         const demo = createDemoWorkspace();
         set({
           isDemoMode: true,
+          isInitialSyncComplete: true,
           coach: demo.coach,
           bookingRequests: demo.bookingRequests,
           lessons: demo.lessons,
@@ -211,6 +219,7 @@ export const useCoachStore = create<CoachState>()(
 
       exitDemoMode: () => set({
         isDemoMode: false,
+        isInitialSyncComplete: false,
         coach: null,
         bookingRequests: [],
         lessons: [],

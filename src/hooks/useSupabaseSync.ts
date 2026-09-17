@@ -68,6 +68,7 @@ export const useSupabaseSync = () => {
       if (__DEV__) {
         console.log("ℹ️ Supabase not configured - app will work with local storage only");
       }
+      useCoachStore.setState({ isInitialSyncComplete: true });
       return;
     }
 
@@ -102,6 +103,7 @@ export const useSupabaseSync = () => {
         console.warn("⚠️ Skipping Supabase sync - coach ID is not a valid UUID:", coachId);
       }
       loadedCoachIdRef.current = coachId;
+      useCoachStore.setState({ isInitialSyncComplete: true });
       return;
     }
 
@@ -139,6 +141,8 @@ export const useSupabaseSync = () => {
           console.warn("⚠️ Could not load data from Supabase (app will continue with local data):", error);
         }
         loadedCoachIdRef.current = coachId;
+      } finally {
+        useCoachStore.setState({ isInitialSyncComplete: true });
       }
     };
 
