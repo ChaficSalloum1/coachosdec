@@ -7,6 +7,7 @@ import { TabNavigator } from './TabNavigator';
 import { LoginScreen } from '../screens/LoginScreen';
 import { getSession, onAuthStateChange } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
+import { isSupabaseConfigured } from '../utils/supabaseConfig';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -14,12 +15,6 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-
-const isSupabaseConfigured = () => {
-  const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-  return !!(url && key && !url.includes('your_supabase') && !key.includes('your_supabase'));
-};
 
 const initSubscriptions = async () => {
   try {

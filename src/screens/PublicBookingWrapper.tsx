@@ -5,6 +5,7 @@ import { BookingRequest } from '../types/coach';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveBookingRequestToSupabase } from '../services/supabaseSync';
+import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { v4 as uuidv4 } from 'uuid';
 
 export function PublicBookingWrapper() {
@@ -43,11 +44,7 @@ export function PublicBookingWrapper() {
         createdAt: new Date().toISOString(),
       };
       
-      const hasSupabaseConfig =
-        Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL) &&
-        Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY);
-
-      if (hasSupabaseConfig && !isDemoMode) {
+      if (isSupabaseConfigured() && !isDemoMode) {
         // Public booking links must reach Supabase so the coach can receive them.
         const result = await saveBookingRequestToSupabase(fullRequest);
         if (!result.success) {

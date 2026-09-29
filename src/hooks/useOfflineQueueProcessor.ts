@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import { useCoachStore } from "../state/coachStore";
 import { useOfflineQueueStore, type PendingMutation } from "../state/offlineQueueStore";
+import { isSupabaseConfigured } from "../utils/supabaseConfig";
 import {
   saveCoachToSupabase,
   saveStudentToSupabase,
@@ -76,9 +77,7 @@ export const useOfflineQueueProcessor = () => {
   const isDemoMode = useCoachStore((state) => state.isDemoMode);
   const isProcessingRef = useRef(false);
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-  const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-  const supabaseReady = Boolean(supabaseUrl && supabaseKey);
+  const supabaseReady = isSupabaseConfigured();
 
   useEffect(() => {
     if (isDemoMode || !supabaseReady) return;

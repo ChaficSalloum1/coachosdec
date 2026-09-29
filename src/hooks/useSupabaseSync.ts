@@ -5,6 +5,7 @@ This runs in the background and keeps your data synced
 import { useEffect, useRef, useState } from "react";
 import { useCoachStore } from "../state/coachStore";
 import { useOfflineQueueStore, type MutationKind } from "../state/offlineQueueStore";
+import { isSupabaseConfigured } from "../utils/supabaseConfig";
 import { getSupabaseClient } from "../api/supabase";
 import {
   loadCoachDataFromSupabase,
@@ -108,9 +109,7 @@ export const useSupabaseSync = () => {
   const loadedCoachIdRef = useRef<string | null>(null);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-  const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-  const supabaseReady = Boolean(supabaseUrl && supabaseKey);
+  const supabaseReady = isSupabaseConfigured();
 
   useEffect(() => {
     if (isDemoMode) {
@@ -215,10 +214,7 @@ export const useSupabaseSync = () => {
       return;
     }
 
-    // Check if Supabase is configured
-    const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-    const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
+    if (!isSupabaseConfigured()) return;
 
     // Debounce saves to avoid too many API calls
     if (syncTimeoutRef.current) {
@@ -275,10 +271,7 @@ export const useSupabaseSync = () => {
   useEffect(() => {
     if (isDemoMode || !coach?.id) return;
 
-    // Check if Supabase is configured
-    const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-    const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
+    if (!isSupabaseConfigured()) return;
 
     // Keep track of previous state for comparison
     let prevState: SyncState = {
@@ -508,9 +501,7 @@ export const useSupabaseSync = () => {
   // Real-time subscription: new booking requests arrive instantly
   useEffect(() => {
     if (isDemoMode || !coach?.id) return;
-    const supabaseUrl = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-    const supabaseKey = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
+    if (!isSupabaseConfigured()) return;
 
     let supabase: ReturnType<typeof getSupabaseClient>;
     try {

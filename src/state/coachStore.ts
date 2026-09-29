@@ -5,6 +5,7 @@ import { addDays, format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { Coach, BookingRequest, Lesson, Student, StudentNote, Area, Facility, Court, AvailabilityRange, BlackoutDate } from '../types/coach';
 import { createDemoWorkspace } from '../utils/demoWorkspace';
+import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import {
   cancelPaymentStatus,
   confirmPaidStatus,
@@ -29,12 +30,6 @@ const getCalendarService = async () => {
     }
     return null;
   }
-};
-
-const isSupabaseConfigured = () => {
-  const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-  return Boolean(url && key && !url.includes('your_supabase') && !key.includes('your_supabase'));
 };
 
 const withInitialPaymentFields = (lesson: Lesson, coach: Coach): Lesson => {
@@ -1231,8 +1226,11 @@ export const useCoachStore = create<CoachState>()(
         }));
       },
       
-      clearAllData: () => set(() => ({
+      clearAllData: () => {
+        set(() => ({
         isDemoMode: false,
+        // Re-arm the loading state for the next login (nothing to load if no backend).
+        isInitialSyncComplete: !isSupabaseConfigured(),
         coach: null,
         bookingRequests: [],
         lessons: [],
@@ -1243,7 +1241,8 @@ export const useCoachStore = create<CoachState>()(
         courts: [],
         availabilityRanges: [],
         blackoutDates: []
-      }))
+        }));
+      }
     }),
     {
       name: 'coach-storage',

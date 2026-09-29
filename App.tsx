@@ -12,6 +12,7 @@ import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
 import { useOfflineQueueProcessor } from "./src/hooks/useOfflineQueueProcessor";
+import { isSupabaseConfigured } from "./src/utils/supabaseConfig";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -33,12 +34,6 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 //don't use expo-constants, its depreicated
 
 */
-
-const isSupabaseConfigured = () => {
-  const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-  return !!(url && key && !url.includes("your_supabase") && !key.includes("your_supabase"));
-};
 
 function AppContent() {
   const isDemoMode = useCoachStore(s => s.isDemoMode);
