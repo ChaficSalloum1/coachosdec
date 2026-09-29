@@ -11,6 +11,7 @@ import { useMockData } from "./src/hooks/useMockData";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
+import { useOfflineQueueProcessor } from "./src/hooks/useOfflineQueueProcessor";
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -44,6 +45,7 @@ function AppContent() {
 
   useMockData(!isSupabaseConfigured() && !isDemoMode);
   useSupabaseSync();
+  useOfflineQueueProcessor();
 
   useEffect(() => {
     const store = useCoachStore.getState();

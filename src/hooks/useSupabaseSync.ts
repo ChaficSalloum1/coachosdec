@@ -4,6 +4,7 @@ This runs in the background and keeps your data synced
 */
 import { useEffect, useRef, useState } from "react";
 import { useCoachStore } from "../state/coachStore";
+import { useOfflineQueueStore, type MutationKind } from "../state/offlineQueueStore";
 import { getSupabaseClient } from "../api/supabase";
 import {
   loadCoachDataFromSupabase,
@@ -42,6 +43,58 @@ interface SyncState {
   courts: Court[];
   availabilityRanges: AvailabilityRange[];
   blackoutDates: BlackoutDate[];
+}
+
+type SaveResult = { success: boolean; error?: string; conflict?: boolean };
+
+// Saves a single entity live; on failure (network down, request error, or a
+// thrown exception) it queues the write in the offline outbox instead of
+// dropping it, so useOfflineQueueProcessor can retry it later. A version
+// conflict is not queued - the row already moved on server-side, so
+// replaying this stale write would never succeed.
+async function syncUpsert<T extends { id: string }>(
+  kind: MutationKind,
+  entity: T,
+  expectedVersion: number | undefined,
+  saveFn: (entity: T, expectedVersion?: number) => Promise<SaveResult>
+): Promise<void> {
+  try {
+    const result = await saveFn(entity, expectedVersion);
+    if (result.conflict) {
+      if (__DEV__) {
+        console.warn(`Version conflict saving ${kind}:`, entity.id);
+      }
+      return;
+    }
+    if (!result.success) {
+      useOfflineQueueStore.getState().enqueue({
+        kind,
+        operation: "upsert",
+        entityId: entity.id,
+        payload: entity,
+        expectedVersion,
+      });
+    }
+  } catch {
+    useOfflineQueueStore.getState().enqueue({
+      kind,
+      operation: "upsert",
+      entityId: entity.id,
+      payload: entity,
+      expectedVersion,
+    });
+  }
+}
+
+async function syncDelete(kind: MutationKind, table: string, id: string): Promise<void> {
+  try {
+    const result = await deleteFromSupabase(table, id);
+    if (!result.success && !result.conflict) {
+      useOfflineQueueStore.getState().enqueue({ kind, operation: "delete", entityId: id });
+    }
+  } catch {
+    useOfflineQueueStore.getState().enqueue({ kind, operation: "delete", entityId: id });
+  }
 }
 
 /**
@@ -184,16 +237,30 @@ export const useSupabaseSync = () => {
           if (data.coach) {
             useCoachStore.setState({ coach: data.coach });
           }
-        } else if (!result.success && result.error) {
+        } else if (!result.success) {
           if (__DEV__) {
             console.warn("Could not save coach to Supabase:", result.error);
           }
+          useOfflineQueueStore.getState().enqueue({
+            kind: "coach",
+            operation: "upsert",
+            entityId: coach.id,
+            payload: coach,
+            expectedVersion: coach.version,
+          });
         }
       } catch (error) {
-        // Silently fail - don't break the app
+        // Don't break the app - queue it for retry instead
         if (__DEV__) {
           console.warn("Could not save coach to Supabase:", error);
         }
+        useOfflineQueueStore.getState().enqueue({
+          kind: "coach",
+          operation: "upsert",
+          entityId: coach.id,
+          payload: coach,
+          expectedVersion: coach.version,
+        });
       }
     }, 1000);
 
@@ -246,6 +313,10 @@ export const useSupabaseSync = () => {
         }
 
         syncTimeoutRef.current = setTimeout(async () => {
+          // Each entity type is synced independently - syncUpsert/syncDelete
+          // never throw, so one entity type failing (e.g. offline) can't
+          // block the rest of the batch, and the failure is queued for
+          // retry instead of silently dropped.
           try {
             // Sync students
             if (newState.students !== prevState.students) {
@@ -258,10 +329,7 @@ export const useSupabaseSync = () => {
               });
 
               for (const student of [...newStudents, ...updatedStudents]) {
-                const result = await saveStudentToSupabase(student, student.version);
-                if (result.conflict && __DEV__) {
-                  console.warn("Version conflict saving student:", student.id);
-                }
+                await syncUpsert("student", student, student.version, saveStudentToSupabase);
               }
             }
 
@@ -276,10 +344,7 @@ export const useSupabaseSync = () => {
               });
 
               for (const lesson of [...newLessons, ...updatedLessons]) {
-                const result = await saveLessonToSupabase(lesson, lesson.version);
-                if (result.conflict && __DEV__) {
-                  console.warn("Version conflict saving lesson:", lesson.id);
-                }
+                await syncUpsert("lesson", lesson, lesson.version, saveLessonToSupabase);
               }
             }
 
@@ -294,10 +359,7 @@ export const useSupabaseSync = () => {
               });
 
               for (const request of [...newRequests, ...updatedRequests]) {
-                const result = await saveBookingRequestToSupabase(request, request.version);
-                if (result.conflict && __DEV__) {
-                  console.warn("Version conflict saving booking request:", request.id);
-                }
+                await syncUpsert("bookingRequest", request, request.version, saveBookingRequestToSupabase);
               }
             }
 
@@ -312,16 +374,12 @@ export const useSupabaseSync = () => {
               });
 
               for (const note of [...newNotes, ...updatedNotes]) {
-                const result = await saveStudentNoteToSupabase(note, note.version);
-                if (result.conflict && __DEV__) {
-                  console.warn("Version conflict saving student note:", note.id);
-                }
+                await syncUpsert("studentNote", note, note.version, saveStudentNoteToSupabase);
               }
             }
 
             // Sync areas
             if (newState.areas !== prevState.areas) {
-              // Find new and updated areas
               const newAreas = newState.areas.filter(
                 (a) => !prevState.areas.find((p: Area) => p.id === a.id)
               );
@@ -330,23 +388,20 @@ export const useSupabaseSync = () => {
                 return prev && JSON.stringify(prev) !== JSON.stringify(a);
               });
 
-              // Save new and updated areas
               for (const area of [...newAreas, ...updatedAreas]) {
-                await saveAreaToSupabase(area);
+                await syncUpsert("area", area, undefined, saveAreaToSupabase);
               }
 
-              // Find and delete removed areas
               const deletedAreas = prevState.areas.filter(
                 (p) => !newState.areas.find((a: Area) => a.id === p.id)
               );
               for (const area of deletedAreas) {
-                await deleteFromSupabase("areas", area.id);
+                await syncDelete("area", "areas", area.id);
               }
             }
 
             // Sync facilities
             if (newState.facilities !== prevState.facilities) {
-              // Find new and updated facilities
               const newFacilities = newState.facilities.filter(
                 (f) => !prevState.facilities.find((p: Facility) => p.id === f.id)
               );
@@ -355,23 +410,20 @@ export const useSupabaseSync = () => {
                 return prev && JSON.stringify(prev) !== JSON.stringify(f);
               });
 
-              // Save new and updated facilities
               for (const facility of [...newFacilities, ...updatedFacilities]) {
-                await saveFacilityToSupabase(facility);
+                await syncUpsert("facility", facility, undefined, saveFacilityToSupabase);
               }
 
-              // Find and delete removed facilities
               const deletedFacilities = prevState.facilities.filter(
                 (p) => !newState.facilities.find((f: Facility) => f.id === p.id)
               );
               for (const facility of deletedFacilities) {
-                await deleteFromSupabase("facilities", facility.id);
+                await syncDelete("facility", "facilities", facility.id);
               }
             }
 
             // Sync courts
             if (newState.courts !== prevState.courts) {
-              // Find new and updated courts
               const newCourts = newState.courts.filter(
                 (c) => !prevState.courts.find((p: Court) => p.id === c.id)
               );
@@ -380,23 +432,20 @@ export const useSupabaseSync = () => {
                 return prev && JSON.stringify(prev) !== JSON.stringify(c);
               });
 
-              // Save new and updated courts
               for (const court of [...newCourts, ...updatedCourts]) {
-                await saveCourtToSupabase(court);
+                await syncUpsert("court", court, undefined, saveCourtToSupabase);
               }
 
-              // Find and delete removed courts
               const deletedCourts = prevState.courts.filter(
                 (p) => !newState.courts.find((c: Court) => c.id === p.id)
               );
               for (const court of deletedCourts) {
-                await deleteFromSupabase("courts", court.id);
+                await syncDelete("court", "courts", court.id);
               }
             }
 
             // Sync availability ranges
             if (newState.availabilityRanges !== prevState.availabilityRanges) {
-              // Find new and updated ranges
               const newRanges = newState.availabilityRanges.filter(
                 (r) => !prevState.availabilityRanges.find((p: AvailabilityRange) => p.id === r.id)
               );
@@ -405,23 +454,20 @@ export const useSupabaseSync = () => {
                 return prev && JSON.stringify(prev) !== JSON.stringify(r);
               });
 
-              // Save new and updated ranges
               for (const range of [...newRanges, ...updatedRanges]) {
-                await saveAvailabilityRangeToSupabase(range);
+                await syncUpsert("availabilityRange", range, undefined, saveAvailabilityRangeToSupabase);
               }
 
-              // Find and delete removed ranges
               const deletedRanges = prevState.availabilityRanges.filter(
                 (p) => !newState.availabilityRanges.find((r: AvailabilityRange) => r.id === p.id)
               );
               for (const range of deletedRanges) {
-                await deleteFromSupabase("availability_ranges", range.id);
+                await syncDelete("availabilityRange", "availability_ranges", range.id);
               }
             }
 
             // Sync blackout dates
             if (newState.blackoutDates !== prevState.blackoutDates) {
-              // Find new and updated blackout dates
               const newBlackouts = newState.blackoutDates.filter(
                 (b) => !prevState.blackoutDates.find((p: BlackoutDate) => p.id === b.id)
               );
@@ -430,17 +476,15 @@ export const useSupabaseSync = () => {
                 return prev && JSON.stringify(prev) !== JSON.stringify(b);
               });
 
-              // Save new and updated blackout dates
               for (const blackout of [...newBlackouts, ...updatedBlackouts]) {
-                await saveBlackoutDateToSupabase(blackout);
+                await syncUpsert("blackoutDate", blackout, undefined, saveBlackoutDateToSupabase);
               }
 
-              // Find and delete removed blackout dates
               const deletedBlackouts = prevState.blackoutDates.filter(
                 (p) => !newState.blackoutDates.find((b: BlackoutDate) => b.id === p.id)
               );
               for (const blackout of deletedBlackouts) {
-                await deleteFromSupabase("blackout_dates", blackout.id);
+                await syncDelete("blackoutDate", "blackout_dates", blackout.id);
               }
             }
 
