@@ -581,7 +581,8 @@ SET search_path = public
 AS $$
   SELECT c.id, c.name, c.sports, c.price_per_hour, c.booking_link
   FROM coaches c
-  WHERE c.booking_link = p_booking_link;
+  WHERE c.booking_link = p_booking_link
+    AND c.deleted_at IS NULL;
 $$;
 
 CREATE OR REPLACE FUNCTION get_public_booking_availability(p_coach_id UUID)
@@ -612,6 +613,7 @@ AS $$
     ar.court_id
   FROM availability_ranges ar
   WHERE ar.coach_id = p_coach_id
+    AND ar.deleted_at IS NULL
   UNION ALL
   SELECT
     'lesson'::TEXT,
@@ -626,6 +628,7 @@ AS $$
   FROM lessons l
   WHERE l.coach_id = p_coach_id
     AND l.status <> 'cancelled'
+    AND l.deleted_at IS NULL
   UNION ALL
   SELECT
     'blackout'::TEXT,
@@ -638,7 +641,8 @@ AS $$
     NULL::UUID,
     NULL::UUID
   FROM blackout_dates b
-  WHERE b.coach_id = p_coach_id;
+  WHERE b.coach_id = p_coach_id
+    AND b.deleted_at IS NULL;
 $$;
 
 GRANT EXECUTE ON FUNCTION get_public_booking_profile(TEXT) TO anon, authenticated;
