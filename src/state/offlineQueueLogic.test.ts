@@ -4,6 +4,7 @@ import {
   applyEnqueue,
   applyRecordAttemptFailure,
   applyRemove,
+  applyRemoveForEntity,
   type PendingMutation,
 } from './offlineQueueLogic';
 
@@ -46,22 +47,43 @@ describe('offline queue', () => {
     expect(queue[0].payload).toMatchObject({ name: 'second' });
   });
 
-  it('keeps an upsert and a delete for the same entity as separate entries', () => {
+  it('keeps separate entries for different rows and operations', () => {
     let queue: PendingMutation[] = [];
-    queue = applyEnqueue(
-      queue,
-      { kind: 'student', operation: 'upsert', entityId: 's1', payload: { id: 's1' } },
-      'id-1',
-      '2026-01-01T00:00:00.000Z'
-    );
-    queue = applyEnqueue(
-      queue,
-      { kind: 'student', operation: 'delete', entityId: 's1' },
-      'id-2',
-      '2026-01-01T00:00:01.000Z'
-    );
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'upsert', entityId: 's1', payload: {} }, 'a', 't1');
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'delete', entityId: 's2' }, 'b', 't2');
+    queue = applyEnqueue(queue, { kind: 'lesson', operation: 'upsert', entityId: 's1', payload: {} }, 'c', 't3');
 
-    expect(queue).toHaveLength(2);
+    expect(queue).toHaveLength(3);
+  });
+
+  it('keeps a re-edited row in its original position so parents replay before children', () => {
+    let queue: PendingMutation[] = [];
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'upsert', entityId: 's1', payload: { v: 1 } }, 'a', 't1');
+    queue = applyEnqueue(queue, { kind: 'lesson', operation: 'upsert', entityId: 'l1', payload: {} }, 'b', 't2');
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'upsert', entityId: 's1', payload: { v: 2 } }, 'c', 't3');
+
+    expect(queue.map((m) => m.kind)).toEqual(['student', 'lesson']);
+    expect(queue[0].payload).toEqual({ v: 2 });
+  });
+
+  it('drops a queued upsert when the same row is then deleted', () => {
+    let queue: PendingMutation[] = [];
+    queue = applyEnqueue(queue, { kind: 'area', operation: 'upsert', entityId: 'a1', payload: {} }, 'a', 't1');
+    queue = applyEnqueue(queue, { kind: 'area', operation: 'delete', entityId: 'a1' }, 'b', 't2');
+
+    expect(queue).toHaveLength(1);
+    expect(queue[0].operation).toBe('delete');
+  });
+
+  it('removes stale queued writes for one row without touching others', () => {
+    let queue: PendingMutation[] = [];
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'upsert', entityId: 's1', payload: {} }, 'a', 't1');
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'upsert', entityId: 's2', payload: {} }, 'b', 't2');
+    queue = applyEnqueue(queue, { kind: 'student', operation: 'delete', entityId: 's1' }, 'c', 't3');
+
+    queue = applyRemoveForEntity(queue, 'student', 's1', 'upsert');
+
+    expect(queue.map((m) => `${m.entityId}:${m.operation}`)).toEqual(['s2:upsert', 's1:delete']);
   });
 
   it('removes a mutation by id', () => {

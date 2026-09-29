@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Coach, BookingRequest, Lesson, Student, StudentNote, Area, Facility, Court, AvailabilityRange, BlackoutDate } from '../types/coach';
 import { createDemoWorkspace } from '../utils/demoWorkspace';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
+import { useOfflineQueueStore } from './offlineQueueStore';
 import {
   cancelPaymentStatus,
   confirmPaidStatus,
@@ -1227,6 +1228,9 @@ export const useCoachStore = create<CoachState>()(
       },
       
       clearAllData: () => {
+        // Queued writes belong to the account being cleared; replaying them
+        // under a different login would fail forever and leak their data.
+        useOfflineQueueStore.getState().clear();
         set(() => ({
         isDemoMode: false,
         // Re-arm the loading state for the next login (nothing to load if no backend).

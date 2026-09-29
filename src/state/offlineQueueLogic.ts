@@ -38,17 +38,35 @@ export function applyEnqueue(
   newId: string,
   now: string
 ): PendingMutation[] {
-  // A later edit to the same row supersedes an earlier queued one - no
-  // point replaying stale intermediate writes.
-  const withoutExisting = queue.filter(
-    (m) =>
-      !(m.kind === mutation.kind && m.entityId === mutation.entityId && m.operation === mutation.operation)
-  );
-  return [...withoutExisting, { ...mutation, id: newId, createdAt: now, attempts: 0 }];
+  const entry: PendingMutation = { ...mutation, id: newId, createdAt: now, attempts: 0 };
+  const sameRow = (m: PendingMutation) => m.kind === mutation.kind && m.entityId === mutation.entityId;
+
+  // Deleting a row makes any still-queued upsert of it pointless.
+  const base = mutation.operation === 'delete' ? queue.filter((m) => !(sameRow(m) && m.operation === 'upsert')) : queue;
+
+  // A later edit to the same row supersedes the earlier queued one, and takes
+  // its place in line: replay order matters because a child row (a lesson)
+  // can't be written before its parent (the student) exists.
+  const existingIndex = base.findIndex((m) => sameRow(m) && m.operation === mutation.operation);
+  if (existingIndex === -1) {
+    return [...base, entry];
+  }
+  return base.map((m, i) => (i === existingIndex ? entry : m));
 }
 
 export function applyRemove(queue: PendingMutation[], id: string): PendingMutation[] {
   return queue.filter((m) => m.id !== id);
+}
+
+// Once a live write for a row succeeds, anything queued earlier for that row
+// is stale and must not be replayed over it.
+export function applyRemoveForEntity(
+  queue: PendingMutation[],
+  kind: MutationKind,
+  entityId: string,
+  operation: MutationOperation
+): PendingMutation[] {
+  return queue.filter((m) => !(m.kind === kind && m.entityId === entityId && m.operation === operation));
 }
 
 export function applyRecordAttemptFailure(

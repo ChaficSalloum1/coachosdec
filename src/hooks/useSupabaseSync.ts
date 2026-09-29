@@ -67,7 +67,11 @@ async function syncUpsert<T extends { id: string }>(
       }
       return;
     }
-    if (!result.success) {
+    if (result.success) {
+      // This write is newer than anything queued earlier for the same row;
+      // replaying the queued one later would overwrite it with stale data.
+      useOfflineQueueStore.getState().removeForEntity(kind, entity.id, "upsert");
+    } else {
       useOfflineQueueStore.getState().enqueue({
         kind,
         operation: "upsert",
@@ -90,7 +94,9 @@ async function syncUpsert<T extends { id: string }>(
 async function syncDelete(kind: MutationKind, table: string, id: string): Promise<void> {
   try {
     const result = await deleteFromSupabase(table, id);
-    if (!result.success && !result.conflict) {
+    if (result.success) {
+      useOfflineQueueStore.getState().removeForEntity(kind, id, "delete");
+    } else if (!result.conflict) {
       useOfflineQueueStore.getState().enqueue({ kind, operation: "delete", entityId: id });
     }
   } catch {
@@ -233,7 +239,9 @@ export const useSupabaseSync = () => {
           if (data.coach) {
             useCoachStore.setState({ coach: data.coach });
           }
-        } else if (!result.success) {
+        } else if (result.success) {
+          useOfflineQueueStore.getState().removeForEntity("coach", coach.id, "upsert");
+        } else {
           if (__DEV__) {
             console.warn("Could not save coach to Supabase:", result.error);
           }
