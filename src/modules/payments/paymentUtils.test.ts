@@ -6,6 +6,7 @@ import {
   buildSepaQrPayload,
   canSendPaymentReminder,
   coachPaymentSettingsSchema,
+  getRevolutLinkError,
   createPaymentInstruction,
   formatEuro,
   generatePaymentReferenceCode,
@@ -75,6 +76,30 @@ describe('payment utilities', () => {
       revolutLink: 'not-a-url',
       cashEnabled: true,
     })).toThrow();
+  });
+
+  it('accepts empty and valid revolut.me links', () => {
+    expect(getRevolutLinkError('')).toBeNull();
+    expect(getRevolutLinkError('   ')).toBeNull();
+    expect(getRevolutLinkError('https://revolut.me/coachname')).toBeNull();
+    expect(getRevolutLinkError('https://www.revolut.me/coachname')).toBeNull();
+    expect(getRevolutLinkError('HTTPS://REVOLUT.ME/coachname')).toBeNull();
+  });
+
+  it('rejects anything that is not an https revolut.me link with a username', () => {
+    expect(getRevolutLinkError('not-a-url')).toContain('full link');
+    expect(getRevolutLinkError('revolut.me/coachname')).toContain('full link');
+    expect(getRevolutLinkError('http://revolut.me/coachname')).toContain('https://');
+    expect(getRevolutLinkError('https://example.com/coachname')).toContain('revolut.me');
+    expect(getRevolutLinkError('https://revolut.me.evil.com/coachname')).toContain('revolut.me');
+    expect(getRevolutLinkError('https://evil.com/revolut.me/coachname')).toContain('revolut.me');
+    expect(getRevolutLinkError('https://revolut.me/')).toContain('username');
+    expect(getRevolutLinkError('https://revolut.me')).toContain('username');
+  });
+
+  it('applies the revolut rule inside the settings schema', () => {
+    expect(() => coachPaymentSettingsSchema.parse({ revolutLink: '', cashEnabled: true })).not.toThrow();
+    expect(() => coachPaymentSettingsSchema.parse({ revolutLink: 'https://example.com/x', cashEnabled: true })).toThrow();
   });
 
   it('moves through manual payment statuses', () => {
