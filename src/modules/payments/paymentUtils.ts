@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY, formatMoneyFromCents, resolveCurrency, type CurrencyCode } from './currency';
 import type {
   CoachPaymentSettings,
   PaymentInstruction,
@@ -15,10 +16,7 @@ export function eurosToCents(amountEur: number): number {
 }
 
 export function formatEuro(amountCents: number): string {
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(centsToEuro(amountCents));
+  return formatMoneyFromCents(amountCents, 'EUR');
 }
 
 export function generatePaymentReferenceCode(
@@ -67,6 +65,7 @@ export function normalizePaymentSettings(
     ibanBeneficiaryName: settings?.ibanBeneficiaryName,
     cancellationPolicy: settings?.cancellationPolicy,
     cashEnabled: settings?.cashEnabled ?? true,
+    currency: resolveCurrency(settings?.currency),
     qrCode: settings?.qrCode,
     phoneId: settings?.phoneId,
   };
@@ -117,15 +116,17 @@ export function createPaymentInstruction(params: {
   irisAlias?: string;
   iban?: string;
   ibanBeneficiaryName?: string;
+  currency?: CurrencyCode;
 }): PaymentInstruction {
-  const amount = formatEuro(params.amountCents);
+  const currency = params.currency ?? DEFAULT_CURRENCY;
+  const amount = formatMoneyFromCents(params.amountCents, currency);
 
   if (params.method === 'REVOLUT') {
     return {
       method: 'REVOLUT',
       title: 'Pay with Revolut',
       amountCents: params.amountCents,
-      currency: 'EUR',
+      currency,
       reference: params.reference,
       externalUrl: params.revolutLink,
       qrPayload: params.revolutLink,
@@ -138,7 +139,7 @@ export function createPaymentInstruction(params: {
       method: 'IRIS',
       title: 'Pay with IRIS',
       amountCents: params.amountCents,
-      currency: 'EUR',
+      currency,
       reference: params.reference,
       qrPayload: `IRIS payment\nAlias: ${params.irisAlias ?? ''}\nAmount: ${amount}\nReference: ${params.reference}`,
       displayText: `Pay ${amount} via IRIS to ${params.irisAlias ?? 'your coach alias'}. Use reference: ${params.reference}.`,
@@ -146,8 +147,9 @@ export function createPaymentInstruction(params: {
   }
 
   if (params.method === 'IBAN') {
+    // The SEPA QR format only exists for euros; other currencies show the IBAN text only.
     const qrPayload =
-      params.iban && params.ibanBeneficiaryName
+      currency === 'EUR' && params.iban && params.ibanBeneficiaryName
         ? buildSepaQrPayload({
             beneficiaryName: params.ibanBeneficiaryName,
             iban: params.iban,
@@ -160,7 +162,7 @@ export function createPaymentInstruction(params: {
       method: 'IBAN',
       title: 'Pay by Bank Transfer',
       amountCents: params.amountCents,
-      currency: 'EUR',
+      currency,
       reference: params.reference,
       qrPayload,
       displayText: `Pay ${amount} to IBAN ${params.iban ?? ''}. Beneficiary: ${params.ibanBeneficiaryName ?? ''}. Use reference: ${params.reference}.`,
@@ -171,7 +173,7 @@ export function createPaymentInstruction(params: {
     method: 'CASH',
     title: 'Pay in Cash',
     amountCents: params.amountCents,
-    currency: 'EUR',
+    currency,
     reference: params.reference,
     displayText: `Pay ${amount} directly to the coach. Reference: ${params.reference}.`,
   };
@@ -194,6 +196,7 @@ export function createInstructionFromSettings(params: {
     irisAlias: settings.irisAlias,
     iban: settings.iban,
     ibanBeneficiaryName: settings.ibanBeneficiaryName,
+    currency: settings.currency,
   });
 }
 

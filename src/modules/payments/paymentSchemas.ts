@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { CURRENCY_CODES } from './currency';
+
 export const paymentPreferenceSchema = z.enum([
   'REVOLUT',
   'IRIS',
@@ -60,6 +62,7 @@ export const coachPaymentSettingsSchema = z.object({
   ibanBeneficiaryName: z.string().min(2).max(120).optional().or(z.literal('')),
   cancellationPolicy: z.string().max(600).optional().or(z.literal('')),
   cashEnabled: z.boolean().default(true),
+  currency: z.enum(CURRENCY_CODES).optional(),
   qrCode: z.string().optional(),
   phoneId: z.string().optional(),
 });
