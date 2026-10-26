@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +18,11 @@ import { addDays, format } from 'date-fns';
 
 import { useCoachStore } from '../state/coachStore';
 import { DesignTokens } from '../utils/designTokens';
+import {
+  DEFAULT_GROUP_CAPACITY,
+  MAX_GROUP_CAPACITY,
+  MIN_GROUP_CAPACITY,
+} from '../utils/groupLessons';
 
 interface AddLessonSheetProps {
   visible: boolean;
@@ -47,10 +53,13 @@ function buildDatePills(defaultDate: string) {
 
 export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheetProps) {
   const insets = useSafeAreaInsets();
-  const { students, coach, createLesson, areas, facilities, courts } = useCoachStore();
+  const { students, coach, createLesson, createGroupLesson, areas, facilities, courts } = useCoachStore();
 
   const [studentSearch, setStudentSearch] = useState('');
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [isGroup, setIsGroup] = useState(false);
+  const [capacity, setCapacity] = useState(DEFAULT_GROUP_CAPACITY);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
+  const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState(defaultDate);
   const [startTime, setStartTime] = useState('');
   const [duration, setDuration] = useState(60);
@@ -71,7 +80,10 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   useEffect(() => {
     if (visible) {
       setStudentSearch('');
-      setSelectedStudentId(null);
+      setIsGroup(false);
+      setCapacity(DEFAULT_GROUP_CAPACITY);
+      setSelectedStudentIds([]);
+      setSelectedCourtId(courts[0]?.id ?? null);
       setSelectedDate(defaultDate);
       setStartTime('');
       setDuration(60);
@@ -84,7 +96,47 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     s.name.toLowerCase().includes(studentSearch.toLowerCase())
   );
 
-  const selectedStudent = students.find(s => s.id === selectedStudentId);
+  const selectedStudents = students.filter(s => selectedStudentIds.includes(s.id));
+
+  // Single lesson: tapping a student picks just that one. Group: taps toggle.
+  const toggleStudent = (id: string) => {
+    setError('');
+    if (!isGroup) {
+      setSelectedStudentIds([id]);
+      return;
+    }
+    setSelectedStudentIds(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id);
+      if (prev.length >= capacity) {
+        setError(`This group holds ${capacity} players.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  const changeGroupMode = (value: boolean) => {
+    setIsGroup(value);
+    setError('');
+    // Leaving group mode keeps at most one student selected.
+    if (!value) setSelectedStudentIds(prev => prev.slice(0, 1));
+  };
+
+  const changeCapacity = (next: number) => {
+    const clamped = Math.min(MAX_GROUP_CAPACITY, Math.max(MIN_GROUP_CAPACITY, next));
+    setCapacity(clamped);
+    // Never keep more players selected than the group holds.
+    setSelectedStudentIds(prev => prev.slice(0, clamped));
+    setError('');
+  };
+
+  // A court implies its facility and area.
+  const locationFor = (courtId: string | null) => {
+    const court = courts.find(c => c.id === courtId);
+    if (!court) return {};
+    const facility = facilities.find(f => f.id === court.facilityId);
+    return { courtId: court.id, facilityId: court.facilityId, areaId: facility?.areaId };
+  };
 
   const formatEndTime = (start: string, mins: number) => {
     const match = start.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
@@ -117,8 +169,8 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   const handleSave = () => {
     setError('');
 
-    if (!selectedStudentId) {
-      setError('Please select a student.');
+    if (selectedStudentIds.length === 0) {
+      setError(isGroup ? 'Select at least one player.' : 'Please select a student.');
       return;
     }
     const hhMM = parseTimeToHHMM(startTime);
@@ -132,20 +184,40 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
       return;
     }
 
-    createLesson({
-      studentId: selectedStudentId,
-      studentName: selectedStudent!.name,
-      date: selectedDate,
-      startTime: hhMM,
-      duration,
-      price: priceNum,
-    });
+    const location = locationFor(selectedCourtId);
+
+    if (isGroup) {
+      try {
+        createGroupLesson({
+          studentIds: selectedStudentIds,
+          date: selectedDate,
+          startTime: hhMM,
+          duration,
+          pricePerPlayer: priceNum,
+          capacity,
+          ...location,
+        });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Could not create the group lesson.');
+        return;
+      }
+    } else {
+      createLesson({
+        studentId: selectedStudentIds[0],
+        studentName: selectedStudents[0].name,
+        date: selectedDate,
+        startTime: hhMM,
+        duration,
+        price: priceNum,
+        ...location,
+      });
+    }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onClose();
   };
 
-  const canSave = !!selectedStudentId && !!startTime.trim();
+  const canSave = selectedStudentIds.length > 0 && !!startTime.trim();
 
   return (
     <Modal
@@ -177,7 +249,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
             </Text>
           </Pressable>
           <Text style={{ ...DesignTokens.typography.headline, color: DesignTokens.colors.graphite }}>
-            Add Lesson
+            {isGroup ? 'Add Group Lesson' : 'Add Lesson'}
           </Text>
           <Pressable
             onPress={handleSave}
@@ -209,8 +281,88 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
             </View>
           )}
 
+          {/* Group lesson */}
+          <View
+            style={{
+              paddingHorizontal: 20,
+              paddingTop: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}
+          >
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={{ ...DesignTokens.typography.body, fontWeight: '500', color: DesignTokens.colors.graphite }}>
+                Group lesson
+              </Text>
+              <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>
+                Several players share one session
+              </Text>
+            </View>
+            <Switch
+              value={isGroup}
+              onValueChange={changeGroupMode}
+              trackColor={{ false: '#E0E0E0', true: DesignTokens.colors.accent }}
+              thumbColor="#FFFFFF"
+            />
+          </View>
+          {isGroup && (
+            <View
+              style={{
+                paddingHorizontal: 20,
+                paddingTop: 12,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>
+                Max players
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                <Pressable
+                  onPress={() => changeCapacity(capacity - 1)}
+                  disabled={capacity <= MIN_GROUP_CAPACITY}
+                  accessibilityLabel="Fewer players"
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: DesignTokens.colors.superLightGrey,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: capacity <= MIN_GROUP_CAPACITY ? 0.4 : 1,
+                  }}
+                >
+                  <Ionicons name="remove" size={20} color={DesignTokens.colors.graphite} />
+                </Pressable>
+                <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite, minWidth: 24, textAlign: 'center' }}>
+                  {capacity}
+                </Text>
+                <Pressable
+                  onPress={() => changeCapacity(capacity + 1)}
+                  disabled={capacity >= MAX_GROUP_CAPACITY}
+                  accessibilityLabel="More players"
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    backgroundColor: DesignTokens.colors.superLightGrey,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: capacity >= MAX_GROUP_CAPACITY ? 0.4 : 1,
+                  }}
+                >
+                  <Ionicons name="add" size={20} color={DesignTokens.colors.graphite} />
+                </Pressable>
+              </View>
+            </View>
+          )}
+
           {/* Student */}
-          <SectionHeader title="Student" />
+          <SectionHeader
+            title={isGroup ? `Players (${selectedStudentIds.length}/${capacity})` : 'Student'}
+          />
           <View style={{ paddingHorizontal: 20 }}>
             <View
               style={{
@@ -242,13 +394,13 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 {filteredStudents.slice(0, 20).map(s => (
                   <Pressable
                     key={s.id}
-                    onPress={() => setSelectedStudentId(s.id)}
+                    onPress={() => toggleStudent(s.id)}
                     style={{
                       paddingHorizontal: 14,
                       paddingVertical: 10,
                       borderRadius: DesignTokens.radius.full,
                       backgroundColor:
-                        selectedStudentId === s.id
+                        selectedStudentIds.includes(s.id)
                           ? DesignTokens.colors.accent
                           : DesignTokens.colors.superLightGrey,
                       minHeight: 44,
@@ -260,7 +412,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                         ...DesignTokens.typography.subhead,
                         fontWeight: '500',
                         color:
-                          selectedStudentId === s.id ? 'white' : DesignTokens.colors.graphite,
+                          selectedStudentIds.includes(s.id) ? 'white' : DesignTokens.colors.graphite,
                       }}
                     >
                       {s.name}
@@ -387,8 +539,53 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
             ))}
           </View>
 
+          {/* Court */}
+          {courts.length > 0 && (
+            <>
+              <SectionHeader title="Court" />
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
+                <View style={{ flexDirection: 'row', gap: 8, paddingRight: 20 }}>
+                  {[{ id: null as string | null, label: 'No court' }, ...courts.map(c => ({
+                    id: c.id as string | null,
+                    label: facilities.length > 1
+                      ? `${c.label} · ${facilities.find(f => f.id === c.facilityId)?.name ?? ''}`
+                      : c.label,
+                  }))].map(option => {
+                    const selected = selectedCourtId === option.id;
+                    return (
+                      <Pressable
+                        key={option.id ?? 'none'}
+                        onPress={() => setSelectedCourtId(option.id)}
+                        style={{
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          borderRadius: DesignTokens.radius.full,
+                          backgroundColor: selected
+                            ? DesignTokens.colors.accent
+                            : DesignTokens.colors.superLightGrey,
+                          minHeight: 44,
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text
+                          style={{
+                            ...DesignTokens.typography.subhead,
+                            fontWeight: '500',
+                            color: selected ? 'white' : DesignTokens.colors.graphite,
+                          }}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </>
+          )}
+
           {/* Price */}
-          <SectionHeader title="Price" />
+          <SectionHeader title={isGroup ? 'Price per player' : 'Price'} />
           <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}>
             <Text
               style={{
