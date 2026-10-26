@@ -78,6 +78,29 @@ export function summarizeGroups(lessons: Lesson[]): LessonGroup[] {
   );
 }
 
+export type DayItem = { kind: 'lesson'; lesson: Lesson } | { kind: 'group'; group: LessonGroup };
+
+// What a day's list shows: ordinary lessons as they are, and each group as ONE
+// entry at the position of its first lesson. A group whose players are all
+// cancelled disappears.
+export function buildDayItems(lessons: Lesson[]): DayItem[] {
+  const seenGroups = new Set<string>();
+  const items: DayItem[] = [];
+
+  for (const lesson of lessons) {
+    if (!lesson.groupId) {
+      items.push({ kind: 'lesson', lesson });
+      continue;
+    }
+    if (seenGroups.has(lesson.groupId)) continue;
+    seenGroups.add(lesson.groupId);
+
+    const group = summarizeGroup(lessons, lesson.groupId);
+    if (group) items.push({ kind: 'group', group });
+  }
+  return items;
+}
+
 export type AddToGroupCheck = { ok: true } | { ok: false; reason: 'full' | 'already-in-group' };
 
 export function checkCanAddToGroup(group: LessonGroup, studentId: string): AddToGroupCheck {

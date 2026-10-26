@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_GROUP_CAPACITY,
+  buildDayItems,
   buildGroupLessons,
   buildGroupMemberLesson,
   checkCanAddToGroup,
@@ -180,5 +181,26 @@ describe('validateGroupCapacity', () => {
     expect(() => validateGroupCapacity(12)).not.toThrow();
     expect(() => validateGroupCapacity(13)).toThrow();
     expect(() => validateGroupCapacity(3.5)).toThrow();
+  });
+});
+
+describe('buildDayItems', () => {
+  it('shows each group once, in place, alongside ordinary lessons', () => {
+    const solo: Lesson = { ...makeGroup([cleo])[0], id: 'solo', groupId: undefined, groupCapacity: undefined, startTime: '09:00' };
+    const group = makeGroup([ana, ben, cleo]);
+    const items = buildDayItems([solo, ...group]);
+
+    expect(items.map((i) => i.kind)).toEqual(['lesson', 'group']);
+    const groupItem = items[1];
+    expect(groupItem.kind === 'group' && groupItem.group.lessons).toHaveLength(3);
+  });
+
+  it('hides a group once every player has cancelled, but keeps it while one remains', () => {
+    const group = makeGroup([ana, ben]);
+    const oneLeft = group.map((l) => (l.studentId === 's-ana' ? { ...l, status: 'cancelled' as const } : l));
+    expect(buildDayItems(oneLeft)).toHaveLength(1);
+
+    const noneLeft = group.map((l) => ({ ...l, status: 'cancelled' as const }));
+    expect(buildDayItems(noneLeft)).toHaveLength(0);
   });
 });

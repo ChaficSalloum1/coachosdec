@@ -38,6 +38,9 @@ import { LessonAvatar } from '../components/LessonAvatar';
 import { FloatingActionButton } from '../components/FloatingActionButton';
 import { QuickNoteSheet } from '../components/QuickNoteSheet';
 import { AddLessonSheet } from '../components/AddLessonSheet';
+import { GroupLessonCard } from '../components/GroupLessonCard';
+import { GroupLessonSheet } from '../components/GroupLessonSheet';
+import { buildDayItems } from '../utils/groupLessons';
 import { 
   todayISO, 
   addDaysISO, 
@@ -380,6 +383,8 @@ const AnimatedDayPage = React.memo(({
 }: AnimatedDayPageProps) => {
   const PAGE_PEEK = 16; // Show 16px of adjacent pages
   const [noteLesson, setNoteLesson] = useState<Lesson | null>(null);
+  const [openGroupId, setOpenGroupId] = useState<string | null>(null);
+  const dayItems = useMemo(() => buildDayItems(lessons), [lessons]);
   const coach = useCoachStore(s => s.coach);
   
   const animatedStyle = useAnimatedStyle(() => {
@@ -491,20 +496,30 @@ const AnimatedDayPage = React.memo(({
             <EmptyState dateISO={dateISO} />
           ) : (
             <View className="space-y-4">
-              {lessons.map((lesson, idx) => (
-                <AnimatedLessonCard
-                  key={lesson.id}
-                  lesson={lesson}
-                  index={idx}
-                  onMarkPaid={() => onMarkPaid(lesson.id)}
-                  onCancel={() => onCancel(lesson.id)}
-                  onNotePress={() => setNoteLesson(lesson)}
-                />
-              ))}
+              {dayItems.map((item, idx) =>
+                item.kind === 'group' ? (
+                  <GroupLessonCard
+                    key={item.group.groupId}
+                    group={item.group}
+                    onPress={() => setOpenGroupId(item.group.groupId)}
+                  />
+                ) : (
+                  <AnimatedLessonCard
+                    key={item.lesson.id}
+                    lesson={item.lesson}
+                    index={idx}
+                    onMarkPaid={() => onMarkPaid(item.lesson.id)}
+                    onCancel={() => onCancel(item.lesson.id)}
+                    onNotePress={() => setNoteLesson(item.lesson)}
+                  />
+                )
+              )}
             </View>
           )}
         </View>
       </ScrollView>
+
+      <GroupLessonSheet groupId={openGroupId} onClose={() => setOpenGroupId(null)} />
 
       <QuickNoteSheet
         visible={noteLesson !== null}
@@ -534,7 +549,9 @@ const AnimatedDayPage = React.memo(({
              lesson.notes === nextLesson.notes &&
              lesson.areaId === nextLesson.areaId &&
              lesson.facilityId === nextLesson.facilityId &&
-             lesson.courtId === nextLesson.courtId;
+             lesson.courtId === nextLesson.courtId &&
+             lesson.groupId === nextLesson.groupId &&
+             lesson.groupCapacity === nextLesson.groupCapacity;
          }) &&
          prevProps.screenWidth === nextProps.screenWidth;
 });
