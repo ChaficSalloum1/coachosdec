@@ -28,7 +28,6 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useNavigation } from '@react-navigation/native';
 
 import { useCoachStore } from '../state/coachStore';
@@ -72,8 +71,6 @@ const CENTER_PAGE_INDEX = 30; // Today's index
 export function TodayScreen() {
   const insets = useSafeAreaInsets();
   const { lessons, markLessonPaid, cancelLesson } = useCoachStore();
-  const navigation = useNavigation<any>();
-  const { showActionSheetWithOptions } = useActionSheet();
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   
   const [currentPageIndex, setCurrentPageIndex] = useState(CENTER_PAGE_INDEX);
@@ -182,31 +179,9 @@ export function TodayScreen() {
   }, [navigateToPage]);
 
   const handleFABPress = useCallback(() => {
-    const options = [
-      'Add Lesson',
-      'Jump to Today',
-      'Add Availability',
-      'Cancel',
-    ];
-    const cancelButtonIndex = 3;
-
-    showActionSheetWithOptions(
-      {
-        options,
-        cancelButtonIndex,
-        title: 'Quick Actions',
-      },
-      (buttonIndex) => {
-        if (buttonIndex === 0) {
-          setShowAddLesson(true);
-        } else if (buttonIndex === 1) {
-          jumpToToday();
-        } else if (buttonIndex === 2) {
-          navigation.navigate('Settings', { screen: 'Availability' });
-        }
-      }
-    );
-  }, [showActionSheetWithOptions, jumpToToday, navigation]);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setShowAddLesson(true);
+  }, []);
 
   const pages = useMemo(() => 
     Array.from({ length: PAGE_WINDOW_SIZE }, (_, i) => ({
