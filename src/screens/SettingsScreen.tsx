@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { useCoachStore } from '../state/coachStore';
+import { showToast } from '../state/toastStore';
 import { Coach } from '../types/coach';
 import { exportData } from '../utils/dataExport';
 import { useNavigation } from '@react-navigation/native';
@@ -770,17 +771,9 @@ function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
         }
 
         onUpdate({ calendarSyncEnabled: true });
-        Alert.alert(
-          t('calendarSyncEnabled'),
-          t('calendarSyncEnabledMessage'),
-          [{ text: t('gotIt') }]
-        );
+        showToast(t('calendarSyncEnabledMessage'), 'success');
       } catch (error) {
-        Alert.alert(
-          t('calendarSyncFailed'),
-          t('calendarSyncFailedMessage'),
-          [{ text: t('ok') }]
-        );
+        showToast(t('calendarSyncFailedMessage'), 'error');
       } finally {
         setIsInitializing(false);
       }
@@ -877,20 +870,14 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     const sports = buildSportsSelection(selectedSports, otherSport);
 
     if (!name.trim() || sports.length === 0 || !price.trim()) {
-      Alert.alert(
-        t('missingInformation'),
-        'Add your name, choose at least one sport, and set your starting hourly price.'
-      );
+      showToast('Add your name, choose at least one sport, and set your starting hourly price.', 'error');
       return;
     }
 
     // Get authenticated user ID - coach.id must match auth.uid() for RLS policies
     const user = await getCurrentUser();
     if (!user?.id) {
-      Alert.alert(
-        t('error') || 'Error',
-        t('mustBeLoggedIn') || 'You must be logged in to create a coach profile'
-      );
+      showToast(t('mustBeLoggedIn', 'You must be logged in to create a coach profile'), 'error');
       return;
     }
 

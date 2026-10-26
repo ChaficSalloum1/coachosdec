@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
+import { showToast } from '../state/toastStore';
 import { addDays, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 
 import { AvailabilityRange, BlackoutDate, Area, Facility, Court } from '../types/coach';
@@ -69,12 +70,12 @@ export function RangeEditorModal({
 
   const handleSave = () => {
     if (!selectedAreaId) {
-      Alert.alert('Missing Area', 'Please select an area.');
+      showToast('Please select an area.', 'error');
       return;
     }
 
     if (startTime >= endTime) {
-      Alert.alert('Invalid Time Range', 'End time must be after start time.');
+      showToast('End time must be after start time.', 'error');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       return;
     }

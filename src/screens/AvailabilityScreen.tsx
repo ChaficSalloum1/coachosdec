@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
+import { showToast } from '../state/toastStore';
 import { AvailabilityRange, BlackoutDate } from '../types/coach';
 import { RangeEditorModal, BlackoutCalendarModal, PreviewModal } from '../components/AvailabilityModals';
 
@@ -86,7 +87,7 @@ export function AvailabilityScreen() {
 
   const handleAddRange = () => {
     if (areas.length === 0) {
-      Alert.alert('No Areas', 'Please create an area first in Settings → Locations.');
+      showToast('Please create an area first in Settings → Locations.', 'error');
       return;
     }
     setEditingRange(null);

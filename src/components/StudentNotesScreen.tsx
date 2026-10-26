@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { showToast } from '../state/toastStore';
 
 import { StudentNote } from '../types/coach';
 import { formatDateRelative, getTimeAgo } from '../utils/dateFormat';
@@ -49,7 +50,7 @@ export function StudentNotesScreen({
 
   const handleAddNote = () => {
     if (!newNoteContent.trim()) {
-      Alert.alert('Empty Note', 'Please enter some content for the note.');
+      showToast('Please enter some content for the note.', 'error');
       return;
     }
 

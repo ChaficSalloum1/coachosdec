@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
+import { showToast } from '../state/toastStore';
 import { Area, Facility, Court } from '../types/coach';
 
 type TabType = 'areas' | 'facilities' | 'courts';
@@ -186,7 +187,7 @@ function FacilitiesTab() {
 
   const handleAdd = () => {
     if (areas.length === 0) {
-      Alert.alert('No Areas', 'Please create an area first before adding facilities.');
+      showToast('Please create an area first before adding facilities.', 'error');
       return;
     }
     setEditingFacility(null);
@@ -315,7 +316,7 @@ function CourtsTab() {
 
   const handleAdd = () => {
     if (facilities.length === 0) {
-      Alert.alert('No Facilities', 'Please create a facility first before adding courts.');
+      showToast('Please create a facility first before adding courts.', 'error');
       return;
     }
     setEditingCourt(null);
@@ -456,7 +457,7 @@ function AreaFormModal({ visible, onClose, area, onSave }: AreaFormModalProps) {
 
   const handleSave = () => {
     if (!name.trim()) {
-      Alert.alert('Missing Name', 'Please enter an area name.');
+      showToast('Please enter an area name.', 'error');
       return;
     }
     onSave(name.trim());
@@ -519,7 +520,7 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
 
   const handleSave = () => {
     if (!name.trim() || !areaId) {
-      Alert.alert('Missing Information', 'Please enter a facility name and select an area.');
+      showToast('Please enter a facility name and select an area.', 'error');
       return;
     }
     onSave({
@@ -647,7 +648,7 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
 
   const handleSave = () => {
     if (!label.trim() || !facilityId) {
-      Alert.alert('Missing Information', 'Please enter a court label and select a facility.');
+      showToast('Please enter a court label and select a facility.', 'error');
       return;
     }
     onSave({
