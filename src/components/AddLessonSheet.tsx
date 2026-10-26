@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,22 +8,28 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   Switch,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
 import { addDays, format } from 'date-fns';
+import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
+import { showToast } from '../state/toastStore';
 import { DesignTokens } from '../utils/designTokens';
 import { useCurrency } from '../hooks/useCurrency';
+import { DEFAULT_GROUP_CAPACITY, MAX_GROUP_CAPACITY, MIN_GROUP_CAPACITY } from '../utils/groupLessons';
 import {
-  DEFAULT_GROUP_CAPACITY,
-  MAX_GROUP_CAPACITY,
-  MIN_GROUP_CAPACITY,
-} from '../utils/groupLessons';
+  findConflicts,
+  formatTime12,
+  getRecentStudents,
+  suggestDuration,
+  suggestFreeStartTimes,
+  suggestPrice,
+} from '../utils/lessonScheduling';
 
 interface AddLessonSheetProps {
   visible: boolean;
@@ -31,84 +37,134 @@ interface AddLessonSheetProps {
   onClose: () => void;
 }
 
-const DURATIONS = [
-  { label: '30m', minutes: 30 },
-  { label: '45m', minutes: 45 },
-  { label: '60m', minutes: 60 },
-  { label: '90m', minutes: 90 },
-  { label: '2h', minutes: 120 },
-];
+const DURATIONS = [30, 45, 60, 90, 120];
+const durationLabel = (minutes: number) => (minutes >= 120 ? `${minutes / 60}h` : `${minutes}m`);
 
-// Build a 14-day pill list starting from today
-function buildDatePills(defaultDate: string) {
+function buildDatePills() {
   const today = new Date();
   return Array.from({ length: 14 }, (_, i) => {
     const d = addDays(today, i);
-    return {
-      iso: format(d, 'yyyy-MM-dd'),
-      dayAbbrev: format(d, 'EEE'),
-      dayNum: format(d, 'd'),
-    };
+    return { iso: format(d, 'yyyy-MM-dd'), label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(d, 'EEE d') };
   });
 }
 
 export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheetProps) {
   const insets = useSafeAreaInsets();
-  const { symbol: currencyMark } = useCurrency();
-  const { students, coach, createLesson, createGroupLesson, areas, facilities, courts } = useCoachStore();
+  const { symbol, formatMoney } = useCurrency();
+  const {
+    students,
+    coach,
+    lessons,
+    availabilityRanges,
+    blackoutDates,
+    courts,
+    facilities,
+    createLesson,
+    createGroupLesson,
+    addStudent,
+  } = useCoachStore();
 
-  const [studentSearch, setStudentSearch] = useState('');
   const [isGroup, setIsGroup] = useState(false);
   const [capacity, setCapacity] = useState(DEFAULT_GROUP_CAPACITY);
-  const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>([]);
-  const [selectedCourtId, setSelectedCourtId] = useState<string | null>(null);
-  const [selectedDate, setSelectedDate] = useState(defaultDate);
-  const [startTime, setStartTime] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
+  const [showNewStudent, setShowNewStudent] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newContact, setNewContact] = useState('');
+  const [date, setDate] = useState(defaultDate);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [startTime, setStartTime] = useState<string | null>(null); // HH:mm
+  const [showTimeWheel, setShowTimeWheel] = useState(false);
   const [duration, setDuration] = useState(60);
+  const [durationEdited, setDurationEdited] = useState(false);
   const [price, setPrice] = useState('');
+  const [priceEdited, setPriceEdited] = useState(false);
+  const [courtId, setCourtId] = useState<string | null>(null);
+  const [showCourts, setShowCourts] = useState(false);
   const [error, setError] = useState('');
 
-  const datePills = buildDatePills(defaultDate);
+  const pricePerHour = coach?.pricePerHour ?? 0;
 
-  // Auto-fill price when duration changes
+  // Fresh sheet each time: remember the coach's usual length and court.
   useEffect(() => {
-    if (coach) {
-      const computed = ((duration / 60) * coach.pricePerHour).toFixed(0);
-      setPrice(computed);
-    }
-  }, [duration, coach]);
+    if (!visible) return;
+    const usualDuration = suggestDuration(lessons);
+    const lastCourt = [...lessons]
+      .filter((l) => l.courtId && l.status !== 'cancelled')
+      .sort((a, b) => `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`))[0]?.courtId;
 
-  // Reset on open
-  useEffect(() => {
-    if (visible) {
-      setStudentSearch('');
-      setIsGroup(false);
-      setCapacity(DEFAULT_GROUP_CAPACITY);
-      setSelectedStudentIds([]);
-      setSelectedCourtId(courts[0]?.id ?? null);
-      setSelectedDate(defaultDate);
-      setStartTime('');
-      setDuration(60);
-      setPrice(coach ? ((60 / 60) * coach.pricePerHour).toFixed(0) : '');
-      setError('');
-    }
+    setIsGroup(false);
+    setCapacity(DEFAULT_GROUP_CAPACITY);
+    setSelectedIds([]);
+    setSearch('');
+    setShowNewStudent(false);
+    setNewName('');
+    setNewContact('');
+    setDate(defaultDate);
+    setShowDatePicker(false);
+    setStartTime(null);
+    setShowTimeWheel(false);
+    setDuration(usualDuration);
+    setDurationEdited(false);
+    setPrice(String(suggestPrice({ lessons, durationMinutes: usualDuration, pricePerHour })));
+    setPriceEdited(false);
+    setCourtId(courts.some((c) => c.id === lastCourt) ? (lastCourt as string) : courts[0]?.id ?? null);
+    setShowCourts(false);
+    setError('');
   }, [visible]);
 
-  const filteredStudents = students.filter(s =>
-    s.name.toLowerCase().includes(studentSearch.toLowerCase())
+  const datePills = useMemo(() => {
+    const base = buildDatePills();
+    return base.some((p) => p.iso === date)
+      ? base
+      : [{ iso: date, label: format(new Date(`${date}T12:00:00`), 'EEE d MMM') }, ...base];
+  }, [date, visible]);
+
+  const freeTimes = useMemo(
+    () =>
+      suggestFreeStartTimes({
+        date,
+        durationMinutes: duration,
+        availabilityRanges,
+        blackoutDates,
+        lessons,
+      }),
+    [date, duration, availabilityRanges, blackoutDates, lessons]
   );
+  const timeOptions = startTime && !freeTimes.includes(startTime) ? [startTime, ...freeTimes] : freeTimes;
 
-  const selectedStudents = students.filter(s => selectedStudentIds.includes(s.id));
+  const conflicts = startTime ? findConflicts({ date, startTime, durationMinutes: duration, lessons }) : [];
 
-  // Single lesson: tapping a student picks just that one. Group: taps toggle.
+  const recent = useMemo(() => getRecentStudents(lessons, students, 6), [lessons, students]);
+  const searching = search.trim().length > 0;
+  const shownStudents = useMemo(() => {
+    const base = searching
+      ? students.filter((s) => s.name.toLowerCase().includes(search.trim().toLowerCase())).slice(0, 12)
+      : recent;
+    const missingSelected = students.filter((s) => selectedIds.includes(s.id) && !base.some((b) => b.id === s.id));
+    return [...missingSelected, ...base];
+  }, [searching, search, students, recent, selectedIds]);
+
+  const suggestFor = (studentId: string | undefined, nextDuration: number, keepDuration: boolean) => {
+    let d = nextDuration;
+    if (!keepDuration) {
+      d = suggestDuration(lessons, studentId);
+      setDuration(d);
+    }
+    if (!priceEdited) {
+      setPrice(String(suggestPrice({ lessons, studentId, durationMinutes: d, pricePerHour })));
+    }
+  };
+
   const toggleStudent = (id: string) => {
     setError('');
     if (!isGroup) {
-      setSelectedStudentIds([id]);
+      setSelectedIds([id]);
+      suggestFor(id, duration, durationEdited);
       return;
     }
-    setSelectedStudentIds(prev => {
-      if (prev.includes(id)) return prev.filter(x => x !== id);
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (prev.length >= capacity) {
         setError(`This group holds ${capacity} players.`);
         return prev;
@@ -120,82 +176,93 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   const changeGroupMode = (value: boolean) => {
     setIsGroup(value);
     setError('');
-    // Leaving group mode keeps at most one student selected.
-    if (!value) setSelectedStudentIds(prev => prev.slice(0, 1));
+    if (!value) {
+      const first = selectedIds[0];
+      setSelectedIds(first ? [first] : []);
+      suggestFor(first, duration, durationEdited);
+    } else if (!priceEdited) {
+      setPrice(String(suggestPrice({ lessons, durationMinutes: duration, pricePerHour })));
+    }
   };
 
   const changeCapacity = (next: number) => {
     const clamped = Math.min(MAX_GROUP_CAPACITY, Math.max(MIN_GROUP_CAPACITY, next));
     setCapacity(clamped);
-    // Never keep more players selected than the group holds.
-    setSelectedStudentIds(prev => prev.slice(0, clamped));
+    setSelectedIds((prev) => prev.slice(0, clamped));
     setError('');
   };
 
-  // A court implies its facility and area.
-  const locationFor = (courtId: string | null) => {
-    const court = courts.find(c => c.id === courtId);
+  const chooseDuration = (minutes: number) => {
+    setDuration(minutes);
+    setDurationEdited(true);
+    if (!priceEdited) {
+      setPrice(
+        String(
+          suggestPrice({
+            lessons,
+            studentId: isGroup ? undefined : selectedIds[0],
+            durationMinutes: minutes,
+            pricePerHour,
+          })
+        )
+      );
+    }
+  };
+
+  const saveNewStudent = () => {
+    const name = newName.trim();
+    const contact = newContact.trim();
+    if (name.length < 2) return setError("Enter the student's name.");
+    if (contact.length < 3) return setError('Enter a phone number or email.');
+    if (!coach) return;
+    const id = uuidv4();
+    addStudent({
+      id,
+      coachId: coach.id,
+      name,
+      contact,
+      totalLessons: 0,
+      totalSpent: 0,
+      balance: 0,
+      createdAt: new Date().toISOString(),
+    });
+    setShowNewStudent(false);
+    setNewName('');
+    setNewContact('');
+    setSearch('');
+    toggleStudent(id);
+  };
+
+  const courtLocation = (id: string | null) => {
+    const court = courts.find((c) => c.id === id);
     if (!court) return {};
-    const facility = facilities.find(f => f.id === court.facilityId);
+    const facility = facilities.find((f) => f.id === court.facilityId);
     return { courtId: court.id, facilityId: court.facilityId, areaId: facility?.areaId };
   };
 
-  const formatEndTime = (start: string, mins: number) => {
-    const match = start.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-    if (!match) return '';
-    let h = parseInt(match[1]);
-    const m = parseInt(match[2]);
-    const meridiem = match[3]?.toUpperCase();
-    if (meridiem === 'PM' && h !== 12) h += 12;
-    if (meridiem === 'AM' && h === 12) h = 0;
-    const totalMins = h * 60 + m + mins;
-    const endH = Math.floor(totalMins / 60) % 24;
-    const endM = totalMins % 60;
-    const endMeridiem = endH >= 12 ? 'PM' : 'AM';
-    const display = (endH % 12 || 12) + ':' + String(endM).padStart(2, '0') + ' ' + endMeridiem;
-    return display;
+  const courtName = (id: string | null) => {
+    const court = courts.find((c) => c.id === id);
+    if (!court) return 'No court';
+    const facility = facilities.find((f) => f.id === court.facilityId);
+    return facilities.length > 1 && facility ? `${court.label} · ${facility.name}` : court.label;
   };
 
-  const parseTimeToHHMM = (input: string): string | null => {
-    const match = input.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-    if (!match) return null;
-    let h = parseInt(match[1]);
-    const m = parseInt(match[2]);
-    const meridiem = match[3]?.toUpperCase();
-    if (meridiem === 'PM' && h !== 12) h += 12;
-    if (meridiem === 'AM' && h === 12) h = 0;
-    if (h < 0 || h > 23 || m < 0 || m > 59) return null;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-  };
+  const priceNumber = parseFloat(price.replace(',', '.'));
+  const canSave = selectedIds.length > 0 && !!startTime && !isNaN(priceNumber) && priceNumber >= 0;
 
   const handleSave = () => {
     setError('');
-
-    if (selectedStudentIds.length === 0) {
-      setError(isGroup ? 'Select at least one player.' : 'Please select a student.');
-      return;
-    }
-    const hhMM = parseTimeToHHMM(startTime);
-    if (!hhMM) {
-      setError('Enter a valid start time, e.g. "9:00 AM".');
-      return;
-    }
-    const priceNum = parseFloat(price);
-    if (isNaN(priceNum) || priceNum < 0) {
-      setError('Enter a valid price.');
-      return;
-    }
-
-    const location = locationFor(selectedCourtId);
+    if (!canSave || !startTime) return;
+    const location = courtLocation(courtId);
 
     if (isGroup) {
       try {
         createGroupLesson({
-          studentIds: selectedStudentIds,
-          date: selectedDate,
-          startTime: hhMM,
+          studentIds: selectedIds,
+          date,
+          startTime,
           duration,
-          pricePerPlayer: priceNum,
+          pricePerPlayer: priceNumber,
           capacity,
           ...location,
         });
@@ -204,455 +271,278 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
         return;
       }
     } else {
+      const student = students.find((s) => s.id === selectedIds[0]);
+      if (!student) return;
       createLesson({
-        studentId: selectedStudentIds[0],
-        studentName: selectedStudents[0].name,
-        date: selectedDate,
-        startTime: hhMM,
+        studentId: student.id,
+        studentName: student.name,
+        date,
+        startTime,
         duration,
-        price: priceNum,
+        price: priceNumber,
         ...location,
       });
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showToast(isGroup ? 'Group lesson added' : 'Lesson added', 'success');
     onClose();
   };
 
-  const canSave = selectedStudentIds.length > 0 && !!startTime.trim();
+  const timeWheelValue = (() => {
+    const d = new Date();
+    if (startTime) {
+      const [h, m] = startTime.split(':').map(Number);
+      d.setHours(h, m, 0, 0);
+    }
+    return d;
+  })();
+
+  const summary = [
+    selectedIds.length === 0
+      ? null
+      : isGroup
+        ? `${selectedIds.length} player${selectedIds.length > 1 ? 's' : ''}`
+        : students.find((s) => s.id === selectedIds[0])?.name,
+    startTime ? formatTime12(startTime) : null,
+    durationLabel(duration),
+    isNaN(priceNumber) ? null : `${formatMoney(priceNumber)}${isGroup ? ' each' : ''}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <KeyboardAvoidingView
-        style={{ flex: 1, backgroundColor: 'white' }}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        {/* Header */}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            paddingHorizontal: 20,
-            paddingTop: insets.top + 16,
-            paddingBottom: 16,
-            borderBottomWidth: 1,
-            borderBottomColor: DesignTokens.colors.superLightGrey,
-          }}
-        >
-          <Pressable onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.grey }}>
-              Cancel
-            </Text>
-          </Pressable>
-          <Text style={{ ...DesignTokens.typography.headline, color: DesignTokens.colors.graphite }}>
-            {isGroup ? 'Add Group Lesson' : 'Add Lesson'}
-          </Text>
-          <Pressable
-            onPress={handleSave}
-            disabled={!canSave}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text
-              style={{
-                ...DesignTokens.typography.body,
-                fontWeight: '600',
-                color: canSave ? DesignTokens.colors.accent : DesignTokens.colors.grey,
-              }}
-            >
-              Add
-            </Text>
-          </Pressable>
-        </View>
-
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
-        >
-          {/* Error */}
-          {!!error && (
-            <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
-              <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.danger }}>
-                {error}
-              </Text>
-            </View>
-          )}
-
-          {/* Group lesson */}
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close" />
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View
             style={{
-              paddingHorizontal: 20,
-              paddingTop: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
+              backgroundColor: 'white',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              maxHeight: '92%',
+              paddingBottom: insets.bottom + 12,
             }}
           >
-            <View style={{ flex: 1, paddingRight: 12 }}>
-              <Text style={{ ...DesignTokens.typography.body, fontWeight: '500', color: DesignTokens.colors.graphite }}>
-                Group lesson
-              </Text>
-              <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>
-                Several players share one session
-              </Text>
+            <View style={{ alignItems: 'center', paddingTop: 8 }}>
+              <View style={{ width: 36, height: 4, borderRadius: 2, backgroundColor: DesignTokens.colors.superLightGrey }} />
             </View>
-            <Switch
-              value={isGroup}
-              onValueChange={changeGroupMode}
-              trackColor={{ false: '#E0E0E0', true: DesignTokens.colors.accent }}
-              thumbColor="#FFFFFF"
-            />
-          </View>
-          {isGroup && (
+
             <View
               style={{
-                paddingHorizontal: 20,
-                paddingTop: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
+                paddingHorizontal: 20,
+                paddingTop: 8,
+                paddingBottom: 4,
               }}
             >
-              <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>
-                Max players
+              <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite }}>
+                {isGroup ? 'Add group lesson' : 'Add lesson'}
               </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                <Pressable
-                  onPress={() => changeCapacity(capacity - 1)}
-                  disabled={capacity <= MIN_GROUP_CAPACITY}
-                  accessibilityLabel="Fewer players"
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    backgroundColor: DesignTokens.colors.superLightGrey,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: capacity <= MIN_GROUP_CAPACITY ? 0.4 : 1,
-                  }}
-                >
-                  <Ionicons name="remove" size={20} color={DesignTokens.colors.graphite} />
-                </Pressable>
-                <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite, minWidth: 24, textAlign: 'center' }}>
-                  {capacity}
-                </Text>
-                <Pressable
-                  onPress={() => changeCapacity(capacity + 1)}
-                  disabled={capacity >= MAX_GROUP_CAPACITY}
-                  accessibilityLabel="More players"
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    backgroundColor: DesignTokens.colors.superLightGrey,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    opacity: capacity >= MAX_GROUP_CAPACITY ? 0.4 : 1,
-                  }}
-                >
-                  <Ionicons name="add" size={20} color={DesignTokens.colors.graphite} />
-                </Pressable>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ ...DesignTokens.typography.subhead, color: DesignTokens.colors.grey }}>Group</Text>
+                <Switch
+                  value={isGroup}
+                  onValueChange={changeGroupMode}
+                  trackColor={{ false: '#E0E0E0', true: DesignTokens.colors.accent }}
+                  thumbColor="#FFFFFF"
+                />
               </View>
             </View>
-          )}
 
-          {/* Student */}
-          <SectionHeader
-            title={isGroup ? `Players (${selectedStudentIds.length}/${capacity})` : 'Student'}
-          />
-          <View style={{ paddingHorizontal: 20 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: DesignTokens.colors.superLightGrey,
-                borderRadius: 10,
-                paddingHorizontal: 12,
-                marginBottom: 10,
-              }}
-            >
-              <Ionicons name="search" size={16} color={DesignTokens.colors.grey} />
-              <TextInput
-                style={{
-                  flex: 1,
-                  marginLeft: 8,
-                  ...DesignTokens.typography.body,
-                  color: DesignTokens.colors.graphite,
-                  height: 40,
-                }}
-                placeholder="Search students…"
-                placeholderTextColor={DesignTokens.colors.grey}
-                value={studentSearch}
-                onChangeText={setStudentSearch}
-              />
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                {filteredStudents.slice(0, 20).map(s => (
-                  <Pressable
-                    key={s.id}
-                    onPress={() => toggleStudent(s.id)}
-                    style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      borderRadius: DesignTokens.radius.full,
-                      backgroundColor:
-                        selectedStudentIds.includes(s.id)
-                          ? DesignTokens.colors.accent
-                          : DesignTokens.colors.superLightGrey,
-                      minHeight: 44,
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        ...DesignTokens.typography.subhead,
-                        fontWeight: '500',
-                        color:
-                          selectedStudentIds.includes(s.id) ? 'white' : DesignTokens.colors.graphite,
-                      }}
-                    >
-                      {s.name}
+            <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 12 }}>
+              {!!error && (
+                <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.danger, paddingHorizontal: 20, paddingTop: 8 }}>
+                  {error}
+                </Text>
+              )}
+
+              {isGroup && (
+                <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>Max players</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                    <RoundButton icon="remove" label="Fewer players" disabled={capacity <= MIN_GROUP_CAPACITY} onPress={() => changeCapacity(capacity - 1)} />
+                    <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite, minWidth: 24, textAlign: 'center' }}>
+                      {capacity}
                     </Text>
-                  </Pressable>
+                    <RoundButton icon="add" label="More players" disabled={capacity >= MAX_GROUP_CAPACITY} onPress={() => changeCapacity(capacity + 1)} />
+                  </View>
+                </View>
+              )}
+
+              <Label>{isGroup ? `Players (${selectedIds.length}/${capacity})` : 'Who'}</Label>
+              <View style={{ paddingHorizontal: 20 }}>
+                {showNewStudent ? (
+                  <View style={{ gap: 8 }}>
+                    <Field value={newName} onChangeText={setNewName} placeholder="Name" autoFocus />
+                    <Field value={newContact} onChangeText={setNewContact} placeholder="Phone or email" keyboardType="email-address" autoCapitalize="none" />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <Chip label="Cancel" onPress={() => setShowNewStudent(false)} />
+                      <Chip label="Save student" selected onPress={saveNewStudent} />
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {shownStudents.map((s) => (
+                        <Chip key={s.id} label={s.name} selected={selectedIds.includes(s.id)} onPress={() => toggleStudent(s.id)} />
+                      ))}
+                      <Chip label="+ New" onPress={() => { setShowNewStudent(true); setError(''); }} />
+                    </View>
+                    {students.length > 6 && (
+                      <View style={{ marginTop: 10 }}>
+                        <Field value={search} onChangeText={setSearch} placeholder="Search all students" />
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+
+              <Label>When</Label>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
+                {datePills.map((p) => (
+                  <Chip key={p.iso} label={p.label} selected={date === p.iso} onPress={() => setDate(p.iso)} />
                 ))}
-                {filteredStudents.length === 0 && (
-                  <Text
-                    style={{
-                      ...DesignTokens.typography.subhead,
-                      color: DesignTokens.colors.grey,
-                      paddingVertical: 10,
-                    }}
-                  >
-                    No students found
+                <Chip label="Other date" onPress={() => setShowDatePicker((v) => !v)} />
+              </ScrollView>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={new Date(`${date}T12:00:00`)}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={(_event, selected) => {
+                    setShowDatePicker(Platform.OS === 'ios');
+                    if (selected) setDate(format(selected, 'yyyy-MM-dd'));
+                  }}
+                />
+              )}
+
+              <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {timeOptions.map((t) => (
+                    <Chip key={t} label={formatTime12(t)} selected={startTime === t} onPress={() => { setStartTime(t); setError(''); }} />
+                  ))}
+                  <Chip label="Other time" onPress={() => setShowTimeWheel((v) => !v)} />
+                </View>
+                {timeOptions.length === 0 && (
+                  <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 8 }}>
+                    No free times set for this day. Pick another time.
                   </Text>
                 )}
               </View>
-            </ScrollView>
-          </View>
+              {showTimeWheel && (
+                <View>
+                  <DateTimePicker
+                    value={timeWheelValue}
+                    mode="time"
+                    is24Hour={false}
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={(_event, selected) => {
+                      setShowTimeWheel(Platform.OS === 'ios');
+                      if (selected) setStartTime(format(selected, 'HH:mm'));
+                    }}
+                  />
+                  {Platform.OS === 'ios' && (
+                    <View style={{ paddingHorizontal: 20 }}>
+                      <Chip label="Done" selected onPress={() => setShowTimeWheel(false)} />
+                    </View>
+                  )}
+                </View>
+              )}
 
-          {/* Date */}
-          <SectionHeader title="Date" />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20, marginBottom: 4 }}>
-            <View style={{ flexDirection: 'row', gap: 8, paddingRight: 20 }}>
-              {datePills.map(p => (
-                <Pressable
-                  key={p.iso}
-                  onPress={() => setSelectedDate(p.iso)}
+              {conflicts.length > 0 && (
+                <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.warning, paddingHorizontal: 20, paddingTop: 10 }}>
+                  Overlaps with {conflicts[0].groupId ? 'a group lesson' : conflicts[0].studentName} at {formatTime12(conflicts[0].startTime)}
+                  {conflicts.length > 1 ? ` and ${conflicts.length - 1} more` : ''}.
+                </Text>
+              )}
+
+              <Label>Length</Label>
+              <View style={{ paddingHorizontal: 20, flexDirection: 'row', gap: 8 }}>
+                {DURATIONS.map((m) => (
+                  <View key={m} style={{ flex: 1 }}>
+                    <Chip label={durationLabel(m)} selected={duration === m} onPress={() => chooseDuration(m)} fill />
+                  </View>
+                ))}
+              </View>
+
+              <Label>{isGroup ? 'Price per player' : 'Price'}</Label>
+              <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ ...DesignTokens.typography.title2, color: DesignTokens.colors.grey }}>{symbol}</Text>
+                <TextInput
+                  value={price}
+                  onChangeText={(text) => { setPrice(text); setPriceEdited(true); }}
+                  keyboardType="decimal-pad"
+                  returnKeyType="done"
+                  accessibilityLabel="Price"
                   style={{
-                    width: 56,
-                    height: 64,
-                    borderRadius: DesignTokens.radius.default,
-                    backgroundColor:
-                      selectedDate === p.iso
-                        ? DesignTokens.colors.accent
-                        : DesignTokens.colors.superLightGrey,
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    flex: 1,
+                    minHeight: 48,
+                    backgroundColor: DesignTokens.colors.superLightGrey,
+                    borderRadius: 10,
+                    paddingHorizontal: 14,
+                    ...DesignTokens.typography.body,
+                    color: DesignTokens.colors.graphite,
                   }}
-                >
-                  <Text
-                    style={{
-                      ...DesignTokens.typography.caption1,
-                      color: selectedDate === p.iso ? 'rgba(255,255,255,0.8)' : DesignTokens.colors.grey,
-                    }}
-                  >
-                    {p.dayAbbrev}
-                  </Text>
-                  <Text
-                    style={{
-                      ...DesignTokens.typography.title3,
-                      color: selectedDate === p.iso ? 'white' : DesignTokens.colors.graphite,
-                    }}
-                  >
-                    {p.dayNum}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </ScrollView>
+                />
+              </View>
 
-          {/* Start Time */}
-          <SectionHeader title="Start Time" />
-          <View style={{ paddingHorizontal: 20 }}>
-            <TextInput
-              style={{
-                backgroundColor: DesignTokens.colors.superLightGrey,
-                borderRadius: 10,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                ...DesignTokens.typography.body,
-                color: DesignTokens.colors.graphite,
-              }}
-              placeholder="e.g. 9:00 AM"
-              placeholderTextColor={DesignTokens.colors.grey}
-              value={startTime}
-              onChangeText={setStartTime}
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="done"
-            />
-            {startTime.trim() && parseTimeToHHMM(startTime) && (
-              <Text
-                style={{
-                  ...DesignTokens.typography.footnote,
-                  color: DesignTokens.colors.grey,
-                  marginTop: 6,
-                }}
-              >
-                Ends at {formatEndTime(startTime, duration)}
-              </Text>
-            )}
-          </View>
+              {courts.length > 0 && (
+                <>
+                  <Label>Court</Label>
+                  <View style={{ paddingHorizontal: 20 }}>
+                    {showCourts ? (
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                        <Chip label="No court" selected={courtId === null} onPress={() => { setCourtId(null); setShowCourts(false); }} />
+                        {courts.map((c) => (
+                          <Chip key={c.id} label={courtName(c.id)} selected={courtId === c.id} onPress={() => { setCourtId(c.id); setShowCourts(false); }} />
+                        ))}
+                      </View>
+                    ) : (
+                      <View style={{ flexDirection: 'row' }}>
+                        <Chip label={`${courtName(courtId)}  ▾`} onPress={() => setShowCourts(true)} />
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
+            </ScrollView>
 
-          {/* Duration */}
-          <SectionHeader title="Duration" />
-          <View style={{ paddingHorizontal: 20, flexDirection: 'row', gap: 8 }}>
-            {DURATIONS.map(d => (
+            <View style={{ paddingHorizontal: 20, paddingTop: 8 }}>
+              {!!summary && (
+                <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, textAlign: 'center', marginBottom: 8 }} numberOfLines={1}>
+                  {summary}
+                </Text>
+              )}
               <Pressable
-                key={d.minutes}
-                onPress={() => setDuration(d.minutes)}
+                onPress={handleSave}
+                disabled={!canSave}
+                accessibilityRole="button"
                 style={{
-                  flex: 1,
-                  minHeight: 44,
-                  borderRadius: DesignTokens.radius.default,
-                  backgroundColor:
-                    duration === d.minutes
-                      ? DesignTokens.colors.accent
-                      : DesignTokens.colors.superLightGrey,
+                  backgroundColor: canSave ? DesignTokens.colors.accent : DesignTokens.colors.superLightGrey,
+                  borderRadius: 14,
+                  minHeight: 56,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text
-                  style={{
-                    ...DesignTokens.typography.subhead,
-                    fontWeight: '600',
-                    color: duration === d.minutes ? 'white' : DesignTokens.colors.graphite,
-                  }}
-                >
-                  {d.label}
+                <Text style={{ ...DesignTokens.typography.headline, color: canSave ? 'white' : DesignTokens.colors.grey }}>
+                  {isGroup ? 'Add group lesson' : 'Add lesson'}
                 </Text>
               </Pressable>
-            ))}
+            </View>
           </View>
-
-          {/* Court */}
-          {courts.length > 0 && (
-            <>
-              <SectionHeader title="Court" />
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ paddingLeft: 20 }}>
-                <View style={{ flexDirection: 'row', gap: 8, paddingRight: 20 }}>
-                  {[{ id: null as string | null, label: 'No court' }, ...courts.map(c => ({
-                    id: c.id as string | null,
-                    label: facilities.length > 1
-                      ? `${c.label} · ${facilities.find(f => f.id === c.facilityId)?.name ?? ''}`
-                      : c.label,
-                  }))].map(option => {
-                    const selected = selectedCourtId === option.id;
-                    return (
-                      <Pressable
-                        key={option.id ?? 'none'}
-                        onPress={() => setSelectedCourtId(option.id)}
-                        style={{
-                          paddingHorizontal: 14,
-                          paddingVertical: 10,
-                          borderRadius: DesignTokens.radius.full,
-                          backgroundColor: selected
-                            ? DesignTokens.colors.accent
-                            : DesignTokens.colors.superLightGrey,
-                          minHeight: 44,
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text
-                          style={{
-                            ...DesignTokens.typography.subhead,
-                            fontWeight: '500',
-                            color: selected ? 'white' : DesignTokens.colors.graphite,
-                          }}
-                        >
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </>
-          )}
-
-          {/* Price */}
-          <SectionHeader title={isGroup ? 'Price per player' : 'Price'} />
-          <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center' }}>
-            <Text
-              style={{
-                ...DesignTokens.typography.title2,
-                color: DesignTokens.colors.grey,
-                marginRight: 4,
-              }}
-            >
-              {currencyMark}
-            </Text>
-            <TextInput
-              style={{
-                flex: 1,
-                backgroundColor: DesignTokens.colors.superLightGrey,
-                borderRadius: 10,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                ...DesignTokens.typography.body,
-                color: DesignTokens.colors.graphite,
-              }}
-              value={price}
-              onChangeText={setPrice}
-              keyboardType="decimal-pad"
-              returnKeyType="done"
-            />
-          </View>
-        </ScrollView>
-
-        {/* Save button */}
-        <View
-          style={{
-            paddingHorizontal: 20,
-            paddingBottom: insets.bottom + 16,
-            paddingTop: 12,
-            borderTopWidth: 1,
-            borderTopColor: DesignTokens.colors.superLightGrey,
-            backgroundColor: 'white',
-          }}
-        >
-          <Pressable
-            onPress={handleSave}
-            disabled={!canSave}
-            style={{
-              backgroundColor: canSave ? DesignTokens.colors.accent : DesignTokens.colors.superLightGrey,
-              borderRadius: 12,
-              paddingVertical: 16,
-              alignItems: 'center',
-            }}
-          >
-            <Text
-              style={{
-                ...DesignTokens.typography.headline,
-                color: canSave ? 'white' : DesignTokens.colors.grey,
-              }}
-            >
-              Add Lesson
-            </Text>
-          </Pressable>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
 
-function SectionHeader({ title }: { title: string }) {
+function Label({ children }: { children: React.ReactNode }) {
   return (
     <Text
       style={{
@@ -662,11 +552,72 @@ function SectionHeader({ title }: { title: string }) {
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         paddingHorizontal: 20,
-        paddingTop: 20,
+        paddingTop: 18,
         paddingBottom: 8,
       }}
     >
-      {title}
+      {children}
     </Text>
+  );
+}
+
+function Chip({ label, selected, onPress, fill }: { label: string; selected?: boolean; onPress: () => void; fill?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected: !!selected }}
+      style={{
+        minHeight: 44,
+        paddingHorizontal: 14,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: fill ? DesignTokens.radius.default : DesignTokens.radius.full,
+        backgroundColor: selected ? DesignTokens.colors.accent : DesignTokens.colors.superLightGrey,
+      }}
+    >
+      <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '500', color: selected ? 'white' : DesignTokens.colors.graphite }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function RoundButton({ icon, label, disabled, onPress }: { icon: 'add' | 'remove'; label: string; disabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityLabel={label}
+      style={{
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: DesignTokens.colors.superLightGrey,
+        alignItems: 'center',
+        justifyContent: 'center',
+        opacity: disabled ? 0.4 : 1,
+      }}
+    >
+      <Ionicons name={icon} size={20} color={DesignTokens.colors.graphite} />
+    </Pressable>
+  );
+}
+
+function Field(props: React.ComponentProps<typeof TextInput>) {
+  return (
+    <TextInput
+      placeholderTextColor={DesignTokens.colors.grey}
+      autoCapitalize="words"
+      {...props}
+      style={{
+        minHeight: 48,
+        backgroundColor: DesignTokens.colors.superLightGrey,
+        borderRadius: 10,
+        paddingHorizontal: 14,
+        ...DesignTokens.typography.body,
+        color: DesignTokens.colors.graphite,
+      }}
+    />
   );
 }
