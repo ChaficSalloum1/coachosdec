@@ -18,6 +18,7 @@ import { addDays, format } from 'date-fns';
 
 import { useCoachStore } from '../state/coachStore';
 import { DesignTokens } from '../utils/designTokens';
+import { useCurrency } from '../hooks/useCurrency';
 import {
   DEFAULT_GROUP_CAPACITY,
   MAX_GROUP_CAPACITY,
@@ -53,6 +54,7 @@ function buildDatePills(defaultDate: string) {
 
 export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheetProps) {
   const insets = useSafeAreaInsets();
+  const { symbol: currencyMark } = useCurrency();
   const { students, coach, createLesson, createGroupLesson, areas, facilities, courts } = useCoachStore();
 
   const [studentSearch, setStudentSearch] = useState('');
@@ -594,7 +596,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 marginRight: 4,
               }}
             >
-              $
+              {currencyMark}
             </Text>
             <TextInput
               style={{

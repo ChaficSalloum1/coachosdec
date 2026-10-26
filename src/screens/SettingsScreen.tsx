@@ -22,7 +22,15 @@ import { BookingLinkCard } from '../components/BookingLinkCard';
 import { saveLanguage } from '../i18n/config';
 import { getCurrentUser, signOut } from '../services/authService';
 import type { PaymentPreference } from '../modules/payments';
-import { getRevolutLinkError, normalizePaymentSettings } from '../modules/payments';
+import {
+  currencySymbol,
+  formatMoney,
+  getRevolutLinkError,
+  normalizePaymentSettings,
+  resolveCurrency,
+  type CurrencyCode,
+} from '../modules/payments';
+import { CurrencyPicker } from '../components/CurrencyPicker';
 import { SPORT_OPTIONS } from '../constants/sports';
 
 export function SettingsScreen() {
@@ -512,7 +520,7 @@ function ProfileCard({ coach, isEditing, onUpdate }: ProfileCardProps) {
         <Text className="text-small font-medium text-ink-900 mb-2">{t('pricePerHour')}</Text>
         {isEditing ? (
           <View className="flex-row items-center">
-            <Text className="text-body text-ink-900 mr-2">$</Text>
+            <Text className="text-body text-ink-900 mr-2">{currencySymbol(resolveCurrency(coach.paymentSettings?.currency))}</Text>
             <TextInput
               value={price}
               onChangeText={setPrice}
@@ -522,7 +530,7 @@ function ProfileCard({ coach, isEditing, onUpdate }: ProfileCardProps) {
             />
           </View>
         ) : (
-          <Text className="text-body text-ink-900">${coach.pricePerHour}</Text>
+          <Text className="text-body text-ink-900">{formatMoney(coach.pricePerHour, resolveCurrency(coach.paymentSettings?.currency))}</Text>
         )}
       </View>
     </View>
@@ -588,6 +596,14 @@ function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
         <Text className="text-sm" style={{ color: '#42526E', lineHeight: 19 }}>
           Coachiko does not process payments directly yet. We help you send clear payment requests and track who has paid.
         </Text>
+      </View>
+
+      <View className="mb-4">
+        <Text className="text-small font-medium text-ink-900 mb-2">Currency</Text>
+        <CurrencyPicker
+          value={settings.currency ?? 'EUR'}
+          onChange={(currency) => updatePaymentSettings({ currency })}
+        />
       </View>
 
       <View className="mb-4">
@@ -865,6 +881,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
   const [otherSport, setOtherSport] = useState('');
   const [price, setPrice] = useState('');
+  const [currency, setCurrency] = useState<CurrencyCode>('EUR');
 
   const handleComplete = async () => {
     const sports = buildSportsSelection(selectedSports, otherSport);
@@ -889,6 +906,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
       paymentSettings: {
         cashEnabled: true,
         paymentPreference: 'CASH',
+        currency,
       },
       availability: {},
       blackoutDates: [],
@@ -956,9 +974,14 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           </View>
 
           <View>
+            <Text className="text-small font-medium text-ink-900 mb-2">Currency</Text>
+            <CurrencyPicker value={currency} onChange={setCurrency} />
+          </View>
+
+          <View>
             <Text className="text-small font-medium text-ink-900 mb-2">Starting hourly price</Text>
             <View className="flex-row items-center">
-              <Text className="text-body text-ink-900 mr-2">€</Text>
+              <Text className="text-body text-ink-900 mr-2">{currencySymbol(currency)}</Text>
               <TextInput
                 value={price}
                 onChangeText={setPrice}

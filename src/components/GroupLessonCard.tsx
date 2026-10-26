@@ -6,6 +6,7 @@ import { LessonAvatar } from './LessonAvatar';
 import { useCoachStore } from '../state/coachStore';
 import { DesignTokens } from '../utils/designTokens';
 import { getTimeOfDayColor } from '../utils/dayNav';
+import { useCurrency } from '../hooks/useCurrency';
 import type { LessonGroup } from '../utils/groupLessons';
 
 const MAX_AVATARS = 4;
@@ -24,6 +25,7 @@ interface GroupLessonCardProps {
 // One card for a whole group session, in place of one card per player.
 export function GroupLessonCard({ group, onPress }: GroupLessonCardProps) {
   const formatLocationText = useCoachStore((s) => s.formatLocationText);
+  const { formatMoney } = useCurrency();
   const locationText = formatLocationText(group.areaId, group.facilityId, group.courtId);
   const paidCount = group.lessons.filter((l) => l.isPaid).length;
   const shown = group.lessons.slice(0, MAX_AVATARS);
@@ -85,7 +87,7 @@ export function GroupLessonCard({ group, onPress }: GroupLessonCardProps) {
                 marginLeft: DesignTokens.spacing.lg,
               }}
             >
-              €{group.pricePerPlayer} each
+              {formatMoney(group.pricePerPlayer)} each
             </Text>
           </View>
 

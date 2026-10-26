@@ -1,6 +1,7 @@
 import * as Calendar from 'expo-calendar';
 import { Platform } from 'react-native';
 import { Lesson } from '../types/coach';
+import { formatMoney, resolveCurrency, type CurrencyCode } from '../modules/payments/currency';
 
 /**
  * CalendarService - Device calendar integration for lesson management
@@ -82,7 +83,7 @@ export class CalendarService {
    * @param lesson - Lesson object to create event for
    * @returns Promise<string | null> - Calendar event ID or null if failed
    */
-  static async createLessonEvent(lesson: Lesson): Promise<string | null> {
+  static async createLessonEvent(lesson: Lesson, currency?: CurrencyCode): Promise<string | null> {
     try {
       if (!this.defaultCalendarId) {
         const initialized = await this.initialize();
@@ -101,7 +102,7 @@ export class CalendarService {
         startDate,
         endDate,
         location: this.formatLessonLocation(lesson),
-        notes: this.formatLessonNotes(lesson),
+        notes: this.formatLessonNotes(lesson, currency),
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         allDay: false,
         availability: Calendar.Availability.BUSY,
@@ -126,7 +127,7 @@ export class CalendarService {
    * @param lesson - Updated lesson data
    * @returns Promise<boolean> - true if updated successfully
    */
-  static async updateLessonEvent(eventId: string, lesson: Lesson): Promise<boolean> {
+  static async updateLessonEvent(eventId: string, lesson: Lesson, currency?: CurrencyCode): Promise<boolean> {
     try {
       const startDate = new Date(`${lesson.date}T${lesson.startTime}`);
       const endDate = new Date(`${lesson.date}T${lesson.endTime}`);
@@ -136,7 +137,7 @@ export class CalendarService {
         startDate,
         endDate,
         location: this.formatLessonLocation(lesson),
-        notes: this.formatLessonNotes(lesson),
+        notes: this.formatLessonNotes(lesson, currency),
       });
 
       if (__DEV__) {
@@ -243,12 +244,12 @@ export class CalendarService {
    * Format lesson notes for calendar event
    * @private
    */
-  private static formatLessonNotes(lesson: Lesson): string {
+  private static formatLessonNotes(lesson: Lesson, currency?: CurrencyCode): string {
     const notes: string[] = [];
     
     notes.push(`Student: ${lesson.studentName}`);
     notes.push(`Duration: ${lesson.duration} minutes`);
-    notes.push(`Price: $${lesson.price.toFixed(2)}`);
+    notes.push(`Price: ${formatMoney(lesson.price, resolveCurrency(currency))}`);
     notes.push(`Payment Status: ${lesson.isPaid ? '✓ Paid' : '⏳ Unpaid'}`);
     
     if (lesson.notes) {

@@ -422,7 +422,7 @@ export const useCoachStore = create<CoachState>()(
           try {
             const CalendarService = await getCalendarService();
             if (CalendarService) {
-              const calendarEventId = await CalendarService.createLessonEvent(lesson);
+              const calendarEventId = await CalendarService.createLessonEvent(lesson, state.coach.paymentSettings?.currency);
               if (calendarEventId) {
                 lesson.calendarEventId = calendarEventId;
                 if (__DEV__) {
@@ -1412,6 +1412,7 @@ export const useCoachStore = create<CoachState>()(
                 paymentSettings: {
                   cashEnabled: coach.paymentSettings?.cashEnabled ?? true,
                   paymentPreference: coach.paymentSettings?.paymentPreference ?? 'CASH',
+                  currency: coach.paymentSettings?.currency,
                 },
               }
             : null,
@@ -1429,6 +1430,7 @@ export const useCoachStore = create<CoachState>()(
               paymentSettings: {
                 cashEnabled: state.coach.paymentSettings.cashEnabled,
                 paymentPreference: state.coach.paymentSettings.paymentPreference ?? 'CASH',
+                currency: state.coach.paymentSettings.currency,
               },
             }
           : state.coach,

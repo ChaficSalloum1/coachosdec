@@ -11,6 +11,7 @@ import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { DesignTokens } from '../utils/designTokens';
 import { summarizeGroup } from '../utils/groupLessons';
+import { useCurrency } from '../hooks/useCurrency';
 
 const formatTime = (time: string) => {
   const [hours, minutes] = time.split(':');
@@ -37,6 +38,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
     cancelGroupLesson,
   } = useCoachStore();
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const { formatMoney } = useCurrency();
 
   const group = groupId ? summarizeGroup(lessons, groupId) : null;
 
@@ -134,7 +136,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}>
           <Text style={{ ...DesignTokens.typography.subhead, color: DesignTokens.colors.grey, marginBottom: 12 }}>
-            {group.lessons.length}/{group.capacity} players • €{group.pricePerPlayer} each
+            {group.lessons.length}/{group.capacity} players • {formatMoney(group.pricePerPlayer)} each
           </Text>
 
           {group.lessons.map((lesson) => (

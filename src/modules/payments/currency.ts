@@ -43,3 +43,8 @@ export function formatMoney(amount: number, currency: CurrencyCode = DEFAULT_CUR
 export function formatMoneyFromCents(amountCents: number, currency: CurrencyCode = DEFAULT_CURRENCY): string {
   return new Intl.NumberFormat('en', { style: 'currency', currency }).format(amountCents / 100);
 }
+
+// The bare symbol or code ("€", "$", "CHF"), for labelling an input field.
+export function currencySymbol(currency: CurrencyCode = DEFAULT_CURRENCY): string {
+  return formatMoney(0, currency).replace(/[0-9.,\s ]/g, '') || currency;
+}

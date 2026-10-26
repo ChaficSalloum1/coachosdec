@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCoachStore } from '../state/coachStore';
+import { useCurrency } from '../hooks/useCurrency';
 import { Student } from '../types/coach';
 import { StudentNotesScreen } from '../components/StudentNotesScreen';
 
@@ -165,10 +166,11 @@ interface BalancePillProps {
 }
 
 function BalancePill({ amount }: BalancePillProps) {
+  const { formatMoney } = useCurrency();
   return (
     <View style={{ backgroundColor: 'rgba(245, 124, 0, 0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
       <Text style={{ fontSize: 14, fontWeight: '700', color: '#F57C00' }}>
-        ${amount.toFixed(2)} due
+        {formatMoney(amount)} due
       </Text>
     </View>
   );
@@ -181,11 +183,12 @@ interface PaymentSummaryProps {
 }
 
 function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
+  const { formatMoney } = useCurrency();
   // If everything is paid, show simple total
   if (due === 0) {
     return (
       <Text className="text-small text-ink-600">
-        ${total.toFixed(2)} total
+        {formatMoney(total)} total
       </Text>
     );
   }
@@ -195,7 +198,7 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
     return (
       <View className="items-end">
         <Text className="text-small text-ink-600">
-          ${total.toFixed(2)} total
+          {formatMoney(total)} total
         </Text>
       </View>
     );
@@ -205,10 +208,10 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
   return (
     <View className="items-end">
       <Text className="text-xs text-ink-500">
-        ${total.toFixed(2)} total
+        {formatMoney(total)} total
       </Text>
       <Text className="text-xs text-success">
-        ${paid.toFixed(2)} paid
+        {formatMoney(paid)} paid
       </Text>
     </View>
   );
@@ -221,6 +224,7 @@ interface StudentCardProps {
 }
 
 function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
+  const { formatMoney } = useCurrency();
   const { getStudentLessons, updateStudent, removeStudent } = useCoachStore();
   const studentLessons = getStudentLessons(student.id);
 
@@ -250,10 +254,10 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
       `  • Cancelled: ${cancelledLessons.length}`,
       '',
       '💰 Financial Summary:',
-      `Total Spent: $${student.totalSpent.toFixed(2)}`,
-      `  • Earned: $${totalEarned.toFixed(2)}`,
-      `  • Upcoming: $${upcomingRevenue.toFixed(2)}`,
-      `Balance Due: $${student.balance.toFixed(2)}`,
+      `Total Spent: ${formatMoney(student.totalSpent)}`,
+      `  • Earned: ${formatMoney(totalEarned)}`,
+      `  • Upcoming: ${formatMoney(upcomingRevenue)}`,
+      `Balance Due: ${formatMoney(student.balance)}`,
       unpaidLessons.length > 0 ? `  • ${unpaidLessons.length} unpaid lesson${unpaidLessons.length > 1 ? 's' : ''}` : '',
       student.notes ? `\nNotes: ${student.notes}` : ''
     ].filter(line => line !== '').join('\n');

@@ -41,6 +41,7 @@ import { AddLessonSheet } from '../components/AddLessonSheet';
 import { GroupLessonCard } from '../components/GroupLessonCard';
 import { GroupLessonSheet } from '../components/GroupLessonSheet';
 import { buildDayItems } from '../utils/groupLessons';
+import { useCurrency } from '../hooks/useCurrency';
 import { 
   todayISO, 
   addDaysISO, 
@@ -792,6 +793,7 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
     sendLessonPaymentReminder,
     cancelLessonPayment,
   } = useCoachStore();
+  const { formatMoney } = useCurrency();
   const cancelAlertOpenRef = useRef(false);
   const [paymentPanelVisible, setPaymentPanelVisible] = useState(false);
 
@@ -896,6 +898,7 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
     sessionTitle: 'lesson',
     startsAt: `${lesson.date} at ${formatTime(lesson.startTime)}`,
     amountCents: eurosToCents(lesson.price),
+    currency: paymentSettings.currency,
     paymentInstructions: instruction.displayText,
     cancellationPolicy: paymentSettings.cancellationPolicy,
   });
@@ -903,6 +906,7 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
     clientName: lesson.studentName,
     sessionTitle: 'lesson',
     amountCents: eurosToCents(lesson.price),
+    currency: paymentSettings.currency,
     paymentInstructions: instruction.displayText,
   });
 
@@ -953,7 +957,7 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
                   marginLeft: DesignTokens.spacing.lg
                 }}
               >
-                €{lesson.price}
+                {formatMoney(lesson.price)}
               </Text>
             </View>
 
