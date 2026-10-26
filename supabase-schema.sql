@@ -359,6 +359,18 @@ DROP POLICY IF EXISTS "audit_logs_coach_select" ON audit_logs;
 CREATE POLICY "audit_logs_coach_select" ON audit_logs
   FOR SELECT USING (auth.uid() = coach_id);
 
+-- Group lessons (priority6, 2026-10-26): one lesson per player, linked by
+-- group_id; both columns are NULL for ordinary one-to-one lessons.
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS group_id UUID;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS group_capacity INTEGER;
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_group_capacity;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_group_capacity
+  CHECK (group_capacity IS NULL OR group_capacity BETWEEN 2 AND 12);
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_group_pair;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_group_pair
+  CHECK ((group_id IS NULL) = (group_capacity IS NULL));
+CREATE INDEX IF NOT EXISTS idx_lessons_group_id ON lessons(group_id) WHERE group_id IS NOT NULL;
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================

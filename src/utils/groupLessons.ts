@@ -1,0 +1,215 @@
+/*
+Group lessons: several players in one session. Each player keeps their own
+Lesson (own price, payment status, notes, totals); lessons that share a
+groupId are the same session. This module is the pure logic: summarising
+groups and building/validating the lessons. The store wires it to state.
+*/
+import type { Lesson } from '../types/coach';
+
+export const DEFAULT_GROUP_CAPACITY = 4; // padel is almost always doubles
+export const MIN_GROUP_CAPACITY = 2;
+export const MAX_GROUP_CAPACITY = 12;
+
+export interface LessonGroup {
+  groupId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  capacity: number;
+  pricePerPlayer: number;
+  areaId?: string;
+  facilityId?: string;
+  courtId?: string;
+  lessons: Lesson[]; // active (not cancelled), in the order players joined
+  spotsLeft: number;
+  isFull: boolean;
+}
+
+const isActive = (lesson: Lesson) => lesson.status !== 'cancelled';
+
+const byJoinOrder = (a: Lesson, b: Lesson) => a.createdAt.localeCompare(b.createdAt);
+
+function toGroup(groupId: string, members: Lesson[]): LessonGroup | null {
+  const lessons = members.filter(isActive).sort(byJoinOrder);
+  if (lessons.length === 0) return null;
+
+  const first = lessons[0];
+  const capacity = Math.max(first.groupCapacity ?? DEFAULT_GROUP_CAPACITY, lessons.length);
+  const spotsLeft = capacity - lessons.length;
+
+  return {
+    groupId,
+    date: first.date,
+    startTime: first.startTime,
+    endTime: first.endTime,
+    capacity,
+    pricePerPlayer: first.price,
+    areaId: first.areaId,
+    facilityId: first.facilityId,
+    courtId: first.courtId,
+    lessons,
+    spotsLeft,
+    isFull: spotsLeft === 0,
+  };
+}
+
+export function summarizeGroup(lessons: Lesson[], groupId: string): LessonGroup | null {
+  return toGroup(groupId, lessons.filter((l) => l.groupId === groupId));
+}
+
+// Every group that still has at least one active player, soonest first.
+export function summarizeGroups(lessons: Lesson[]): LessonGroup[] {
+  const byGroup = new Map<string, Lesson[]>();
+  for (const lesson of lessons) {
+    if (!lesson.groupId) continue;
+    const members = byGroup.get(lesson.groupId);
+    if (members) members.push(lesson);
+    else byGroup.set(lesson.groupId, [lesson]);
+  }
+
+  const groups: LessonGroup[] = [];
+  byGroup.forEach((members, groupId) => {
+    const group = toGroup(groupId, members);
+    if (group) groups.push(group);
+  });
+
+  return groups.sort((a, b) =>
+    a.date === b.date ? a.startTime.localeCompare(b.startTime) : a.date.localeCompare(b.date)
+  );
+}
+
+export type AddToGroupCheck = { ok: true } | { ok: false; reason: 'full' | 'already-in-group' };
+
+export function checkCanAddToGroup(group: LessonGroup, studentId: string): AddToGroupCheck {
+  if (group.lessons.some((l) => l.studentId === studentId)) {
+    return { ok: false, reason: 'already-in-group' };
+  }
+  if (group.isFull) {
+    return { ok: false, reason: 'full' };
+  }
+  return { ok: true };
+}
+
+export function validateGroupCapacity(capacity: number): void {
+  if (!Number.isInteger(capacity) || capacity < MIN_GROUP_CAPACITY || capacity > MAX_GROUP_CAPACITY) {
+    throw new Error(
+      `A group needs between ${MIN_GROUP_CAPACITY} and ${MAX_GROUP_CAPACITY} players.`
+    );
+  }
+}
+
+export interface GroupLessonTemplate {
+  coachId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  pricePerPlayer: number;
+  capacity: number;
+  areaId?: string;
+  facilityId?: string;
+  courtId?: string;
+}
+
+export interface GroupPlayer {
+  id: string;
+  name: string;
+}
+
+function buildLesson(
+  template: GroupLessonTemplate,
+  groupId: string,
+  player: GroupPlayer,
+  now: string,
+  newId: () => string
+): Lesson {
+  return {
+    id: newId(),
+    coachId: template.coachId,
+    studentId: player.id,
+    studentName: player.name,
+    date: template.date,
+    startTime: template.startTime,
+    endTime: template.endTime,
+    duration: template.duration,
+    price: template.pricePerPlayer,
+    isPaid: false,
+    status: 'scheduled',
+    createdAt: now,
+    areaId: template.areaId,
+    facilityId: template.facilityId,
+    courtId: template.courtId,
+    groupId,
+    groupCapacity: template.capacity,
+  };
+}
+
+// New group with its first players. Throws a coach-readable Error on bad input.
+export function buildGroupLessons(args: {
+  groupId: string;
+  template: GroupLessonTemplate;
+  players: GroupPlayer[];
+  now: string;
+  newId: () => string;
+}): Lesson[] {
+  const { groupId, template, players, now, newId } = args;
+
+  validateGroupCapacity(template.capacity);
+  if (players.length === 0) {
+    throw new Error('Add at least one player to the group.');
+  }
+  if (players.length > template.capacity) {
+    throw new Error(`This group holds ${template.capacity} players, but ${players.length} were added.`);
+  }
+  if (new Set(players.map((p) => p.id)).size !== players.length) {
+    throw new Error('The same player was added twice.');
+  }
+  if (!(template.pricePerPlayer >= 0)) {
+    throw new Error('Enter a valid price per player.');
+  }
+
+  return players.map((player, i) =>
+    // 1ms apart keeps join order stable when sorting, and stays a valid timestamp.
+    buildLesson(template, groupId, player, new Date(new Date(now).getTime() + i).toISOString(), newId)
+  );
+}
+
+// One more player joining an existing group, with the group's own price/slot.
+export function buildGroupMemberLesson(args: {
+  group: LessonGroup;
+  coachId: string;
+  duration: number;
+  player: GroupPlayer;
+  now: string;
+  newId: () => string;
+}): Lesson {
+  const { group, coachId, duration, player, now, newId } = args;
+
+  const check = checkCanAddToGroup(group, player.id);
+  if (!check.ok) {
+    throw new Error(
+      check.reason === 'full'
+        ? 'This group is full.'
+        : `${player.name} is already in this group.`
+    );
+  }
+
+  return buildLesson(
+    {
+      coachId,
+      date: group.date,
+      startTime: group.startTime,
+      endTime: group.endTime,
+      duration,
+      pricePerPlayer: group.pricePerPlayer,
+      capacity: group.capacity,
+      areaId: group.areaId,
+      facilityId: group.facilityId,
+      courtId: group.courtId,
+    },
+    group.groupId,
+    player,
+    now,
+    newId
+  );
+}
