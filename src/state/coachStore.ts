@@ -8,6 +8,12 @@ import { createDemoWorkspace } from '../utils/demoWorkspace';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { useOfflineQueueStore } from './offlineQueueStore';
 import {
+  DEFAULT_GROUP_CAPACITY,
+  buildGroupLessons,
+  buildGroupMemberLesson,
+  summarizeGroup,
+} from '../utils/groupLessons';
+import {
   cancelPaymentStatus,
   confirmPaidStatus,
   generatePaymentReferenceCode,
@@ -32,6 +38,14 @@ const getCalendarService = async () => {
     return null;
   }
 };
+
+const withNewLessonTotals = (student: Student, price: number, date: string): Student => ({
+  ...student,
+  totalLessons: student.totalLessons + 1,
+  totalSpent: student.totalSpent + price,
+  balance: student.balance + price,
+  lastLessonDate: date,
+});
 
 const withInitialPaymentFields = (lesson: Lesson, coach: Coach): Lesson => {
   const paymentSettings = normalizePaymentSettings(coach.paymentSettings);
@@ -105,6 +119,22 @@ interface CoachState {
     facilityId?: string;
     courtId?: string;
   }) => void;
+  // Group lessons: one linked lesson per player. These throw an Error with a
+  // coach-readable message when the request is invalid (group full, etc).
+  createGroupLesson: (params: {
+    studentIds: string[];
+    date: string;
+    startTime: string;
+    duration: number;
+    pricePerPlayer: number;
+    capacity?: number;
+    areaId?: string;
+    facilityId?: string;
+    courtId?: string;
+  }) => string; // returns the new groupId
+  addToGroupLesson: (groupId: string, studentId: string) => void;
+  removeFromGroupLesson: (groupId: string, studentId: string) => Promise<void>;
+  cancelGroupLesson: (groupId: string) => Promise<void>;
   addLesson: (lesson: Lesson) => void;
   updateLesson: (lessonId: string, updates: Partial<Lesson>) => void;
   requestLessonPayment: (lessonId: string) => void;
@@ -472,6 +502,95 @@ export const useCoachStore = create<CoachState>()(
           students: updatedStudents,
         };
       }),
+
+      createGroupLesson: (params) => {
+        const state = get();
+        const coach = state.coach;
+        if (!coach) throw new Error('Coach profile not available');
+
+        const players = params.studentIds.map((id) => {
+          const student = state.students.find((s) => s.id === id);
+          if (!student) throw new Error('One of the selected students was not found.');
+          return { id: student.id, name: student.name };
+        });
+
+        const groupId = uuidv4();
+        const lessons = buildGroupLessons({
+          groupId,
+          template: {
+            coachId: coach.id,
+            date: params.date,
+            startTime: params.startTime,
+            endTime: addMinutesToTime(params.startTime, params.duration),
+            duration: params.duration,
+            pricePerPlayer: params.pricePerPlayer,
+            capacity: params.capacity ?? DEFAULT_GROUP_CAPACITY,
+            areaId: params.areaId,
+            facilityId: params.facilityId,
+            courtId: params.courtId,
+          },
+          players,
+          now: new Date().toISOString(),
+          newId: uuidv4,
+        }).map((lesson) => withInitialPaymentFields(lesson, coach));
+
+        set((s) => ({
+          lessons: [...lessons, ...s.lessons],
+          students: s.students.map((student) =>
+            lessons.some((l) => l.studentId === student.id)
+              ? withNewLessonTotals(student, params.pricePerPlayer, params.date)
+              : student
+          ),
+        }));
+        return groupId;
+      },
+
+      addToGroupLesson: (groupId, studentId) => {
+        const state = get();
+        const coach = state.coach;
+        if (!coach) throw new Error('Coach profile not available');
+
+        const group = summarizeGroup(state.lessons, groupId);
+        if (!group) throw new Error('This group no longer exists.');
+        const student = state.students.find((s) => s.id === studentId);
+        if (!student) throw new Error('Student not found.');
+
+        const lesson = withInitialPaymentFields(
+          buildGroupMemberLesson({
+            group,
+            coachId: coach.id,
+            duration: group.lessons[0].duration,
+            player: { id: student.id, name: student.name },
+            now: new Date().toISOString(),
+            newId: uuidv4,
+          }),
+          coach
+        );
+
+        set((s) => ({
+          lessons: [lesson, ...s.lessons],
+          students: s.students.map((st) =>
+            st.id === studentId ? withNewLessonTotals(st, lesson.price, lesson.date) : st
+          ),
+        }));
+      },
+
+      // Cancels that player's lesson with the existing cancel logic (calendar
+      // event, student totals), which frees their spot in the group.
+      removeFromGroupLesson: async (groupId, studentId) => {
+        const lesson = get().lessons.find(
+          (l) => l.groupId === groupId && l.studentId === studentId && l.status !== 'cancelled'
+        );
+        if (!lesson) throw new Error('That player is not in this group.');
+        await get().cancelLesson(lesson.id);
+      },
+
+      cancelGroupLesson: async (groupId) => {
+        const active = get().lessons.filter((l) => l.groupId === groupId && l.status !== 'cancelled');
+        for (const lesson of active) {
+          await get().cancelLesson(lesson.id);
+        }
+      },
 
       addLesson: (lesson) => set((state) => ({
         lessons: [state.coach ? withInitialPaymentFields(lesson, state.coach) : lesson, ...state.lessons]
