@@ -10,6 +10,9 @@ import { RequestsScreen } from '../screens/RequestsScreen';
 import { StudentsScreen } from '../screens/StudentsScreen';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { useCoachStore } from '../state/coachStore';
+import type { Coach } from '../types/coach';
+import { createDefaultLocations } from '../utils/defaultLocations';
+import { v4 as uuidv4 } from 'uuid';
 import { OnboardingScreen } from '../screens/SettingsScreen';
 import { DemoBanner } from '../components/DemoBanner';
 
@@ -32,8 +35,24 @@ export function TabNavigator() {
     s => s.bookingRequests.filter(r => r.status === 'pending').length
   );
 
+  // A brand-new coach starts with one location chain so availability and
+  // lessons work immediately; they can rename or delete it in Locations.
+  const handleOnboardingComplete = (newCoach: Coach) => {
+    setCoach(newCoach);
+    const { areas, addArea, addFacility, addCourt } = useCoachStore.getState();
+    if (areas.length > 0) return;
+    const defaults = createDefaultLocations(
+      newCoach.id,
+      { area: t('defaultAreaName'), facility: t('defaultFacilityName'), court: t('defaultCourtName') },
+      uuidv4
+    );
+    addArea(defaults.area);
+    addFacility(defaults.facility);
+    addCourt(defaults.court);
+  };
+
   if (!coach) {
-    return <OnboardingScreen onComplete={setCoach} />;
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
   const tabs = (
