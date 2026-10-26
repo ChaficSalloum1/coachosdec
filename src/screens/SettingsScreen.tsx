@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { BookingLinkCard } from '../components/BookingLinkCard';
 import { saveLanguage } from '../i18n/config';
 import { getCurrentUser, signOut } from '../services/authService';
 import type { PaymentPreference } from '../modules/payments';
-import { normalizePaymentSettings } from '../modules/payments';
+import { getRevolutLinkError, normalizePaymentSettings } from '../modules/payments';
 import { SPORT_OPTIONS } from '../constants/sports';
 
 export function SettingsScreen() {
@@ -556,6 +556,28 @@ function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
   const showIris = settings.paymentPreference === 'IRIS' || settings.paymentPreference === 'MULTIPLE';
   const showIban = settings.paymentPreference === 'IBAN' || settings.paymentPreference === 'MULTIPLE';
 
+  // What the coach is typing. It is only saved once it's a valid link (or
+  // empty), so a half-typed or wrong link can never reach QR codes/reminders.
+  const [revolutDraft, setRevolutDraft] = useState(settings.revolutLink || '');
+  const revolutError = getRevolutLinkError(revolutDraft);
+
+  // Follow the saved value when it changes from elsewhere (e.g. the initial
+  // cloud load), but never overwrite text the coach is still fixing.
+  useEffect(() => {
+    if (getRevolutLinkError(revolutDraft) === null) {
+      setRevolutDraft(settings.revolutLink || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.revolutLink]);
+
+  const handleRevolutChange = (text: string) => {
+    const next = text.trim();
+    setRevolutDraft(next);
+    if (getRevolutLinkError(next) === null) {
+      updatePaymentSettings({ revolutLink: next });
+    }
+  };
+
   return (
     <View className="bg-gray-50 rounded-card p-4">
       <View className="mb-5">
@@ -598,16 +620,22 @@ function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
         <View className="mb-4">
           <Text className="text-small font-medium text-ink-900 mb-2">Revolut payment link</Text>
           <TextInput
-            value={settings.revolutLink || ''}
-            onChangeText={(text) => updatePaymentSettings({ revolutLink: text.trim() })}
+            value={revolutDraft}
+            onChangeText={handleRevolutChange}
             className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
             placeholder="https://revolut.me/coachname"
             autoCapitalize="none"
             keyboardType="url"
           />
-          <Text className="text-xs mt-2" style={{ color: '#42526E' }}>
-            Clients can open this directly from their session reminder.
-          </Text>
+          {revolutError ? (
+            <Text className="text-xs mt-2" style={{ color: '#C62828' }}>
+              {revolutError}
+            </Text>
+          ) : (
+            <Text className="text-xs mt-2" style={{ color: '#42526E' }}>
+              Clients can open this directly from their session reminder.
+            </Text>
+          )}
         </View>
       )}
 
