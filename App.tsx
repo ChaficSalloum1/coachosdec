@@ -9,6 +9,7 @@ import "./src/i18n/config";
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useMockData } from "./src/hooks/useMockData";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
+import { ToastHost } from "./src/components/ToastHost";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
 import { useOfflineQueueProcessor } from "./src/hooks/useOfflineQueueProcessor";
@@ -72,6 +73,7 @@ function AppContent() {
             <StatusBar style="dark" />
             <RootNavigator />
           </NavigationContainer>
+          <ToastHost />
         </View>
       </SafeAreaProvider>
     </GestureHandlerRootView>
