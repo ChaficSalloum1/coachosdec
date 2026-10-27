@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { signIn, signUp, resetPassword } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 type Mode = 'login' | 'signup';
 type Feedback = { type: 'error' | 'success' | 'info'; title: string; message: string };
@@ -70,12 +72,12 @@ export function LoginScreen() {
     setFeedback(null);
 
     if (!trimmedEmail || !password) {
-      showFeedback('error', 'Missing fields', 'Please enter your email and password.');
+      showFeedback('error', t('auth.missingFields'), t('auth.enterEmailAndPassword'));
       return;
     }
 
     if (mode === 'signup' && password.length < 6) {
-      showFeedback('error', 'Password too short', 'Password must be at least 6 characters.');
+      showFeedback('error', t('auth.passwordTooShort'), t('auth.passwordMinLength'));
       return;
     }
 
@@ -84,8 +86,8 @@ export function LoginScreen() {
       void triggerAuthFeedback('info');
       setFeedback({
         type: 'info',
-        title: 'Creating account',
-        message: 'Securely creating your coach workspace...',
+        title: t('auth.creatingAccount'),
+        message: t('auth.creatingWorkspace'),
       });
     }
 
@@ -97,29 +99,29 @@ export function LoginScreen() {
       if (result.error) {
         showFeedback(
           'error',
-          mode === 'login' ? 'Sign in failed' : 'Sign up failed',
+          mode === 'login' ? t('auth.signInFailed') : t('auth.signUpFailed'),
           result.error.message
         );
       } else if (mode === 'signup' && !result.session) {
         showFeedback(
           'success',
-          'Check your email',
-          'We sent you a confirmation link. Please verify your email before signing in.'
+          t('auth.checkEmail'),
+          t('auth.confirmationSent')
         );
       } else if (mode === 'signup') {
         void triggerAuthFeedback('success');
         setFeedback({
           type: 'success',
-          title: 'Account created',
-          message: 'Opening your coach workspace...',
+          title: t('auth.accountCreatedTitle'),
+          message: t('auth.openingWorkspace'),
         });
       }
       // On success with session, RootNavigator's onAuthStateChange handles navigation
     } catch (error) {
       showFeedback(
         'error',
-        mode === 'login' ? 'Sign in failed' : 'Sign up failed',
-        error instanceof Error ? error.message : 'Authentication failed. Please try again.'
+        mode === 'login' ? t('auth.signInFailed') : t('auth.signUpFailed'),
+        error instanceof Error ? error.message : t('auth.genericFailure')
       );
     } finally {
       setIsLoading(false);
@@ -129,14 +131,14 @@ export function LoginScreen() {
   const handleForgotPassword = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      showFeedback('error', 'Enter your email', 'Please enter your email address above first.');
+      showFeedback('error', t('auth.enterEmailFirst'), t('auth.enterEmailFirstBody'));
       return;
     }
     const { error } = await resetPassword(trimmedEmail);
     if (error) {
-      showFeedback('error', 'Error', error.message);
+      showFeedback('error', t('auth.errorTitle'), error.message);
     } else {
-      showFeedback('success', 'Email sent', 'Check your inbox for a password reset link.');
+      showFeedback('success', t('auth.emailSent'), t('auth.resetLinkSent'));
     }
   };
 
@@ -146,7 +148,7 @@ export function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#FFFFFF' }}
+      style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -165,42 +167,42 @@ export function LoginScreen() {
               width: 72,
               height: 72,
               borderRadius: 20,
-              backgroundColor: '#EBF3FF',
+              backgroundColor: DesignTokens.colors.brand.tint,
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 20,
             }}>
-              <Ionicons name="clipboard-outline" size={36} color="#1E88E5" />
+              <Ionicons name="clipboard-outline" size={36} color={DesignTokens.colors.brand.default} />
             </View>
-            <Text style={{ fontSize: 28, fontWeight: '700', color: '#0B1220', marginBottom: 8 }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: DesignTokens.colors.text.strong, marginBottom: 8 }}>
               CoachOS
             </Text>
-            <Text style={{ fontSize: 15, color: '#42526E', textAlign: 'center' }}>
-              {mode === 'login' ? 'Sign in to your account' : 'Create your coach account'}
+            <Text style={{ fontSize: 15, color: DesignTokens.colors.text.muted, textAlign: 'center' }}>
+              {mode === 'login' ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
             </Text>
           </View>
 
           {/* Form */}
           <View style={{ gap: 16, marginBottom: 8 }}>
             <View>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: '#0B1220', marginBottom: 8 }}>
-                Email
+              <Text style={{ fontSize: 14, fontWeight: '500', color: DesignTokens.colors.text.strong, marginBottom: 8 }}>
+                {t('auth.email')}
               </Text>
               <TextInput
                 value={email}
                 onChangeText={setEmail}
                 style={{
-                  backgroundColor: '#F8F9FA',
+                  backgroundColor: DesignTokens.colors.surface.raised,
                   borderWidth: 1,
-                  borderColor: '#E0E0E0',
+                  borderColor: DesignTokens.colors.line.default,
                   borderRadius: 12,
                   paddingHorizontal: 16,
                   paddingVertical: 14,
                   fontSize: 16,
-                  color: '#0B1220',
+                  color: DesignTokens.colors.text.strong,
                 }}
-                placeholder="your@email.com"
-                placeholderTextColor="#9BA3AF"
+                placeholder={t('auth.emailPlaceholder')}
+                placeholderTextColor={DesignTokens.colors.text.faint}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -211,24 +213,24 @@ export function LoginScreen() {
             </View>
 
             <View>
-              <Text style={{ fontSize: 14, fontWeight: '500', color: '#0B1220', marginBottom: 8 }}>
-                Password
+              <Text style={{ fontSize: 14, fontWeight: '500', color: DesignTokens.colors.text.strong, marginBottom: 8 }}>
+                {t('auth.password')}
               </Text>
               <TextInput
                 value={password}
                 onChangeText={setPassword}
                 style={{
-                  backgroundColor: '#F8F9FA',
+                  backgroundColor: DesignTokens.colors.surface.raised,
                   borderWidth: 1,
-                  borderColor: '#E0E0E0',
+                  borderColor: DesignTokens.colors.line.default,
                   borderRadius: 12,
                   paddingHorizontal: 16,
                   paddingVertical: 14,
                   fontSize: 16,
-                  color: '#0B1220',
+                  color: DesignTokens.colors.text.strong,
                 }}
-                placeholder={mode === 'signup' ? 'Minimum 6 characters' : '••••••••'}
-                placeholderTextColor="#9BA3AF"
+                placeholder={mode === 'signup' ? t('auth.passwordPlaceholder') : '••••••••'}
+                placeholderTextColor={DesignTokens.colors.text.faint}
                 secureTextEntry
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                 textContentType={mode === 'signup' ? 'newPassword' : 'password'}
@@ -241,7 +243,7 @@ export function LoginScreen() {
           {/* Forgot password */}
           {mode === 'login' && (
             <Pressable onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginBottom: 24, paddingVertical: 8 }}>
-              <Text style={{ fontSize: 14, color: '#1E88E5' }}>Forgot password?</Text>
+              <Text style={{ fontSize: 14, color: DesignTokens.colors.brand.default }}>{t('auth.forgotPassword')}</Text>
             </Pressable>
           )}
           {mode === 'signup' && <View style={{ height: 24 }} />}
@@ -251,8 +253,8 @@ export function LoginScreen() {
               style={{
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: feedback.type === 'error' ? '#F5B5B5' : feedback.type === 'success' ? '#A7D7B3' : '#B8D7F4',
-                backgroundColor: feedback.type === 'error' ? '#FFF1F1' : feedback.type === 'success' ? '#F0FFF4' : '#F1F8FF',
+                borderColor: feedback.type === 'error' ? DesignTokens.colors.line.error : feedback.type === 'success' ? DesignTokens.colors.line.success : DesignTokens.colors.line.info,
+                backgroundColor: feedback.type === 'error' ? DesignTokens.colors.red.tintFaint : feedback.type === 'success' ? DesignTokens.colors.surface.tintSuccess : DesignTokens.colors.surface.tintInfo,
                 padding: 14,
                 marginBottom: 16,
                 flexDirection: 'row',
@@ -262,12 +264,12 @@ export function LoginScreen() {
               <Ionicons
                 name={feedback.type === 'error' ? 'alert-circle' : feedback.type === 'success' ? 'checkmark-circle' : 'time-outline'}
                 size={22}
-                color={feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E'}
+                color={feedback.type === 'error' ? DesignTokens.colors.red.deep : feedback.type === 'success' ? DesignTokens.colors.green.text : DesignTokens.colors.brand.deep}
               />
               <View style={{ flex: 1 }}>
                 <Text
                   style={{
-                    color: feedback.type === 'error' ? '#B42318' : feedback.type === 'success' ? '#1F7A3A' : '#1E5B8E',
+                    color: feedback.type === 'error' ? DesignTokens.colors.red.deep : feedback.type === 'success' ? DesignTokens.colors.green.text : DesignTokens.colors.brand.deep,
                     fontSize: 14,
                     fontWeight: '700',
                     marginBottom: 4,
@@ -277,7 +279,7 @@ export function LoginScreen() {
                 </Text>
                 <Text
                   style={{
-                    color: feedback.type === 'error' ? '#7A271A' : feedback.type === 'success' ? '#276749' : '#42526E',
+                    color: feedback.type === 'error' ? DesignTokens.colors.text.errorDark : feedback.type === 'success' ? DesignTokens.colors.text.successDark : DesignTokens.colors.text.muted,
                     fontSize: 13,
                     lineHeight: 18,
                   }}
@@ -293,7 +295,7 @@ export function LoginScreen() {
             onPress={handleSubmit}
             disabled={isLoading}
             style={{
-              backgroundColor: feedback?.type === 'success' ? '#1F7A3A' : isLoading ? '#90CAF9' : '#1E88E5',
+              backgroundColor: feedback?.type === 'success' ? DesignTokens.colors.green.text : isLoading ? DesignTokens.colors.brand.mid : DesignTokens.colors.brand.default,
               borderRadius: 12,
               paddingVertical: 16,
               alignItems: 'center',
@@ -304,17 +306,17 @@ export function LoginScreen() {
             }}
           >
             {isLoading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={DesignTokens.colors.white} />
             ) : feedback?.type === 'success' ? (
               <>
-                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF' }}>
-                  {mode === 'signup' ? 'Account Created' : 'Success'}
+                <Ionicons name="checkmark-circle" size={20} color={DesignTokens.colors.white} />
+                <Text style={{ fontSize: 16, fontWeight: '700', color: DesignTokens.colors.white }}>
+                  {mode === 'signup' ? t('auth.accountCreated') : t('auth.success')}
                 </Text>
               </>
             ) : (
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#FFFFFF' }}>
-                {mode === 'login' ? 'Sign In' : 'Create Account'}
+              <Text style={{ fontSize: 16, fontWeight: '600', color: DesignTokens.colors.white }}>
+                {mode === 'login' ? t('auth.signInButton') : t('auth.createAccount')}
               </Text>
             )}
           </Pressable>
@@ -323,8 +325,8 @@ export function LoginScreen() {
             onPress={handleViewDemo}
             disabled={isLoading}
             style={{
-              backgroundColor: '#FFFFFF',
-              borderColor: '#1E88E5',
+              backgroundColor: DesignTokens.colors.white,
+              borderColor: DesignTokens.colors.brand.default,
               borderWidth: 1,
               borderRadius: 12,
               paddingVertical: 15,
@@ -335,22 +337,22 @@ export function LoginScreen() {
               gap: 8,
             }}
           >
-            <Ionicons name="sparkles-outline" size={18} color="#1E88E5" />
-            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E88E5' }}>
-              Explore a demo workspace
+            <Ionicons name="sparkles-outline" size={18} color={DesignTokens.colors.brand.default} />
+            <Text style={{ fontSize: 16, fontWeight: '700', color: DesignTokens.colors.brand.default }}>
+              {t('auth.exploreDemo')}
             </Text>
           </Pressable>
 
-          <Text style={{ textAlign: 'center', fontSize: 13, color: '#42526E', lineHeight: 18, marginBottom: 20 }}>
-            No account needed. Sample bookings, payments, and students are preloaded.
+          <Text style={{ textAlign: 'center', fontSize: 13, color: DesignTokens.colors.text.muted, lineHeight: 18, marginBottom: 20 }}>
+            {t('auth.demoHint')}
           </Text>
 
           {/* Toggle */}
           <Pressable onPress={switchMode}>
-            <Text style={{ textAlign: 'center', fontSize: 15, color: '#42526E' }}>
-              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
-              <Text style={{ color: '#1E88E5', fontWeight: '600' }}>
-                {mode === 'login' ? 'Sign up' : 'Sign in'}
+            <Text style={{ textAlign: 'center', fontSize: 15, color: DesignTokens.colors.text.muted }}>
+              {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}
+              <Text style={{ color: DesignTokens.colors.brand.default, fontWeight: '600' }}>
+                {mode === 'login' ? t('auth.signUp') : t('auth.signIn')}
               </Text>
             </Text>
           </Pressable>

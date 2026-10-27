@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import type { PaymentInstruction } from '../../modules/payments';
 import { PaymentQRCode } from './PaymentQRCode';
+import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 type Props = {
   instruction: PaymentInstruction;
@@ -29,9 +31,9 @@ function ActionButton({
   disabled?: boolean;
 }) {
   const colors = {
-    primary: { bg: '#1E88E5', fg: '#FFFFFF', border: '#1E88E5' },
-    secondary: { bg: '#FFFFFF', fg: '#0B1220', border: '#D7DEE8' },
-    danger: { bg: '#FFFFFF', fg: '#B3261E', border: '#F0B8B3' },
+    primary: { bg: DesignTokens.colors.brand.default, fg: DesignTokens.colors.white, border: DesignTokens.colors.brand.default },
+    secondary: { bg: DesignTokens.colors.white, fg: DesignTokens.colors.text.strong, border: DesignTokens.colors.brand.outline },
+    danger: { bg: DesignTokens.colors.white, fg: DesignTokens.colors.red.deep, border: DesignTokens.colors.red.border },
   }[variant];
 
   return (
@@ -43,7 +45,7 @@ function ActionButton({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.border,
-        backgroundColor: disabled ? '#EEF1F5' : colors.bg,
+        backgroundColor: disabled ? DesignTokens.colors.surface.disabled : colors.bg,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
@@ -70,9 +72,9 @@ export function PaymentRequestPanel({
   canSendReminder,
 }: Props) {
   const qrLabel = instruction.method === 'IBAN'
-    ? 'SEPA-compatible QR where supported by the client bank.'
+    ? t('payments.sepaQr')
     : instruction.method === 'IRIS'
-      ? 'Instruction QR only. Clients complete payment in their own bank app.'
+      ? t('payments.instructionQr')
       : undefined;
 
   const shareMessage = async () => {
@@ -87,40 +89,40 @@ export function PaymentRequestPanel({
   return (
     <View style={{ gap: 14 }}>
       <View>
-        <Text style={{ color: '#0B1220', fontSize: 18, fontWeight: '700', marginBottom: 4 }}>
+        <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 18, fontWeight: '700', marginBottom: 4 }}>
           {instruction.title}
         </Text>
-        <Text style={{ color: '#42526E', fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 13, lineHeight: 18 }}>
           {instruction.displayText}
         </Text>
       </View>
 
       <PaymentQRCode payload={instruction.qrPayload} label={qrLabel} />
 
-      <View style={{ padding: 12, backgroundColor: '#F7F8FA', borderRadius: 8 }}>
-        <Text style={{ color: '#42526E', fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
-          Message preview
+      <View style={{ padding: 12, backgroundColor: DesignTokens.colors.surface.raised, borderRadius: 8 }}>
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
+          {t('payments.messagePreview')}
         </Text>
-        <Text style={{ color: '#0B1220', fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 13, lineHeight: 18 }}>
           {message}
         </Text>
       </View>
 
       <View style={{ gap: 10 }}>
-        <ActionButton label="Request Payment" icon="paper-plane-outline" onPress={onRequestPayment} />
-        <ActionButton label="Share Message" icon="share-outline" onPress={shareMessage} variant="secondary" />
+        <ActionButton label={t('payments.requestPayment')} icon="paper-plane-outline" onPress={onRequestPayment} />
+        <ActionButton label={t('payments.shareMessage')} icon="share-outline" onPress={shareMessage} variant="secondary" />
         {instruction.externalUrl ? (
-          <ActionButton label="Open Revolut Link" icon="open-outline" onPress={openExternal} variant="secondary" />
+          <ActionButton label={t('payments.openRevolut')} icon="open-outline" onPress={openExternal} variant="secondary" />
         ) : null}
         <ActionButton
-          label="Send Reminder"
+          label={t('payments.sendReminder')}
           icon="notifications-outline"
           onPress={onSendReminder}
           variant="secondary"
           disabled={!canSendReminder}
         />
-        <ActionButton label="Mark as Paid" icon="checkmark-circle-outline" onPress={onMarkPaid} variant="secondary" />
-        <ActionButton label="Mark as Cancelled" icon="close-circle-outline" onPress={onCancelPayment} variant="danger" />
+        <ActionButton label={t('payments.markAsPaid')} icon="checkmark-circle-outline" onPress={onMarkPaid} variant="secondary" />
+        <ActionButton label={t('payments.markAsCancelled')} icon="close-circle-outline" onPress={onCancelPayment} variant="danger" />
       </View>
     </View>
   );

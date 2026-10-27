@@ -1,0 +1,23 @@
+// Problems the coach can read, raised by the store and logic modules.
+export const errors = {
+  coachUnavailable: 'Coach profile not available',
+  requestNotFound: 'Booking request not found',
+  requestAlreadyProcessed: 'Request has already been processed',
+  missingBookingInfo: 'Missing required booking information',
+  studentNotFound: 'Student not found.',
+  selectedStudentNotFound: 'One of the selected students was not found.',
+  groupGone: 'This group no longer exists.',
+  notInGroup: 'That player is not in this group.',
+  groupCapacityRange: 'A group needs between {{min}} and {{max}} players.',
+  groupNeedsPlayer: 'Add at least one player to the group.',
+  groupOverCapacity: 'This group holds {{capacity}} players, but {{count}} were added.',
+  playerAddedTwice: 'The same player was added twice.',
+  invalidGroupPrice: 'Enter a valid price per player.',
+  groupFull: 'This group is full.',
+  alreadyInGroup: '{{name}} is already in this group.',
+  invalidDateTime: 'Invalid date or time format: {{date}} {{time}}',
+  slotHasPendingRequest: 'Another booking request exists for this time slot. Please refresh and try again.',
+  timeConflict: 'Time conflict: You already have a lesson with {{name}} scheduled at this time.',
+  bookingSubmitFailed: 'Unable to submit booking request.',
+  requestTimedOut: '{{action}} timed out. Please check your internet connection and Supabase configuration, then try again.',
+};

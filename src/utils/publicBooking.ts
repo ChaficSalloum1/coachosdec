@@ -1,0 +1,101 @@
+/*
+Logic for the public student booking page: turns the rows returned by the
+get_public_booking_availability RPC into days with bookable start times, and
+builds the shareable booking URL. Pure so the web page and the app share it.
+*/
+import { addDays, format } from 'date-fns';
+
+import { PUBLIC_BOOKING } from '../config/appSettings';
+import { suggestFreeStartTimes } from './lessonScheduling';
+import type { AvailabilityRange, Lesson } from '../types/coach';
+import { t } from '../i18n';
+import { formatLocalized } from '../i18n/formatDate';
+
+export interface PublicAvailabilityRow {
+  kind: 'availability' | 'lesson' | 'blackout' | string;
+  id: string;
+  day_of_week: number | null;
+  date: string | null; // yyyy-MM-dd
+  start_time: string | null; // HH:mm:ss
+  end_time: string | null;
+}
+
+export interface BookableDay {
+  date: string; // yyyy-MM-dd
+  label: string; // Today, Tomorrow, Mon 2
+  times: string[]; // HH:mm
+}
+
+const toHHMM = (time: string | null): string => (time ?? '').slice(0, 5);
+
+export function buildBookableDays(args: {
+  rows: PublicAvailabilityRow[];
+  now?: Date;
+  days?: number;
+  durationMinutes?: number;
+}): BookableDay[] {
+  const now = args.now ?? new Date();
+  const days = args.days ?? PUBLIC_BOOKING.windowDays;
+  const durationMinutes = args.durationMinutes ?? PUBLIC_BOOKING.lessonMinutes;
+
+  const availabilityRanges = args.rows
+    .filter((r) => r.kind === 'availability' && r.day_of_week !== null)
+    .map(
+      (r) =>
+        ({
+          id: r.id,
+          dayOfWeek: r.day_of_week,
+          startTime: toHHMM(r.start_time),
+          endTime: toHHMM(r.end_time),
+        }) as AvailabilityRange
+    );
+  // A coach who has set no availability is not bookable (the app's own
+  // 08:00-21:00 fallback is for the coach, not for the public).
+  if (availabilityRanges.length === 0) return [];
+
+  const lessons = args.rows
+    .filter((r) => r.kind === 'lesson' && r.date)
+    .map(
+      (r) =>
+        ({
+          id: r.id,
+          date: r.date,
+          startTime: toHHMM(r.start_time),
+          endTime: toHHMM(r.end_time),
+          status: 'scheduled',
+        }) as Lesson
+    );
+  const blackoutDates = args.rows.filter((r) => r.kind === 'blackout' && r.date).map((r) => ({ date: r.date as string }));
+
+  const result: BookableDay[] = [];
+  for (let i = 0; i < days; i++) {
+    const day = addDays(now, i);
+    const date = format(day, 'yyyy-MM-dd');
+    const times = suggestFreeStartTimes({
+      date,
+      durationMinutes,
+      availabilityRanges,
+      blackoutDates,
+      lessons,
+      now,
+      limit: PUBLIC_BOOKING.maxSlotsShownPerDay,
+    });
+    if (times.length === 0) continue;
+    result.push({ date, label: i === 0 ? t('common.today') : i === 1 ? t('common.tomorrow') : formatLocalized(day, 'EEE d MMM'), times });
+  }
+  return result;
+}
+
+// The hosted booking page's address, from EXPO_PUBLIC_BOOKING_BASE_URL (for
+// example https://book.yourdomain.com/book). Null until the page is deployed,
+// so the app never hands coaches a link to a page that does not exist.
+export function getBookingBaseUrl(configured?: string): string | null {
+  const base = configured?.trim().replace(/\/+$/, '');
+  return base ? base : null;
+}
+
+// The one place the shareable link is built; null when the page is not set up.
+export function buildBookingUrl(bookingLink: string, configuredBase?: string): string | null {
+  const base = getBookingBaseUrl(configuredBase);
+  return base ? `${base}/${encodeURIComponent(bookingLink)}` : null;
+}

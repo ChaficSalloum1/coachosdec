@@ -1,0 +1,26 @@
+import type { Translation } from '../en';
+
+export const groupLesson: Translation['groupLesson'] = {
+  title: 'Ομαδικό μάθημα',
+  groupLabel: '• Ομάδα',
+  removePlayerTitle: 'Αφαίρεση παίκτη;',
+  removePlayerBody: 'Να αφαιρεθεί ο/η {{name}} από αυτή την ομάδα; Το μάθημά του/της ακυρώνεται.',
+  cancelWholeTitle: 'Ακύρωση όλης της ομάδας;',
+  cancelWholeBody: 'Θα ακυρωθούν τα μαθήματα και των {{count}} παικτών.',
+  keepGroup: 'Διατήρηση ομάδας',
+  cancelGroup: 'Ακύρωση ομάδας',
+  cancelWhole: 'Ακύρωση όλης της ομάδας',
+  markPaid: 'Σήμανση πληρωμής',
+  markPlayerPaid: 'Σήμανση του/της {{name}} ως πληρωμένου/ης',
+  paymentRequestFor: 'Αίτημα πληρωμής για τον/την {{name}}',
+  removePlayer: 'Αφαίρεση του/της {{name}}',
+  addPlayer_one: 'Προσθήκη παίκτη ({{count}} θέση ελεύθερη)',
+  addPlayer_other: 'Προσθήκη παίκτη ({{count}} θέσεις ελεύθερες)',
+  allAlreadyIn: 'Όλοι οι μαθητές σας είναι ήδη σε αυτή την ομάδα.',
+  playersEach: '{{count}}/{{capacity}} παίκτες • {{price}} ο καθένας',
+  paidOf: '{{paid}} από {{total}} πλήρωσαν',
+  full: ' • Πλήρης',
+  spotsLeft_one: ' • {{count}} θέση ελεύθερη',
+  spotsLeft_other: ' • {{count}} θέσεις ελεύθερες',
+  each: '{{price}} ο καθένας',
+};

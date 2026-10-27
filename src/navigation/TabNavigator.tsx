@@ -3,15 +3,19 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 
 import { TodayScreen } from '../screens/TodayScreen';
 import { RequestsScreen } from '../screens/RequestsScreen';
 import { StudentsScreen } from '../screens/StudentsScreen';
 import { SettingsStackNavigator } from './SettingsStackNavigator';
 import { useCoachStore } from '../state/coachStore';
-import { OnboardingScreen } from '../screens/SettingsScreen';
+import type { Coach } from '../types/coach';
+import { createDefaultLocations } from '../utils/defaultLocations';
+import { v4 as uuidv4 } from 'uuid';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { DemoBanner } from '../components/DemoBanner';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export type TabParamList = {
   Today: undefined;
@@ -24,7 +28,6 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
   const coach = useCoachStore(s => s.coach);
   const setCoach = useCoachStore(s => s.setCoach);
   const isDemoMode = useCoachStore(s => s.isDemoMode);
@@ -32,8 +35,24 @@ export function TabNavigator() {
     s => s.bookingRequests.filter(r => r.status === 'pending').length
   );
 
+  // A brand-new coach starts with one location chain so availability and
+  // lessons work immediately; they can rename or delete it in Locations.
+  const handleOnboardingComplete = (newCoach: Coach) => {
+    setCoach(newCoach);
+    const { areas, addArea, addFacility, addCourt } = useCoachStore.getState();
+    if (areas.length > 0) return;
+    const defaults = createDefaultLocations(
+      newCoach.id,
+      { area: t('settings.defaultAreaName'), facility: t('settings.defaultFacilityName'), court: t('settings.defaultCourtName') },
+      uuidv4
+    );
+    addArea(defaults.area);
+    addFacility(defaults.facility);
+    addCourt(defaults.court);
+  };
+
   if (!coach) {
-    return <OnboardingScreen onComplete={setCoach} />;
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
   const tabs = (
@@ -61,14 +80,14 @@ export function TabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#1E88E5',
-        tabBarInactiveTintColor: '#42526E',
+        tabBarActiveTintColor: DesignTokens.colors.brand.default,
+        tabBarInactiveTintColor: DesignTokens.colors.text.muted,
         tabBarStyle: {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 8,
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E0E0E0',
+          backgroundColor: DesignTokens.colors.white,
+          borderTopColor: DesignTokens.colors.line.default,
           borderTopWidth: StyleSheet.hairlineWidth,
         },
         tabBarLabelStyle: {
@@ -78,23 +97,23 @@ export function TabNavigator() {
           marginBottom: 4,
         },
         headerStyle: {
-          backgroundColor: '#FFFFFF',
-          borderBottomColor: '#E0E0E0',
+          backgroundColor: DesignTokens.colors.white,
+          borderBottomColor: DesignTokens.colors.line.default,
           borderBottomWidth: StyleSheet.hairlineWidth,
         },
         headerTitleStyle: {
           fontSize: 22,
           fontWeight: '600',
-          color: '#0B1220',
+          color: DesignTokens.colors.text.strong,
         },
-        headerTintColor: '#0B1220',
+        headerTintColor: DesignTokens.colors.text.strong,
       })}
     >
       <Tab.Screen
         name="Today"
         component={TodayScreen}
         options={{
-          title: t('today'),
+          title: t('tabs.today'),
           headerShown: false,
         }}
       />
@@ -102,7 +121,7 @@ export function TabNavigator() {
         name="Requests"
         component={RequestsScreen}
         options={{
-          title: t('requests'),
+          title: t('tabs.requests'),
           headerShown: false,
           tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
         }}
@@ -111,7 +130,7 @@ export function TabNavigator() {
         name="Students"
         component={StudentsScreen}
         options={{
-          title: t('students'),
+          title: t('tabs.students'),
           headerShown: false,
         }}
       />
@@ -119,7 +138,7 @@ export function TabNavigator() {
         name="Settings"
         component={SettingsStackNavigator}
         options={{
-          title: t('settings'),
+          title: t('tabs.settings'),
           headerShown: false,
         }}
       />

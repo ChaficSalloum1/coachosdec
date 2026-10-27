@@ -1,0 +1,20 @@
+// Calendar events written to the phone calendar, and the data export dialogs.
+export const calendar = {
+  calendarName: 'CoachOS Lessons',
+  eventTitle: 'Lesson: {{name}}',
+  court: 'Court {{id}}',
+  lessonFallback: 'Lesson',
+  student: 'Student: {{name}}',
+  duration: 'Duration: {{minutes}} minutes',
+  price: 'Price: {{amount}}',
+  paymentStatus: 'Payment Status: {{status}}',
+  paid: '✓ Paid',
+  unpaid: '⏳ Unpaid',
+  notes: 'Notes: {{notes}}',
+  managedBy: 'Managed by CoachOS',
+  exportDialogTitle: 'Export CoachOS Data',
+  exportComplete: 'Export Complete',
+  exportedTo: 'Data exported to: {{fileName}}',
+  exportFailed: 'Export Failed',
+  exportFailedBody: 'Unable to export data. Please try again.',
+};

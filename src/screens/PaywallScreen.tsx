@@ -31,16 +31,17 @@ import {
   restorePurchases,
 } from '../services/revenueCatService';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
-const NAVY = '#0B1220';
-const GOLD = '#F5A623';
+const NAVY = DesignTokens.colors.text.strong;
+const GOLD = DesignTokens.colors.gold;
 
-const FEATURES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
-  { icon: 'people',           label: 'Unlimited students' },
-  { icon: 'calendar',         label: 'Native calendar sync' },
-  { icon: 'location',         label: 'Advanced location management' },
-  { icon: 'link',             label: 'Public booking link' },
-  { icon: 'download-outline', label: 'Full data export' },
+const FEATURES: { icon: keyof typeof Ionicons.glyphMap; labelKey: 'featureStudents' | 'featureCalendar' | 'featureLocations' | 'featureBookingLink' | 'featureExport' }[] = [
+  { icon: 'people',           labelKey: 'featureStudents' },
+  { icon: 'calendar',         labelKey: 'featureCalendar' },
+  { icon: 'location',         labelKey: 'featureLocations' },
+  { icon: 'link',             labelKey: 'featureBookingLink' },
+  { icon: 'download-outline', labelKey: 'featureExport' },
 ];
 
 interface TierConfig {
@@ -65,8 +66,8 @@ function buildTiers(offering: PurchasesOffering): TierConfig[] {
   if (offering.weekly) {
     tiers.push({
       pkg: offering.weekly,
-      label: 'Weekly',
-      period: '/ week',
+      label: t('paywall.weekly'),
+      period: t('paywall.perWeek'),
       badge: undefined,
       badgeColor: '',
       isRecommended: false,
@@ -76,9 +77,9 @@ function buildTiers(offering: PurchasesOffering): TierConfig[] {
   if (offering.monthly) {
     tiers.push({
       pkg: offering.monthly,
-      label: 'Monthly',
-      period: '/ month',
-      badge: 'Most Popular',
+      label: t('paywall.monthly'),
+      period: t('paywall.perMonth'),
+      badge: t('paywall.mostPopular'),
       badgeColor: DesignTokens.colors.accent,
       isRecommended: true,
     });
@@ -87,9 +88,9 @@ function buildTiers(offering: PurchasesOffering): TierConfig[] {
   if (offering.annual) {
     tiers.push({
       pkg: offering.annual,
-      label: 'Annual',
-      period: '/ year',
-      badge: annualSavings !== null && annualSavings > 0 ? `Save ${annualSavings}%` : 'Best Value',
+      label: t('paywall.annual'),
+      period: t('paywall.perYear'),
+      badge: annualSavings !== null && annualSavings > 0 ? t('paywall.save', { percent: annualSavings }) : t('paywall.bestValue'),
       badgeColor: DesignTokens.colors.success,
       isRecommended: false,
     });
@@ -114,18 +115,18 @@ function buildTiers(offering: PurchasesOffering): TierConfig[] {
 
 function labelForPackageType(type: PACKAGE_TYPE): string {
   switch (type) {
-    case PACKAGE_TYPE.WEEKLY:   return 'Weekly';
-    case PACKAGE_TYPE.MONTHLY:  return 'Monthly';
-    case PACKAGE_TYPE.ANNUAL:   return 'Annual';
-    default:                    return 'Subscription';
+    case PACKAGE_TYPE.WEEKLY:   return t('paywall.weekly');
+    case PACKAGE_TYPE.MONTHLY:  return t('paywall.monthly');
+    case PACKAGE_TYPE.ANNUAL:   return t('paywall.annual');
+    default:                    return t('paywall.subscription');
   }
 }
 
 function periodForPackageType(type: PACKAGE_TYPE): string {
   switch (type) {
-    case PACKAGE_TYPE.WEEKLY:  return '/ week';
-    case PACKAGE_TYPE.MONTHLY: return '/ month';
-    case PACKAGE_TYPE.ANNUAL:  return '/ year';
+    case PACKAGE_TYPE.WEEKLY:  return t('paywall.perWeek');
+    case PACKAGE_TYPE.MONTHLY: return t('paywall.perMonth');
+    case PACKAGE_TYPE.ANNUAL:  return t('paywall.perYear');
     default:                   return '';
   }
 }
@@ -163,12 +164,12 @@ export function PaywallScreen() {
       const result = await purchasePackage(selectedPkg);
       if (result) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Welcome to CoachOS Pro!', 'You now have full access.', [
-          { text: "Let's go", onPress: () => navigation.goBack() },
+        Alert.alert(t('paywall.welcomeTitle'), t('paywall.welcomeBody'), [
+          { text: t('paywall.letsGo'), onPress: () => navigation.goBack() },
         ]);
       }
     } catch {
-      Alert.alert('Purchase failed', 'Please try again or contact support.');
+      Alert.alert(t('paywall.purchaseFailed'), t('paywall.purchaseFailedBody'));
     } finally {
       setIsPurchasing(false);
     }
@@ -181,14 +182,14 @@ export function PaywallScreen() {
       const result = await restorePurchases();
       if (result && Object.keys(result.entitlements.active).length > 0) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert('Purchases Restored', 'Your Pro access has been restored.', [
-          { text: 'Continue', onPress: () => navigation.goBack() },
+        Alert.alert(t('paywall.restoredTitle'), t('paywall.restoredBody'), [
+          { text: t('paywall.continue'), onPress: () => navigation.goBack() },
         ]);
       } else {
-        Alert.alert('Nothing to Restore', 'No active subscriptions were found.');
+        Alert.alert(t('paywall.nothingToRestore'), t('paywall.nothingToRestoreBody'));
       }
     } catch {
-      Alert.alert('Restore failed', 'Please try again later.');
+      Alert.alert(t('paywall.restoreFailed'), t('paywall.restoreFailedBody'));
     } finally {
       setIsPurchasing(false);
     }
@@ -209,35 +210,35 @@ export function PaywallScreen() {
             style={styles.closeButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="close" size={20} color={DesignTokens.colors.overlay.whiteSoft} />
           </Pressable>
 
           <Ionicons name="star" size={40} color={GOLD} style={styles.crownIcon} />
 
-          <Text style={styles.headerTitle}>Unlock CoachOS Pro</Text>
+          <Text style={styles.headerTitle}>{t('paywall.title')}</Text>
           <Text style={styles.headerSubtitle}>
-            Everything a professional coach needs, all in one place.
+            {t('paywall.subtitle')}
           </Text>
 
           <View style={styles.featureList}>
-            {FEATURES.map(({ icon, label }) => (
-              <FeatureRow key={label} icon={icon} label={label} />
+            {FEATURES.map(({ icon, labelKey }) => (
+              <FeatureRow key={labelKey} icon={icon} label={t(`paywall.${labelKey}`)} />
             ))}
           </View>
         </View>
 
         {/* ── Plan selection ── */}
         <View style={styles.body}>
-          <Text style={styles.sectionLabel}>Choose your plan</Text>
+          <Text style={styles.sectionLabel}>{t('paywall.choosePlan')}</Text>
 
           {isFetching ? (
             <View style={styles.fetchingContainer}>
               <ActivityIndicator color={DesignTokens.colors.accent} size="large" />
-              <Text style={styles.fetchingText}>Loading plans…</Text>
+              <Text style={styles.fetchingText}>{t('paywall.loadingPlans')}</Text>
             </View>
           ) : tiers.length === 0 ? (
             <View style={styles.fetchingContainer}>
-              <Text style={styles.fetchingText}>No plans available right now.</Text>
+              <Text style={styles.fetchingText}>{t('paywall.noPlans')}</Text>
             </View>
           ) : (
             <View style={styles.tierList}>
@@ -266,7 +267,7 @@ export function PaywallScreen() {
               (!selectedPkg || isFetching) && styles.ctaButtonDisabled,
             ]}
           >
-            <Text style={styles.ctaText}>Start Premium Access</Text>
+            <Text style={styles.ctaText}>{t('paywall.start')}</Text>
           </Pressable>
 
           <Pressable
@@ -274,11 +275,11 @@ export function PaywallScreen() {
             disabled={isPurchasing}
             style={styles.restoreButton}
           >
-            <Text style={styles.restoreText}>Restore Purchases</Text>
+            <Text style={styles.restoreText}>{t('paywall.restore')}</Text>
           </Pressable>
 
           <Text style={styles.legal}>
-            Subscriptions auto-renew. Cancel anytime in App Store Settings.
+            {t('paywall.autoRenew')}
           </Text>
         </View>
       </ScrollView>
@@ -288,7 +289,7 @@ export function PaywallScreen() {
         <View style={styles.overlay}>
           <View style={styles.overlayCard}>
             <ActivityIndicator color={DesignTokens.colors.accent} size="large" />
-            <Text style={styles.overlayText}>Processing…</Text>
+            <Text style={styles.overlayText}>{t('paywall.processing')}</Text>
           </View>
         </View>
       )}
@@ -394,7 +395,7 @@ function AnimatedTierCard({ tier, index, selected, onSelect }: AnimatedTierCardP
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DesignTokens.colors.white,
   },
   scroll: {
     flex: 1,
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: DesignTokens.colors.overlay.whiteFaint,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -428,14 +429,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     textAlign: 'center',
     letterSpacing: 0.3,
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.65)',
+    color: DesignTokens.colors.overlay.whiteMid,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 28,
@@ -460,7 +461,7 @@ const styles = StyleSheet.create({
   featureLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     flex: 1,
   },
 
@@ -496,14 +497,14 @@ const styles = StyleSheet.create({
   tierCard: {
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FAFAFA',
+    borderColor: DesignTokens.colors.line.hairline,
+    backgroundColor: DesignTokens.colors.surface.paywall,
     overflow: 'hidden',
     ...DesignTokens.shadows.sm,
   },
   tierCardSelected: {
     borderColor: DesignTokens.colors.accent,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: DesignTokens.colors.brand.tintPaywall,
     ...DesignTokens.shadows.default,
   },
   tierBadge: {
@@ -515,7 +516,7 @@ const styles = StyleSheet.create({
   tierBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     letterSpacing: 0.3,
   },
   tierCardInner: {
@@ -530,7 +531,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#C7C7CC',
+    borderColor: DesignTokens.colors.lightGrey,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -596,7 +597,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     letterSpacing: 0.2,
   },
   restoreButton: {
@@ -619,12 +620,12 @@ const styles = StyleSheet.create({
   // Loading overlay
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11, 18, 32, 0.65)',
+    backgroundColor: DesignTokens.colors.overlay.scrimInk,
     alignItems: 'center',
     justifyContent: 'center',
   },
   overlayCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DesignTokens.colors.white,
     borderRadius: 20,
     paddingHorizontal: 40,
     paddingVertical: 28,

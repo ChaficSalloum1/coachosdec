@@ -1,6 +1,9 @@
 import * as Calendar from 'expo-calendar';
 import { Platform } from 'react-native';
 import { Lesson } from '../types/coach';
+import { formatMoney, resolveCurrency, type CurrencyCode } from '../modules/payments/currency';
+import { DesignTokens } from './designTokens';
+import { t } from '../i18n';
 
 /**
  * CalendarService - Device calendar integration for lesson management
@@ -47,8 +50,8 @@ export class CalendarService {
         } else {
           // Create new calendar for CoachOS
           this.defaultCalendarId = await Calendar.createCalendarAsync({
-            title: 'CoachOS Lessons',
-            color: '#1E88E5',
+            title: t('calendar.calendarName'),
+            color: DesignTokens.colors.brand.default,
             entityType: Calendar.EntityTypes.EVENT,
             source: { 
               isLocalAccount: true, 
@@ -82,7 +85,7 @@ export class CalendarService {
    * @param lesson - Lesson object to create event for
    * @returns Promise<string | null> - Calendar event ID or null if failed
    */
-  static async createLessonEvent(lesson: Lesson): Promise<string | null> {
+  static async createLessonEvent(lesson: Lesson, currency?: CurrencyCode): Promise<string | null> {
     try {
       if (!this.defaultCalendarId) {
         const initialized = await this.initialize();
@@ -97,18 +100,18 @@ export class CalendarService {
       const endDate = new Date(`${lesson.date}T${lesson.endTime}`);
 
       const eventId = await Calendar.createEventAsync(this.defaultCalendarId, {
-        title: `Lesson: ${lesson.studentName}`,
+        title: t('calendar.eventTitle', { name: lesson.studentName }),
         startDate,
         endDate,
         location: this.formatLessonLocation(lesson),
-        notes: this.formatLessonNotes(lesson),
+        notes: this.formatLessonNotes(lesson, currency),
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         allDay: false,
         availability: Calendar.Availability.BUSY,
       });
 
       if (__DEV__) {
-        console.log('📅 Created calendar event:', eventId, 'for', lesson.studentName);
+        if (__DEV__) console.log('📅 Created calendar event:', eventId, 'for', lesson.studentName);
       }
 
       return eventId;
@@ -126,17 +129,17 @@ export class CalendarService {
    * @param lesson - Updated lesson data
    * @returns Promise<boolean> - true if updated successfully
    */
-  static async updateLessonEvent(eventId: string, lesson: Lesson): Promise<boolean> {
+  static async updateLessonEvent(eventId: string, lesson: Lesson, currency?: CurrencyCode): Promise<boolean> {
     try {
       const startDate = new Date(`${lesson.date}T${lesson.startTime}`);
       const endDate = new Date(`${lesson.date}T${lesson.endTime}`);
 
       await Calendar.updateEventAsync(eventId, {
-        title: `Lesson: ${lesson.studentName}`,
+        title: t('calendar.eventTitle', { name: lesson.studentName }),
         startDate,
         endDate,
         location: this.formatLessonLocation(lesson),
-        notes: this.formatLessonNotes(lesson),
+        notes: this.formatLessonNotes(lesson, currency),
       });
 
       if (__DEV__) {
@@ -232,32 +235,32 @@ export class CalendarService {
   private static formatLessonLocation(lesson: Lesson): string {
     const parts: string[] = [];
     
-    if (lesson.courtId) parts.push(`Court ${lesson.courtId}`);
+    if (lesson.courtId) parts.push(t('calendar.court', { id: lesson.courtId }));
     if (lesson.facilityId) parts.push(lesson.facilityId);
     if (lesson.areaId) parts.push(lesson.areaId);
     
-    return parts.length > 0 ? parts.join(' • ') : 'Tennis Lesson';
+    return parts.length > 0 ? parts.join(' • ') : t('calendar.lessonFallback');
   }
 
   /**
    * Format lesson notes for calendar event
    * @private
    */
-  private static formatLessonNotes(lesson: Lesson): string {
+  private static formatLessonNotes(lesson: Lesson, currency?: CurrencyCode): string {
     const notes: string[] = [];
     
-    notes.push(`Student: ${lesson.studentName}`);
-    notes.push(`Duration: ${lesson.duration} minutes`);
-    notes.push(`Price: $${lesson.price.toFixed(2)}`);
-    notes.push(`Payment Status: ${lesson.isPaid ? '✓ Paid' : '⏳ Unpaid'}`);
+    notes.push(t('calendar.student', { name: lesson.studentName }));
+    notes.push(t('calendar.duration', { minutes: lesson.duration }));
+    notes.push(t('calendar.price', { amount: formatMoney(lesson.price, resolveCurrency(currency)) }));
+    notes.push(t('calendar.paymentStatus', { status: lesson.isPaid ? t('calendar.paid') : t('calendar.unpaid') }));
     
     if (lesson.notes) {
       notes.push('');
-      notes.push(`Notes: ${lesson.notes}`);
+      notes.push(t('calendar.notes', { notes: lesson.notes }));
     }
     
     notes.push('');
-    notes.push('Managed by CoachOS');
+    notes.push(t('calendar.managedBy'));
     
     return notes.join('\n');
   }

@@ -6,6 +6,7 @@ import {
   buildSepaQrPayload,
   canSendPaymentReminder,
   coachPaymentSettingsSchema,
+  getRevolutLinkError,
   createPaymentInstruction,
   formatEuro,
   generatePaymentReferenceCode,
@@ -16,7 +17,7 @@ import {
 
 describe('payment utilities', () => {
   it('generates a readable Coachiko reference', () => {
-    expect(generatePaymentReferenceCode('Nikos Coach!', '8f3a21abcdef')).toBe('COACHIKO-NIKOSCOA-8F3A21');
+    expect(generatePaymentReferenceCode('Nikos Coach!', '8f3a21abcdef')).toBe('COACHOS-NIKOSCOA-8F3A21');
   });
 
   it('formats EUR from cents', () => {
@@ -27,7 +28,7 @@ describe('payment utilities', () => {
     const instruction = createPaymentInstruction({
       method: 'REVOLUT',
       amountCents: 4500,
-      reference: 'COACHIKO-NIKOS-8F3A21',
+      reference: 'COACHOS-NIKOS-8F3A21',
       revolutLink: 'https://revolut.me/coachname',
     });
 
@@ -40,7 +41,7 @@ describe('payment utilities', () => {
     const instruction = createPaymentInstruction({
       method: 'IRIS',
       amountCents: 4500,
-      reference: 'COACHIKO-NIKOS-8F3A21',
+      reference: 'COACHOS-NIKOS-8F3A21',
       irisAlias: '@nikos',
     });
 
@@ -54,7 +55,7 @@ describe('payment utilities', () => {
       beneficiaryName: 'Nikos Coach',
       iban: 'GR16 0110 1250 0000 0001 2300 695',
       amountCents: 4500,
-      reference: 'COACHIKO-NIKOS-8F3A21',
+      reference: 'COACHOS-NIKOS-8F3A21',
     });
 
     expect(payload.split('\n')[0]).toBe('BCD');
@@ -75,6 +76,30 @@ describe('payment utilities', () => {
       revolutLink: 'not-a-url',
       cashEnabled: true,
     })).toThrow();
+  });
+
+  it('accepts empty and valid revolut.me links', () => {
+    expect(getRevolutLinkError('')).toBeNull();
+    expect(getRevolutLinkError('   ')).toBeNull();
+    expect(getRevolutLinkError('https://revolut.me/coachname')).toBeNull();
+    expect(getRevolutLinkError('https://www.revolut.me/coachname')).toBeNull();
+    expect(getRevolutLinkError('HTTPS://REVOLUT.ME/coachname')).toBeNull();
+  });
+
+  it('rejects anything that is not an https revolut.me link with a username', () => {
+    expect(getRevolutLinkError('not-a-url')).toContain('full link');
+    expect(getRevolutLinkError('revolut.me/coachname')).toContain('full link');
+    expect(getRevolutLinkError('http://revolut.me/coachname')).toContain('https://');
+    expect(getRevolutLinkError('https://example.com/coachname')).toContain('revolut.me');
+    expect(getRevolutLinkError('https://revolut.me.evil.com/coachname')).toContain('revolut.me');
+    expect(getRevolutLinkError('https://evil.com/revolut.me/coachname')).toContain('revolut.me');
+    expect(getRevolutLinkError('https://revolut.me/')).toContain('username');
+    expect(getRevolutLinkError('https://revolut.me')).toContain('username');
+  });
+
+  it('applies the revolut rule inside the settings schema', () => {
+    expect(() => coachPaymentSettingsSchema.parse({ revolutLink: '', cashEnabled: true })).not.toThrow();
+    expect(() => coachPaymentSettingsSchema.parse({ revolutLink: 'https://example.com/x', cashEnabled: true })).toThrow();
   });
 
   it('moves through manual payment statuses', () => {

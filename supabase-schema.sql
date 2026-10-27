@@ -6,6 +6,11 @@
 --
 -- IMPORTANT: Run this ONCE on a fresh project. If you already ran an older
 -- version, use the migration scripts in /scripts/ instead.
+--
+-- 2026-09-29: this file now includes the changes from scripts/priority1-4 and
+-- fix-public-booking-rls.sql (version columns, soft deletes, constraints,
+-- prevent_undelete, payment indexes) so a fresh project matches the live one.
+-- Those scripts remain in /scripts/ for projects created before this date.
 -- ============================================
 
 -- Enable UUID extension
@@ -212,6 +217,165 @@ CREATE INDEX IF NOT EXISTS idx_rate_limits_identifier ON booking_rate_limits(ide
 CREATE INDEX IF NOT EXISTS idx_rate_limits_blocked ON booking_rate_limits(blocked_until) WHERE blocked_until IS NOT NULL;
 
 -- ============================================
+-- RECONCILED ADDITIONS (2026-09-29)
+-- Additive and idempotent: safe to re-run. Mirrors scripts/priority1-4.
+-- Placed before RLS/functions because public_coach_exists() reads deleted_at.
+-- ============================================
+
+-- Optimistic locking: version column + auto-increment on every UPDATE
+-- (priority1). Only these five tables are versioned.
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+ALTER TABLE booking_requests ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+ALTER TABLE student_notes ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1;
+
+CREATE OR REPLACE FUNCTION increment_version()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.version = COALESCE(OLD.version, 0) + 1;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS increment_coaches_version ON coaches;
+CREATE TRIGGER increment_coaches_version
+  BEFORE UPDATE ON coaches
+  FOR EACH ROW EXECUTE FUNCTION increment_version();
+DROP TRIGGER IF EXISTS increment_students_version ON students;
+CREATE TRIGGER increment_students_version
+  BEFORE UPDATE ON students
+  FOR EACH ROW EXECUTE FUNCTION increment_version();
+DROP TRIGGER IF EXISTS increment_lessons_version ON lessons;
+CREATE TRIGGER increment_lessons_version
+  BEFORE UPDATE ON lessons
+  FOR EACH ROW EXECUTE FUNCTION increment_version();
+DROP TRIGGER IF EXISTS increment_booking_requests_version ON booking_requests;
+CREATE TRIGGER increment_booking_requests_version
+  BEFORE UPDATE ON booking_requests
+  FOR EACH ROW EXECUTE FUNCTION increment_version();
+DROP TRIGGER IF EXISTS increment_student_notes_version ON student_notes;
+CREATE TRIGGER increment_student_notes_version
+  BEFORE UPDATE ON student_notes
+  FOR EACH ROW EXECUTE FUNCTION increment_version();
+
+-- Soft deletes (priority2): the app sets deleted_at instead of deleting rows.
+ALTER TABLE coaches ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE booking_requests ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE student_notes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE areas ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE facilities ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE courts ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE availability_ranges ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE blackout_dates ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_coaches_deleted_at ON coaches(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_students_deleted_at ON students(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_lessons_deleted_at ON lessons(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_booking_requests_deleted_at ON booking_requests(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_student_notes_deleted_at ON student_notes(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_areas_deleted_at ON areas(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_facilities_deleted_at ON facilities(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_courts_deleted_at ON courts(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_availability_ranges_deleted_at ON availability_ranges(deleted_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_blackout_dates_deleted_at ON blackout_dates(deleted_at) WHERE deleted_at IS NULL;
+
+-- A soft-deleted row can never be brought back (priority3).
+CREATE OR REPLACE FUNCTION prevent_undelete()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.deleted_at IS NOT NULL AND NEW.deleted_at IS NULL THEN
+    RAISE EXCEPTION 'Undelete operation not permitted';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS prevent_undelete_coaches ON coaches;
+CREATE TRIGGER prevent_undelete_coaches
+  BEFORE UPDATE ON coaches
+  FOR EACH ROW EXECUTE FUNCTION prevent_undelete();
+DROP TRIGGER IF EXISTS prevent_undelete_students ON students;
+CREATE TRIGGER prevent_undelete_students
+  BEFORE UPDATE ON students
+  FOR EACH ROW EXECUTE FUNCTION prevent_undelete();
+DROP TRIGGER IF EXISTS prevent_undelete_lessons ON lessons;
+CREATE TRIGGER prevent_undelete_lessons
+  BEFORE UPDATE ON lessons
+  FOR EACH ROW EXECUTE FUNCTION prevent_undelete();
+DROP TRIGGER IF EXISTS prevent_undelete_booking_requests ON booking_requests;
+CREATE TRIGGER prevent_undelete_booking_requests
+  BEFORE UPDATE ON booking_requests
+  FOR EACH ROW EXECUTE FUNCTION prevent_undelete();
+
+-- Data-integrity constraints (priority1 + priority3). Payment-status and
+-- booking-request checks are already inline in the CREATE TABLEs above.
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_times;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_times CHECK (end_time > start_time);
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_duration;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_duration CHECK (duration > 0 AND duration <= 480);
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_price;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_price CHECK (price >= 0);
+ALTER TABLE coaches DROP CONSTRAINT IF EXISTS check_price_per_hour;
+ALTER TABLE coaches ADD CONSTRAINT check_price_per_hour CHECK (price_per_hour >= 0);
+ALTER TABLE coaches DROP CONSTRAINT IF EXISTS check_coach_name_not_empty;
+ALTER TABLE coaches ADD CONSTRAINT check_coach_name_not_empty CHECK (length(trim(name)) >= 2);
+ALTER TABLE availability_ranges DROP CONSTRAINT IF EXISTS check_availability_times;
+ALTER TABLE availability_ranges ADD CONSTRAINT check_availability_times CHECK (end_time > start_time);
+ALTER TABLE students DROP CONSTRAINT IF EXISTS check_contact_not_empty;
+ALTER TABLE students ADD CONSTRAINT check_contact_not_empty CHECK (length(trim(contact)) >= 3);
+ALTER TABLE students DROP CONSTRAINT IF EXISTS check_name_not_empty;
+ALTER TABLE students ADD CONSTRAINT check_name_not_empty CHECK (length(trim(name)) >= 2);
+
+-- Composite/payment indexes (priority1 + priority4).
+CREATE INDEX IF NOT EXISTS idx_lessons_coach_date ON lessons(coach_id, date);
+CREATE INDEX IF NOT EXISTS idx_lessons_student_date ON lessons(student_id, date);
+CREATE INDEX IF NOT EXISTS idx_students_coach_name ON students(coach_id, name);
+CREATE INDEX IF NOT EXISTS idx_lessons_payment_status ON lessons(coach_id, payment_status);
+CREATE INDEX IF NOT EXISTS idx_lessons_payment_reference_code ON lessons(payment_reference_code);
+
+-- Audit log (priority3). Read-only for coaches. NOTE: priority3 also created
+-- an "audit_logs_insert" policy with CHECK (true), letting anyone insert rows;
+-- it is deliberately NOT reproduced here (the app never writes audit_logs).
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  event_type TEXT NOT NULL,
+  coach_id UUID REFERENCES coaches(id) ON DELETE SET NULL,
+  table_name TEXT,
+  record_id UUID,
+  action TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_coach_id ON audit_logs(coach_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON audit_logs(event_type);
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "audit_logs_coach_select" ON audit_logs;
+CREATE POLICY "audit_logs_coach_select" ON audit_logs
+  FOR SELECT USING (auth.uid() = coach_id);
+
+-- Group lessons (priority6, 2026-10-26): one lesson per player, linked by
+-- group_id; both columns are NULL for ordinary one-to-one lessons.
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS group_id UUID;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS group_capacity INTEGER;
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_group_capacity;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_group_capacity
+  CHECK (group_capacity IS NULL OR group_capacity BETWEEN 2 AND 12);
+ALTER TABLE lessons DROP CONSTRAINT IF EXISTS check_lesson_group_pair;
+ALTER TABLE lessons ADD CONSTRAINT check_lesson_group_pair
+  CHECK ((group_id IS NULL) = (group_capacity IS NULL));
+CREATE INDEX IF NOT EXISTS idx_lessons_group_id ON lessons(group_id) WHERE group_id IS NOT NULL;
+
+-- Recurring lessons created together share a series_id (scripts/priority8-lesson-series.sql).
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS series_id UUID;
+CREATE INDEX IF NOT EXISTS idx_lessons_series_id ON lessons(series_id) WHERE series_id IS NOT NULL;
+
+-- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
 -- Philosophy:
@@ -307,6 +471,7 @@ AS $$
     SELECT 1
     FROM coaches
     WHERE id = p_coach_id
+      AND deleted_at IS NULL
   );
 $$;
 
@@ -432,7 +597,8 @@ SET search_path = public
 AS $$
   SELECT c.id, c.name, c.sports, c.price_per_hour, c.booking_link
   FROM coaches c
-  WHERE c.booking_link = p_booking_link;
+  WHERE c.booking_link = p_booking_link
+    AND c.deleted_at IS NULL;
 $$;
 
 CREATE OR REPLACE FUNCTION get_public_booking_availability(p_coach_id UUID)
@@ -463,6 +629,7 @@ AS $$
     ar.court_id
   FROM availability_ranges ar
   WHERE ar.coach_id = p_coach_id
+    AND ar.deleted_at IS NULL
   UNION ALL
   SELECT
     'lesson'::TEXT,
@@ -477,6 +644,7 @@ AS $$
   FROM lessons l
   WHERE l.coach_id = p_coach_id
     AND l.status <> 'cancelled'
+    AND l.deleted_at IS NULL
   UNION ALL
   SELECT
     'blackout'::TEXT,
@@ -489,7 +657,8 @@ AS $$
     NULL::UUID,
     NULL::UUID
   FROM blackout_dates b
-  WHERE b.coach_id = p_coach_id;
+  WHERE b.coach_id = p_coach_id
+    AND b.deleted_at IS NULL;
 $$;
 
 GRANT EXECUTE ON FUNCTION get_public_booking_profile(TEXT) TO anon, authenticated;
@@ -528,3 +697,36 @@ CREATE TRIGGER update_availability_ranges_updated_at BEFORE UPDATE ON availabili
 -- ============================================
 -- DONE! Your database is ready.
 -- ============================================
+
+-- ============================================
+-- IN-APP ACCOUNT DELETION (scripts/priority7-delete-account.sql)
+-- ============================================
+CREATE OR REPLACE FUNCTION delete_my_account()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_uid UUID := auth.uid();
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'Not signed in' USING ERRCODE = '28000';
+  END IF;
+
+  -- Push tokens only exist if the notifications feature was set up.
+  IF to_regclass('public.coach_push_tokens') IS NOT NULL THEN
+    EXECUTE 'DELETE FROM public.coach_push_tokens WHERE user_id = $1' USING v_uid;
+  END IF;
+
+  -- Cascades to areas, facilities, courts, students, notes, lessons,
+  -- booking requests, availability and blackout dates. audit_logs keep their
+  -- rows with coach_id set to NULL.
+  DELETE FROM public.coaches WHERE id = v_uid;
+
+  DELETE FROM auth.users WHERE id = v_uid;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION delete_my_account() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION delete_my_account() TO authenticated;

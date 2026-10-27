@@ -1,3 +1,5 @@
+import type { CurrencyCode } from './currency';
+
 export type PaymentPreference =
   | 'REVOLUT'
   | 'IRIS'
@@ -18,7 +20,7 @@ export type PaymentInstruction = {
   method: PaymentMethod;
   title: string;
   amountCents: number;
-  currency: 'EUR';
+  currency: CurrencyCode;
   reference: string;
   displayText: string;
   externalUrl?: string;
@@ -33,6 +35,7 @@ export type CoachPaymentSettings = {
   ibanBeneficiaryName?: string;
   cancellationPolicy?: string;
   cashEnabled: boolean;
+  currency?: CurrencyCode;
   qrCode?: string;
   phoneId?: string;
 };

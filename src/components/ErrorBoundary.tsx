@@ -1,6 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -68,13 +70,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <View className="flex-1 bg-white px-6 py-12 justify-center">
           <View className="items-center mb-8">
             <View className="bg-red-50 rounded-full p-6 mb-4">
-              <Ionicons name="warning-outline" size={48} color="#DC2626" />
+              <Ionicons name="warning-outline" size={48} color={DesignTokens.colors.red['600']} />
             </View>
-            <Text className="text-2xl font-bold text-center mb-2" style={{ color: '#0B1220' }}>
-              Something Went Wrong
+            <Text className="text-2xl font-bold text-center mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('shell.errorTitle')}
             </Text>
-            <Text className="text-base text-center" style={{ color: '#42526E' }}>
-              {"We encountered an unexpected error. Don't worry, your data is safe."}
+            <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
+              {t('shell.errorBody')}
             </Text>
           </View>
 
@@ -99,13 +101,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             className="bg-blue-500 rounded-xl py-4 px-6 active:bg-blue-600"
           >
             <Text className="text-white text-center font-semibold text-base">
-              Try Again
+              {t('shell.tryAgain')}
             </Text>
           </Pressable>
 
           {__DEV__ && (
-            <Text className="text-xs text-center mt-4" style={{ color: '#42526E' }}>
-              This detailed error view is only shown in development mode
+            <Text className="text-xs text-center mt-4" style={{ color: DesignTokens.colors.text.muted }}>
+              {t('shell.errorDevOnly')}
             </Text>
           )}
         </View>

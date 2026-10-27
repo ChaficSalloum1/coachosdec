@@ -4,6 +4,9 @@ This service handles syncing data back and forth automatically
 */
 import { getSupabaseClient } from "../api/supabase";
 import { getCurrentUser } from "./authService";
+import { normalizeClockTime } from "../utils/timeFormat";
+import { toCamelCase, toSnakeCase } from "./caseConversion";
+import { makeRowSaver } from "./rowSaver";
 import {
   encryptPaymentSettings,
   decryptPaymentSettings,
@@ -28,36 +31,6 @@ import {
   normalizePaymentSettings,
   normalizePaymentStatus,
 } from "../modules/payments";
-
-// Helper to convert database snake_case to camelCase
-const toCamelCase = (obj: any): any => {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(toCamelCase);
-  if (typeof obj !== "object") return obj;
-
-  const converted: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const camelKey = key.replace(/_([a-z])/g, (_, letter) =>
-      letter.toUpperCase()
-    );
-    converted[camelKey] = toCamelCase(value);
-  }
-  return converted;
-};
-
-// Helper to convert camelCase to database snake_case
-const toSnakeCase = (obj: any): any => {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) return obj.map(toSnakeCase);
-  if (typeof obj !== "object") return obj;
-
-  const converted: any = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
-    converted[snakeKey] = toSnakeCase(value);
-  }
-  return converted;
-};
 
 /**
  * Load all data from Supabase for a coach
@@ -141,6 +114,8 @@ export const loadCoachDataFromSupabase = async (
         const converted = toCamelCase(lesson) as Lesson;
         return {
           ...converted,
+          startTime: normalizeClockTime(converted.startTime),
+          endTime: normalizeClockTime(converted.endTime),
           paymentStatus: normalizePaymentStatus(converted.paymentStatus, converted.isPaid),
           paymentReferenceCode: converted.paymentReferenceCode ?? (
             coachData ? generatePaymentReferenceCode(coachData.name, converted.id) : converted.paymentReferenceCode
@@ -152,14 +127,22 @@ export const loadCoachDataFromSupabase = async (
           ),
         };
       }),
-      bookingRequests: ((bookingRequestsResult as any).data || []).map(toCamelCase),
+      bookingRequests: ((bookingRequestsResult as any).data || []).map((row: any) => {
+        const converted = toCamelCase(row);
+        return { ...converted, requestedTime: normalizeClockTime(converted.requestedTime) };
+      }),
       studentNotes: ((studentNotesResult as any).data || []).map(toCamelCase),
       areas: ((areasResult as any).data || []).map(toCamelCase),
       facilities: ((facilitiesResult as any).data || []).map(toCamelCase),
       courts: ((courtsResult as any).data || []).map(toCamelCase),
-      availabilityRanges: ((availabilityRangesResult as any).data || []).map(
-        toCamelCase
-      ),
+      availabilityRanges: ((availabilityRangesResult as any).data || []).map((row: any) => {
+        const converted = toCamelCase(row);
+        return {
+          ...converted,
+          startTime: normalizeClockTime(converted.startTime),
+          endTime: normalizeClockTime(converted.endTime),
+        };
+      }),
       blackoutDates: ((blackoutDatesResult as any).data || []).map(toCamelCase),
     };
   } catch (error) {
@@ -249,121 +232,6 @@ export const saveCoachToSupabase = async (
 };
 
 /**
- * Save student to Supabase
- * Validates coach ownership before saving
- */
-export const saveStudentToSupabase = async (
-  student: Student,
-  expectedVersion?: number
-): Promise<{ success: boolean; error?: string; conflict?: boolean }> => {
-  try {
-    // Validate that the current user owns this student's coach
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save student data",
-      };
-    }
-
-    if (student.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save student: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-
-    // Encrypt sensitive fields before saving
-    const studentToSave = { ...student };
-    if (studentToSave.contact) {
-      studentToSave.contact = await encryptContact(studentToSave.contact);
-    }
-
-    const data = toSnakeCase(studentToSave);
-
-    let query = supabase.from("students").upsert(data, { onConflict: "id" });
-
-    if (expectedVersion !== undefined) {
-      query = query.eq("version", expectedVersion);
-    }
-
-    const { error, data: result } = await query.select();
-
-    if (error) {
-      console.error("Error saving student:", error);
-      return { success: false, error: error.message };
-    }
-
-    if (expectedVersion !== undefined && (!result || result.length === 0)) {
-      return { success: false, conflict: true, error: "Version conflict: data was modified by another client" };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
- * Save lesson to Supabase
- * Validates coach ownership before saving
- */
-export const saveLessonToSupabase = async (
-  lesson: Lesson,
-  expectedVersion?: number
-): Promise<{ success: boolean; error?: string; conflict?: boolean }> => {
-  try {
-    // Validate that the current user owns this lesson
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save lesson data",
-      };
-    }
-
-    if (lesson.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save lesson: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(lesson);
-
-    let query = supabase.from("lessons").upsert(data, { onConflict: "id" });
-
-    if (expectedVersion !== undefined) {
-      query = query.eq("version", expectedVersion);
-    }
-
-    const { error, data: result } = await query.select();
-
-    if (error) {
-      console.error("Error saving lesson:", error);
-      return { success: false, error: error.message };
-    }
-
-    if (expectedVersion !== undefined && (!result || result.length === 0)) {
-      return { success: false, conflict: true, error: "Version conflict: data was modified by another client" };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
  * Save booking request to Supabase
  */
 export const saveBookingRequestToSupabase = async (
@@ -417,288 +285,42 @@ export const saveBookingRequestToSupabase = async (
   }
 };
 
-/**
- * Save student note to Supabase
- * Validates coach ownership before saving
- */
-export const saveStudentNoteToSupabase = async (
-  note: StudentNote,
-  expectedVersion?: number
-): Promise<{ success: boolean; error?: string; conflict?: boolean }> => {
-  try {
-    // Validate that the current user owns this note
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save student note",
-      };
-    }
-
-    if (note.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save note: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(note);
-
-    let query = supabase.from("student_notes").upsert(data, { onConflict: "id" });
-
-    if (expectedVersion !== undefined) {
-      query = query.eq("version", expectedVersion);
-    }
-
-    const { error, data: result } = await query.select();
-
-    if (error) {
-      console.error("Error saving student note:", error);
-      return { success: false, error: error.message };
-    }
-
-    if (expectedVersion !== undefined && (!result || result.length === 0)) {
-      return { success: false, conflict: true, error: "Version conflict: data was modified by another client" };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
+/*
+Everything except the coach profile and public booking requests is saved by one
+generic saver (rowSaver.ts); only what differs is stated here.
+*/
+const rowDeps = {
+  getUserId: async () => (await getCurrentUser())?.id,
+  getClient: getSupabaseClient,
 };
 
-/**
- * Save area to Supabase
- * Validates coach ownership before saving
- */
-export const saveAreaToSupabase = async (
-  area: Area
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Validate that the current user owns this area
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save area",
-      };
-    }
+export const saveStudentToSupabase = makeRowSaver<Student>(
+  {
+    table: "students",
+    label: "student",
+    versioned: true,
+    // Contact details are stored encrypted.
+    prepare: async (student) => ({
+      ...student,
+      contact: student.contact ? await encryptContact(student.contact) : student.contact,
+    }),
+  },
+  rowDeps
+);
+export const saveLessonToSupabase = makeRowSaver<Lesson>({ table: "lessons", label: "lesson", versioned: true }, rowDeps);
+export const saveStudentNoteToSupabase = makeRowSaver<StudentNote>({ table: "student_notes", label: "student note", versioned: true }, rowDeps);
+export const saveAreaToSupabase = makeRowSaver<Area>({ table: "areas", label: "area", versioned: false }, rowDeps);
+export const saveFacilityToSupabase = makeRowSaver<Facility>({ table: "facilities", label: "facility", versioned: false }, rowDeps);
+export const saveCourtToSupabase = makeRowSaver<Court>({ table: "courts", label: "court", versioned: false }, rowDeps);
+export const saveAvailabilityRangeToSupabase = makeRowSaver<AvailabilityRange>(
+  { table: "availability_ranges", label: "availability range", versioned: false },
+  rowDeps
+);
+export const saveBlackoutDateToSupabase = makeRowSaver<BlackoutDate>(
+  { table: "blackout_dates", label: "blackout date", versioned: false },
+  rowDeps
+);
 
-    if (area.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save area: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(area);
-
-    const { error } = await supabase
-      .from("areas")
-      .upsert(data, { onConflict: "id" });
-
-    if (error) {
-      console.error("Error saving area:", error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
- * Save facility to Supabase
- * Validates coach ownership before saving
- */
-export const saveFacilityToSupabase = async (
-  facility: Facility
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Validate that the current user owns this facility
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save facility",
-      };
-    }
-
-    if (facility.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save facility: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(facility);
-
-    const { error } = await supabase
-      .from("facilities")
-      .upsert(data, { onConflict: "id" });
-
-    if (error) {
-      console.error("Error saving facility:", error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
- * Save court to Supabase
- * Validates coach ownership before saving
- */
-export const saveCourtToSupabase = async (
-  court: Court
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Validate that the current user owns this court
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save court",
-      };
-    }
-
-    if (court.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save court: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(court);
-
-    const { error } = await supabase
-      .from("courts")
-      .upsert(data, { onConflict: "id" });
-
-    if (error) {
-      console.error("Error saving court:", error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
- * Save availability range to Supabase
- * Validates coach ownership before saving
- */
-export const saveAvailabilityRangeToSupabase = async (
-  range: AvailabilityRange
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Validate that the current user owns this range
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save availability range",
-      };
-    }
-
-    if (range.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save availability range: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(range);
-
-    const { error } = await supabase
-      .from("availability_ranges")
-      .upsert(data, { onConflict: "id" });
-
-    if (error) {
-      console.error("Error saving availability range:", error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
- * Save blackout date to Supabase
- * Validates coach ownership before saving
- */
-export const saveBlackoutDateToSupabase = async (
-  blackout: BlackoutDate
-): Promise<{ success: boolean; error?: string }> => {
-  try {
-    // Validate that the current user owns this blackout date
-    const user = await getCurrentUser();
-    if (!user?.id) {
-      return {
-        success: false,
-        error: "User must be authenticated to save blackout date",
-      };
-    }
-
-    if (blackout.coachId !== user.id) {
-      return {
-        success: false,
-        error: "Cannot save blackout date: coach ID does not match authenticated user",
-      };
-    }
-
-    const supabase = getSupabaseClient();
-    const data = toSnakeCase(blackout);
-
-    const { error } = await supabase
-      .from("blackout_dates")
-      .upsert(data, { onConflict: "id" });
-
-    if (error) {
-      console.error("Error saving blackout date:", error);
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-};
-
-/**
- * Delete item from Supabase
- */
 /**
  * Soft delete item from Supabase (sets deleted_at timestamp instead of hard delete)
  * This prevents data loss and enables recovery if needed

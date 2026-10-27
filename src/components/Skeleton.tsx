@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, ViewStyle } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
+import { DesignTokens } from '../utils/designTokens';
 
 interface SkeletonProps {
   width?: number | string;
@@ -27,7 +28,7 @@ export function Skeleton({ width = '100%', height = 16, radius = 8, style, class
     <Animated.View
       className={className}
       style={[
-        { width, height, borderRadius: radius, backgroundColor: '#E5E7EB' } as any,
+        { width, height, borderRadius: radius, backgroundColor: DesignTokens.colors.line.soft } as any,
         animatedStyle as any,
         style as any,
       ]}

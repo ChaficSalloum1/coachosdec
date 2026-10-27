@@ -1,4 +1,7 @@
 import { addDays, format, parseISO, startOfDay, startOfWeek, differenceInDays } from 'date-fns';
+import { DesignTokens } from './designTokens';
+import { t } from '../i18n';
+import { formatLocalized } from '../i18n/formatDate';
 
 // DST-safe day navigation helpers using date-fns
 // Handles Daylight Saving Time transitions properly to prevent day skipping
@@ -18,7 +21,7 @@ export function isToday(dateISO: string): boolean {
 
 export function formatHeaderDate(dateISO: string): string {
   const date = parseISO(dateISO);
-  return format(date, 'EEEE, MMM d'); // Thursday, Oct 10
+  return formatLocalized(date, 'EEEE, MMM d'); // Thursday, Oct 10
 }
 
 // Additional utility functions for better date handling
@@ -32,11 +35,11 @@ export function formatDateForDisplay(date: Date): string {
   const tomorrow = addDays(today, 1);
   
   if (format(targetDate, 'yyyy-MM-dd') === format(today, 'yyyy-MM-dd')) {
-    return 'Today';
+    return t('common.today');
   } else if (format(targetDate, 'yyyy-MM-dd') === format(tomorrow, 'yyyy-MM-dd')) {
-    return 'Tomorrow';
+    return t('common.tomorrow');
   } else {
-    return format(targetDate, 'EEE, MMM d');
+    return formatLocalized(targetDate, 'EEE, MMM d');
   }
 }
 
@@ -82,19 +85,19 @@ export function getWeekDates(dateISO: string): string[] {
 export function getTimeOfDayColor(timeString: string): string {
   const hour = parseInt(timeString.split(':')[0]);
   
-  if (hour >= 6 && hour < 12) return '#F59E0B'; // Morning: amber
-  if (hour >= 12 && hour < 18) return '#007AFF'; // Afternoon: blue
-  if (hour >= 18 && hour < 22) return '#8B5CF6'; // Evening: purple
-  return '#6B7280'; // Night: grey
+  if (hour >= 6 && hour < 12) return DesignTokens.colors.amber.warm; // Morning: amber
+  if (hour >= 12 && hour < 18) return DesignTokens.colors.accent; // Afternoon: blue
+  if (hour >= 18 && hour < 22) return DesignTokens.colors.purple; // Evening: purple
+  return DesignTokens.colors.text.subtle; // Night: grey
 }
 
 export function getTimeOfDayPeriod(timeString: string): string {
   const hour = parseInt(timeString.split(':')[0]);
   
-  if (hour >= 6 && hour < 12) return 'Morning';
-  if (hour >= 12 && hour < 18) return 'Afternoon';
-  if (hour >= 18 && hour < 22) return 'Evening';
-  return 'Night';
+  if (hour >= 6 && hour < 12) return t('dates.morning');
+  if (hour >= 12 && hour < 18) return t('dates.afternoon');
+  if (hour >= 18 && hour < 22) return t('dates.evening');
+  return t('dates.night');
 }
 
 export function getDaysDifference(date1ISO: string, date2ISO: string): number {

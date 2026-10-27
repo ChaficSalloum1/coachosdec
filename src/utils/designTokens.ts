@@ -1,4 +1,5 @@
 import { Easing } from 'react-native-reanimated';
+import palette from '../theme/palette.json';
 
 export const DesignTokens = {
   // Spacing (in pixels)
@@ -94,56 +95,74 @@ export const DesignTokens = {
     }
   },
 
-  // Colors - Jobsian palette
+  // Colors. The raw values live in src/theme/palette.json, which the Tailwind
+  // config reads too, so there is one place to change a colour. Nothing outside
+  // that file or this one should contain a hex value.
   colors: {
     // Primary system colors
-    accent: '#007AFF',
-    primary: '#007AFF',
+    accent: palette.ios.blue,
+    primary: palette.ios.blue,
 
     // Semantic colors
-    success: '#34C759',
-    warning: '#FF9500',
-    danger: '#FF3B30',
+    success: palette.ios.green,
+    warning: palette.ios.orange,
+    danger: palette.ios.red,
 
     // Neutral colors
-    graphite: '#1C1C1E',
-    grey: '#8E8E93',
-    lightGrey: '#C7C7CC',
-    superLightGrey: '#F2F2F7',
-    white: '#FFFFFF',
+    graphite: palette.ios.graphite,
+    grey: palette.ios.grey,
+    lightGrey: palette.ios.lightGrey,
+    superLightGrey: palette.ios.superLightGrey,
+    white: palette.white,
+    black: palette.black,
+
+    // The blue/ink colours the screens use through Tailwind classes
+    brand: palette.brand,
+    text: palette.text,
+    surface: palette.surface,
+    line: palette.line,
+    red: palette.red,
+    amber: palette.amber,
+    green: palette.green,
+    purple: palette.purple,
+    violet: palette.violet,
+    indigo: palette.indigo,
+    gold: palette.gold,
+    avatar: palette.avatar,
+    overlay: palette.overlay,
 
     // Legacy support
     ink: {
-      900: '#1C1C1E',
-      600: '#8E8E93'
+      900: palette.ios.graphite,
+      600: palette.ios.grey
     }
   },
 
   // Shadows - Jobsian elevation
   shadows: {
     sm: {
-      shadowColor: '#000',
+      shadowColor: palette.black,
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.05,
       shadowRadius: 2,
       elevation: 1
     },
     default: {
-      shadowColor: '#000',
+      shadowColor: palette.black,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.08,
       shadowRadius: 8,
       elevation: 2
     },
     md: {
-      shadowColor: '#000',
+      shadowColor: palette.black,
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.12,
       shadowRadius: 12,
       elevation: 4
     },
     lg: {
-      shadowColor: '#000',
+      shadowColor: palette.black,
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.16,
       shadowRadius: 24,

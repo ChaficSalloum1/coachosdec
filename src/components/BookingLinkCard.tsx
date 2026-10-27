@@ -8,6 +8,10 @@ import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Coach } from '../types/coach';
+import { UI_TIMING } from '../config/appSettings';
+import { buildBookingUrl } from '../utils/publicBooking';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface BookingLinkCardProps {
   coach: Coach;
@@ -19,12 +23,13 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   const [showQR, setShowQR] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
-  const bookingUrl = `https://coachos.app/book/${coach.bookingLink}`;
+  const bookingUrl = buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL);
 
   const shareBookingLink = async () => {
+    if (!bookingUrl) return;
     try {
       await Share.share({
-        message: `Book a lesson with ${coach.name}: ${bookingUrl}`,
+        message: t('booking.shareMessage', { name: coach.name, url: bookingUrl }),
         url: bookingUrl,
       });
     } catch {
@@ -33,19 +38,31 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   };
 
   const copyBookingLink = async () => {
+    if (!bookingUrl) return;
     await Clipboard.setStringAsync(bookingUrl);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), UI_TIMING.copiedFlashMs);
   };
+
+  // The page is not hosted yet: say so rather than handing out a dead link.
+  if (!bookingUrl) {
+    return (
+      <View className="bg-gray-50 rounded-xl p-4">
+        <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
+          {t('booking.notLive')}
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
       <View className="bg-gray-50 rounded-xl p-4">
-        <Text className="text-sm mb-1" style={{ color: '#42526E' }}>
-          Share this link with students so they can book lessons with you:
+        <Text className="text-sm mb-1" style={{ color: DesignTokens.colors.text.muted }}>
+          {t('booking.shareThisLink')}
         </Text>
-        <Text className="text-sm font-medium mb-4" numberOfLines={1} style={{ color: '#1E88E5' }}>
+        <Text className="text-sm font-medium mb-4" numberOfLines={1} style={{ color: DesignTokens.colors.brand.default }}>
           {bookingUrl}
         </Text>
 
@@ -56,12 +73,12 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
             style={{
               width: 72,
               height: 72,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: DesignTokens.colors.white,
               borderRadius: 10,
               alignItems: 'center',
               justifyContent: 'center',
               borderWidth: 1,
-              borderColor: '#E0E0E0',
+              borderColor: DesignTokens.colors.line.default,
             }}
           >
             <QRCode value={bookingUrl} size={60} />
@@ -71,24 +88,24 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
             <Pressable
               onPress={shareBookingLink}
               className="flex-row items-center justify-center rounded-lg py-3 active:opacity-80"
-              style={{ backgroundColor: '#1E88E5' }}
+              style={{ backgroundColor: DesignTokens.colors.brand.default }}
             >
               <Ionicons name="share-outline" size={16} color="white" />
-              <Text className="text-sm font-semibold text-white ml-2">Share Link</Text>
+              <Text className="text-sm font-semibold text-white ml-2">{t('booking.shareLink')}</Text>
             </Pressable>
 
             <Pressable
               onPress={copyBookingLink}
               className="flex-row items-center justify-center rounded-lg py-3 active:bg-gray-200"
-              style={{ backgroundColor: '#F0F0F0' }}
+              style={{ backgroundColor: DesignTokens.colors.surface.muted }}
             >
               <Ionicons
                 name={copied ? 'checkmark-outline' : 'copy-outline'}
                 size={16}
-                color={copied ? '#2E7D32' : '#0B1220'}
+                color={copied ? DesignTokens.colors.green.strong : DesignTokens.colors.text.strong}
               />
-              <Text className="text-sm font-medium ml-2" style={{ color: copied ? '#2E7D32' : '#0B1220' }}>
-                {copied ? 'Copied!' : 'Copy Link'}
+              <Text className="text-sm font-medium ml-2" style={{ color: copied ? DesignTokens.colors.green.strong : DesignTokens.colors.text.strong }}>
+                {copied ? t('booking.copied') : t('booking.copyLink')}
               </Text>
             </Pressable>
           </View>
@@ -98,11 +115,11 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
         <Pressable
           onPress={() => (navigation as any).navigate('PublicBooking')}
           className="mt-3 flex-row items-center justify-center rounded-lg py-3 active:bg-blue-100"
-          style={{ backgroundColor: '#EBF3FF' }}
+          style={{ backgroundColor: DesignTokens.colors.brand.tint }}
         >
-          <Ionicons name="eye-outline" size={16} color="#1E88E5" />
-          <Text className="text-sm font-medium ml-2" style={{ color: '#1E88E5' }}>
-            Preview student booking page
+          <Ionicons name="eye-outline" size={16} color={DesignTokens.colors.brand.default} />
+          <Text className="text-sm font-medium ml-2" style={{ color: DesignTokens.colors.brand.default }}>
+            {t('booking.previewPage')}
           </Text>
         </Pressable>
       </View>
@@ -110,26 +127,26 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
       {/* Full-screen QR modal */}
       <Modal visible={showQR} transparent animationType="fade" onRequestClose={() => setShowQR(false)}>
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, backgroundColor: DesignTokens.colors.overlay.scrimHeavy, alignItems: 'center', justifyContent: 'center' }}
           onPress={() => setShowQR(false)}
         >
           <View style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: DesignTokens.colors.white,
             borderRadius: 20,
             padding: 32,
             alignItems: 'center',
             marginHorizontal: 32,
             paddingBottom: Math.max(insets.bottom + 32, 32),
           }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0B1220', marginBottom: 4 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: DesignTokens.colors.text.strong, marginBottom: 4 }}>
               {coach.name}
             </Text>
-            <Text style={{ fontSize: 13, color: '#42526E', marginBottom: 24, textAlign: 'center' }}>
-              Students scan this to book a lesson
+            <Text style={{ fontSize: 13, color: DesignTokens.colors.text.muted, marginBottom: 24, textAlign: 'center' }}>
+              {t('booking.scanToBook')}
             </Text>
             <QRCode value={bookingUrl} size={220} />
-            <Text style={{ fontSize: 12, color: '#9BA3AF', marginTop: 20, textAlign: 'center' }}>
-              Tap anywhere to close
+            <Text style={{ fontSize: 12, color: DesignTokens.colors.text.faint, marginTop: 20, textAlign: 'center' }}>
+              {t('booking.tapToClose')}
             </Text>
           </View>
         </Pressable>

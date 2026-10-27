@@ -23,18 +23,16 @@ import * as Haptics from 'expo-haptics';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
+import { UI_TIMING } from '../config/appSettings';
+import { showToast } from '../state/toastStore';
 import { AvailabilityRange, BlackoutDate } from '../types/coach';
 import { RangeEditorModal, BlackoutCalendarModal, PreviewModal } from '../components/AvailabilityModals';
+import { formatClockTime } from '../utils/timeFormat';
+import { DesignTokens } from '../utils/designTokens';
+import { weekdayName } from '../i18n/formatDate';
+import { t } from '../i18n';
 
-const DAYS = [
-  { name: 'Sun', value: 0 },
-  { name: 'Mon', value: 1 },
-  { name: 'Tue', value: 2 },
-  { name: 'Wed', value: 3 },
-  { name: 'Thu', value: 4 },
-  { name: 'Fri', value: 5 },
-  { name: 'Sat', value: 6 },
-];
+const WEEKDAYS = [0, 1, 2, 3, 4, 5, 6]; // Sunday first, as stored on availability ranges
 
 export function AvailabilityScreen() {
   const insets = useSafeAreaInsets();
@@ -49,7 +47,7 @@ export function AvailabilityScreen() {
     addBlackoutDate,
     removeBlackoutDate,
     getAvailabilityRangesForDay,
-    generateSlotsForNext14Days,
+    getOpenSlots,
     validateRangeOverlap,
     areas,
     facilities,
@@ -86,7 +84,7 @@ export function AvailabilityScreen() {
 
   const handleAddRange = () => {
     if (areas.length === 0) {
-      Alert.alert('No Areas', 'Please create an area first in Settings → Locations.');
+      showToast(t('availability.createAreaFirst'), 'error');
       return;
     }
     setEditingRange(null);
@@ -112,7 +110,7 @@ export function AvailabilityScreen() {
 
     const timeout = setTimeout(() => {
       setUndoAction(null);
-    }, 3000);
+    }, UI_TIMING.undoWindowMs);
 
     setUndoAction({
       action: () => {
@@ -138,12 +136,12 @@ export function AvailabilityScreen() {
     if (rangesToDelete.length === 0) return;
 
     Alert.alert(
-      'Clear Day',
-      `Remove all ${rangesToDelete.length} time ranges for ${DAYS.find(d => d.value === selectedDay)?.name}?`,
+      t('availability.clearDayTitle'),
+      t('availability.clearDayBody', { count: rangesToDelete.length, day: weekdayName(selectedDay) }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Clear',
+          text: t('availability.clear'),
           style: 'destructive',
           onPress: () => {
             rangesToDelete.forEach(range => deleteAvailabilityRange(range.id));
@@ -161,16 +159,16 @@ export function AvailabilityScreen() {
         {/* Left: Close Button */}
         <Pressable 
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-lg items-center justify-center active:bg-gray-100 mr-2"
+          className="w-11 h-11 rounded-lg items-center justify-center active:bg-gray-100 mr-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={26} color="#0B1220" />
+          <Ionicons name="close" size={26} color={DesignTokens.colors.text.strong} />
         </Pressable>
         
         {/* Center: Title */}
         <View className="flex-1 items-center">
-          <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
-            Availability
+          <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+            {t('settings.availability')}
           </Text>
         </View>
         
@@ -188,8 +186,8 @@ export function AvailabilityScreen() {
           }}
           className="px-3 py-2 rounded-lg active:bg-gray-100"
         >
-          <Text className="text-base font-medium" style={{ color: '#1E88E5' }}>
-            Preview
+          <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>
+            {t('availability.preview')}
           </Text>
         </Pressable>
       </View>
@@ -197,7 +195,7 @@ export function AvailabilityScreen() {
        {isPreviewLoading && (
          <View className="px-4 py-3">
            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-             <Text className="text-base mb-2" style={{ color: '#42526E' }}>Loading preview…</Text>
+             <Text className="text-base mb-2" style={{ color: DesignTokens.colors.text.muted }}>{t('availability.loadingPreview')}</Text>
              <View className="flex-row flex-wrap gap-2">
                <View className="w-20 h-8 bg-gray-200 rounded-md" />
                <View className="w-24 h-8 bg-gray-200 rounded-md" />
@@ -209,16 +207,16 @@ export function AvailabilityScreen() {
        <ScrollView className="flex-1">
          {/* Day Chips */}
          <View className="px-4 py-6">
-          <Text className="text-lg font-semibold mb-4" style={{ color: '#0B1220' }}>
-            Select Day
+          <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
+            {t('availability.selectDay')}
           </Text>
           <View className="flex-row justify-between">
-            {DAYS.map((day) => (
+            {WEEKDAYS.map((day) => (
               <DayChip
-                key={day.value}
+                key={day}
                 day={day}
-                isSelected={selectedDay === day.value}
-                onPress={() => handleDaySelect(day.value)}
+                isSelected={selectedDay === day}
+                onPress={() => handleDaySelect(day)}
               />
             ))}
           </View>
@@ -227,13 +225,13 @@ export function AvailabilityScreen() {
         {/* Time Ranges */}
         <View className="px-4 pb-6">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-              {DAYS.find(d => d.value === selectedDay)?.name} Times
+            <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('availability.dayTimes', { day: weekdayName(selectedDay) })}
             </Text>
             {dayRanges.length > 0 && (
               <Pressable onPress={handleClearDay} className="px-3 py-1 rounded-lg active:bg-gray-100">
-                <Text className="text-sm font-medium" style={{ color: '#C62828' }}>
-                  Clear day
+                <Text className="text-sm font-medium" style={{ color: DesignTokens.colors.red['800'] }}>
+                  {t('availability.clearDay')}
                 </Text>
               </Pressable>
             )}
@@ -241,12 +239,12 @@ export function AvailabilityScreen() {
 
           {dayRanges.length === 0 ? (
             <View className="items-center py-8">
-              <Ionicons name="time-outline" size={48} color="#42526E" />
-              <Text className="text-base mt-2 mb-1" style={{ color: '#0B1220' }}>
-                No times set
+              <Ionicons name="time-outline" size={48} color={DesignTokens.colors.text.muted} />
+              <Text className="text-base mt-2 mb-1" style={{ color: DesignTokens.colors.text.strong }}>
+                {t('availability.noTimesSet')}
               </Text>
-              <Text className="text-sm text-center" style={{ color: '#42526E' }}>
-                Add your available hours{'\n'}for this day
+              <Text className="text-sm text-center" style={{ color: DesignTokens.colors.text.muted }}>
+                {t('availability.addHoursForDay')}
               </Text>
             </View>
           ) : (
@@ -267,11 +265,11 @@ export function AvailabilityScreen() {
         {/* Blackout Dates */}
         <View className="px-4 pb-6">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-              Blackout Dates
+            <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('availability.blackoutDates')}
             </Text>
-            <Text className="text-sm" style={{ color: '#42526E' }}>
-              {blackoutDates.length} dates
+            <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
+              {t('availability.datesCount', { count: blackoutDates.length })}
             </Text>
           </View>
           
@@ -281,17 +279,17 @@ export function AvailabilityScreen() {
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className="text-base font-medium mb-1" style={{ color: '#0B1220' }}>
-                  Manage Blackout Dates
+                <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
+                  {t('availability.manageBlackout')}
                 </Text>
-                <Text className="text-sm" style={{ color: '#42526E' }}>
-                  {blackoutDates.length === 0 
-                    ? 'No blackout dates set' 
-                    : `${blackoutDates.length} dates unavailable`
+                <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
+                  {blackoutDates.length === 0
+                    ? t('availability.noBlackoutSet')
+                    : t('availability.datesUnavailable', { count: blackoutDates.length })
                   }
                 </Text>
               </View>
-              <Ionicons name="calendar-outline" size={24} color="#42526E" />
+              <Ionicons name="calendar-outline" size={24} color={DesignTokens.colors.text.muted} />
             </View>
           </Pressable>
         </View>
@@ -302,12 +300,12 @@ export function AvailabilityScreen() {
         <Pressable
           onPress={handleAddRange}
           className="rounded-lg py-4 px-4 active:opacity-80 mt-4"
-          style={{ backgroundColor: '#1E88E5', minHeight: 44 }}
+          style={{ backgroundColor: DesignTokens.colors.brand.default, minHeight: 44 }}
         >
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
             <Text className="text-base font-medium text-white ml-2">
-              Add Time Range
+              {t('availability.addTimeRange')}
             </Text>
           </View>
         </Pressable>
@@ -317,12 +315,12 @@ export function AvailabilityScreen() {
       {undoAction && (
         <View className="absolute bottom-20 left-4 right-4">
           <View className="bg-gray-800 rounded-lg p-4 flex-row items-center justify-between">
-            <Text className="text-white font-medium">Range deleted</Text>
+            <Text className="text-white font-medium">{t('availability.rangeDeleted')}</Text>
             <Pressable
               onPress={undoAction.action}
               className="px-3 py-1 rounded bg-white/20 active:bg-white/30"
             >
-              <Text className="text-white font-medium">Undo</Text>
+              <Text className="text-white font-medium">{t('common.undo')}</Text>
             </Pressable>
           </View>
         </View>
@@ -381,7 +379,7 @@ export function AvailabilityScreen() {
       <PreviewModal
         visible={showPreview}
         onClose={() => setShowPreview(false)}
-        slots={generateSlotsForNext14Days()}
+        slots={getOpenSlots()}
         formatLocationText={formatLocationText}
       />
     </View>
@@ -389,7 +387,7 @@ export function AvailabilityScreen() {
 }
 
 interface DayChipProps {
-  day: { name: string; value: number };
+  day: number;
   isSelected: boolean;
   onPress: () => void;
 }
@@ -416,9 +414,9 @@ function DayChip({ day, isSelected, onPress }: DayChipProps) {
     <GestureDetector gesture={gesture}>
       <Animated.View style={animatedStyle}>
         <View
-          className="w-10 h-10 rounded-full items-center justify-center"
+          className="w-11 h-11 rounded-full items-center justify-center"
           style={{
-            backgroundColor: isSelected ? '#1E88E5' : '#F5F5F5',
+            backgroundColor: isSelected ? DesignTokens.colors.brand.default : DesignTokens.colors.surface.subtle,
             minWidth: 44,
             minHeight: 44,
           }}
@@ -426,10 +424,10 @@ function DayChip({ day, isSelected, onPress }: DayChipProps) {
           <Text
             className="text-sm font-medium"
             style={{
-              color: isSelected ? 'white' : '#42526E',
+              color: isSelected ? 'white' : DesignTokens.colors.text.muted,
             }}
           >
-            {day.name}
+            {weekdayName(day)}
           </Text>
         </View>
       </Animated.View>
@@ -473,34 +471,26 @@ function RangeCard({ range, onEdit, onDelete, formatLocationText }: RangeCardPro
 
   const combinedGesture = Gesture.Simultaneous(panGesture, tapGesture);
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
   return (
     <GestureDetector gesture={combinedGesture}>
       <Animated.View style={animatedStyle}>
         <View className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <View className="flex-row justify-between items-start">
             <View className="flex-1">
-              <Text className="text-lg font-semibold mb-1" style={{ color: '#0B1220' }}>
-                {formatTime(range.startTime)} - {formatTime(range.endTime)}
+              <Text className="text-lg font-semibold mb-1" style={{ color: DesignTokens.colors.text.strong }}>
+                {formatClockTime(range.startTime)} - {formatClockTime(range.endTime)}
               </Text>
-              <Text className="text-sm" style={{ color: '#42526E' }}>
+              <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                 {formatLocationText(range.areaId, range.facilityId, range.courtId)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#42526E" />
+            <Ionicons name="chevron-forward" size={20} color={DesignTokens.colors.text.muted} />
           </View>
           
           {/* Swipe hint */}
           <View className="mt-3 pt-3 border-t border-gray-100">
-            <Text className="text-xs font-medium text-center" style={{ color: '#C62828' }}>
-              ← Swipe left to delete
+            <Text className="text-xs font-medium text-center" style={{ color: DesignTokens.colors.red['800'] }}>
+              {t('availability.swipeToDelete')}
             </Text>
           </View>
         </View>

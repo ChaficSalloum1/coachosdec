@@ -26,6 +26,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getSupabaseClient } from '../api/supabase';
+import palette from '../theme/palette.json';
 
 const PROJECT_ID =
   Constants.expoConfig?.extra?.eas?.projectId ??
@@ -58,7 +59,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
       name: 'CoachOS Notifications',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: '#4F46E5',
+      lightColor: palette.indigo['600'],
     });
   }
 

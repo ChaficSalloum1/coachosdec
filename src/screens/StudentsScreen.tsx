@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,8 +15,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useCoachStore } from '../state/coachStore';
+import { useCurrency } from '../hooks/useCurrency';
 import { Student } from '../types/coach';
 import { StudentNotesScreen } from '../components/StudentNotesScreen';
+import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
+import { summarizeUnpaid } from '../utils/unpaid';
+import { todayISO } from '../utils/dayNav';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export function StudentsScreen() {
   const insets = useSafeAreaInsets();
@@ -27,8 +33,17 @@ export function StudentsScreen() {
   const getStudentNotes = useCoachStore(s => s.getStudentNotes);
   const searchStudentNotes = useCoachStore(s => s.searchStudentNotes);
 
+  const lessons = useCoachStore(s => s.lessons);
+  const { formatMoney } = useCurrency();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [owingOnly, setOwingOnly] = useState(false);
+  const [paymentLessonId, setPaymentLessonId] = useState<string | null>(null);
+
+  const unpaid = useMemo(() => summarizeUnpaid(lessons, students, todayISO()), [lessons, students]);
+  // Nothing owed any more: leave the filter so the list is never stuck empty.
+  const showOwing = owingOnly && unpaid.students.length > 0;
 
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -47,8 +62,8 @@ export function StudentsScreen() {
         className="px-4 border-b border-gray-200"
         style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
       >
-        <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
-          Students
+        <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+          {t('students.title')}
         </Text>
       </View>
 
@@ -59,7 +74,41 @@ export function StudentsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="px-4 py-4">
-          {filteredStudents.length === 0 ? (
+          {showOwing ? (
+            <View>
+              <Text className="text-sm mb-3" style={{ color: DesignTokens.colors.text.muted }}>
+                {t('students.owedBy', { amount: formatMoney(unpaid.total), count: unpaid.students.length })}
+              </Text>
+              {unpaid.students.map((row) => (
+                <View
+                  key={row.student.id}
+                  className="flex-row items-center border-b border-gray-100"
+                  style={{ minHeight: 64 }}
+                >
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold" style={{ color: DesignTokens.colors.text.strong }} numberOfLines={1}>
+                      {row.student.name}
+                    </Text>
+                    <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
+                      {t('students.lessonsSince', { count: row.lessonCount, date: row.oldestDate })}
+                    </Text>
+                  </View>
+                  <Text className="text-base font-semibold mr-3" style={{ color: DesignTokens.colors.red['700'] }}>
+                    {formatMoney(row.amount)}
+                  </Text>
+                  <Pressable
+                    onPress={() => setPaymentLessonId(row.oldestLessonId)}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('students.requestPaymentFrom', { name: row.student.name })}
+                    className="rounded-full px-4 justify-center"
+                    style={{ minHeight: 44, backgroundColor: DesignTokens.colors.brand.default }}
+                  >
+                    <Text className="font-semibold" style={{ color: DesignTokens.colors.white }}>{t('students.request')}</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : filteredStudents.length === 0 ? (
             <EmptyState hasSearch={searchQuery.length > 0} />
           ) : (
             <View className="space-y-3">
@@ -83,19 +132,36 @@ export function StudentsScreen() {
           { bottom: insets.bottom },
         ]}
       >
-        <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
-          <Ionicons name="search" size={20} color="#42526E" />
+        <View className="flex-row items-center" style={{ gap: 8 }}>
+        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
+          <Ionicons name="search" size={20} color={DesignTokens.colors.text.muted} />
           <TextInput
             className="flex-1 ml-2 text-base text-ink-900"
-            placeholder="Search students..."
-            placeholderTextColor="#42526E"
+            placeholder={t('students.search')}
+            placeholderTextColor={DesignTokens.colors.text.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
             clearButtonMode="while-editing"
           />
         </View>
+        {unpaid.students.length > 0 && (
+          <Pressable
+            onPress={() => setOwingOnly((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: showOwing }}
+            className="rounded-xl px-3 justify-center"
+            style={{ minHeight: 44, backgroundColor: showOwing ? DesignTokens.colors.red['700'] : DesignTokens.colors.red.tint }}
+          >
+            <Text className="font-semibold" style={{ color: showOwing ? DesignTokens.colors.white : DesignTokens.colors.red['700'] }}>
+              {t('students.owing', { amount: formatMoney(unpaid.total) })}
+            </Text>
+          </Pressable>
+        )}
+        </View>
       </View>
+
+      <LessonPaymentSheet lessonId={paymentLessonId} onClose={() => setPaymentLessonId(null)} />
 
       {/* Student Notes Modal */}
       {selectedStudent && (
@@ -132,15 +198,15 @@ function EmptyState({ hasSearch }: EmptyStateProps) {
       <Ionicons
         name={hasSearch ? "search-outline" : "people-outline"}
         size={64}
-        color="#42526E"
+        color={DesignTokens.colors.text.muted}
       />
-      <Text className="text-xl font-semibold mt-4 mb-2" style={{ color: '#0B1220' }}>
-        {hasSearch ? 'No students found' : 'No students yet'}
+      <Text className="text-xl font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+        {hasSearch ? t('students.noneFound') : t('students.noneYet')}
       </Text>
-      <Text className="text-base text-center" style={{ color: '#42526E' }}>
+      <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
         {hasSearch
-          ? 'Try adjusting your search terms'
-          : "Students will appear here after their\nfirst approved booking."
+          ? t('students.tryAdjusting')
+          : t('students.appearAfterBooking')
         }
       </Text>
     </View>
@@ -154,7 +220,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'white',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: DesignTokens.colors.line.default,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
@@ -165,10 +231,11 @@ interface BalancePillProps {
 }
 
 function BalancePill({ amount }: BalancePillProps) {
+  const { formatMoney } = useCurrency();
   return (
-    <View style={{ backgroundColor: 'rgba(245, 124, 0, 0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: '#F57C00' }}>
-        ${amount.toFixed(2)} due
+    <View style={{ backgroundColor: DesignTokens.colors.amber.glow, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: DesignTokens.colors.amber.strong }}>
+        {t('students.due', { amount: formatMoney(amount) })}
       </Text>
     </View>
   );
@@ -181,11 +248,12 @@ interface PaymentSummaryProps {
 }
 
 function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
+  const { formatMoney } = useCurrency();
   // If everything is paid, show simple total
   if (due === 0) {
     return (
       <Text className="text-small text-ink-600">
-        ${total.toFixed(2)} total
+        {t('students.total', { amount: formatMoney(total) })}
       </Text>
     );
   }
@@ -195,7 +263,7 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
     return (
       <View className="items-end">
         <Text className="text-small text-ink-600">
-          ${total.toFixed(2)} total
+          {t('students.total', { amount: formatMoney(total) })}
         </Text>
       </View>
     );
@@ -205,10 +273,10 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
   return (
     <View className="items-end">
       <Text className="text-xs text-ink-500">
-        ${total.toFixed(2)} total
+        {t('students.total', { amount: formatMoney(total) })}
       </Text>
       <Text className="text-xs text-success">
-        ${paid.toFixed(2)} paid
+        {t('students.paid', { amount: formatMoney(paid) })}
       </Text>
     </View>
   );
@@ -221,6 +289,7 @@ interface StudentCardProps {
 }
 
 function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
+  const { formatMoney } = useCurrency();
   const { getStudentLessons, updateStudent, removeStudent } = useCoachStore();
   const studentLessons = getStudentLessons(student.id);
 
@@ -241,21 +310,21 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
     const upcomingRevenue = scheduledLessons.reduce((sum, l) => sum + l.price, 0);
 
     const detailsText = [
-      `Contact: ${student.contact}`,
+      t('students.detailsContact', { contact: student.contact }),
       '',
-      '📊 Lesson Summary:',
-      `Total Lessons: ${student.totalLessons}`,
-      `  • Scheduled: ${scheduledLessons.length}`,
-      `  • Completed: ${completedLessons.length}`,
-      `  • Cancelled: ${cancelledLessons.length}`,
+      t('students.detailsLessonSummary'),
+      t('students.detailsTotalLessons', { count: student.totalLessons }),
+      t('students.detailsScheduled', { count: scheduledLessons.length }),
+      t('students.detailsCompleted', { count: completedLessons.length }),
+      t('students.detailsCancelled', { count: cancelledLessons.length }),
       '',
-      '💰 Financial Summary:',
-      `Total Spent: $${student.totalSpent.toFixed(2)}`,
-      `  • Earned: $${totalEarned.toFixed(2)}`,
-      `  • Upcoming: $${upcomingRevenue.toFixed(2)}`,
-      `Balance Due: $${student.balance.toFixed(2)}`,
-      unpaidLessons.length > 0 ? `  • ${unpaidLessons.length} unpaid lesson${unpaidLessons.length > 1 ? 's' : ''}` : '',
-      student.notes ? `\nNotes: ${student.notes}` : ''
+      t('students.detailsFinancialSummary'),
+      t('students.detailsTotalSpent', { amount: formatMoney(student.totalSpent) }),
+      t('students.detailsEarned', { amount: formatMoney(totalEarned) }),
+      t('students.detailsUpcoming', { amount: formatMoney(upcomingRevenue) }),
+      t('students.detailsBalanceDue', { amount: formatMoney(student.balance) }),
+      unpaidLessons.length > 0 ? t('students.detailsUnpaid', { count: unpaidLessons.length }) : '',
+      student.notes ? `\n${t('students.detailsNotes', { notes: student.notes })}` : ''
     ].filter(line => line !== '').join('\n');
 
     Alert.alert(
@@ -263,16 +332,16 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
       detailsText,
       [
         {
-          text: 'Remove Student',
+          text: t('students.removeStudent'),
           style: 'destructive',
           onPress: () => confirmRemoveStudent(student),
         },
         {
-          text: 'Add Note',
+          text: t('notes.addNote'),
           onPress: () => showAddNote(student),
         },
         {
-          text: 'OK',
+          text: t('common.ok'),
           style: 'cancel',
         },
       ]
@@ -283,19 +352,19 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
     const scheduledLessons = studentLessons.filter(l => l.status === 'scheduled');
     
     const message = scheduledLessons.length > 0
-      ? `This will remove ${student.name} and cancel ${scheduledLessons.length} scheduled lesson${scheduledLessons.length > 1 ? 's' : ''}. This action cannot be undone.`
-      : `This will permanently remove ${student.name} from your student list. This action cannot be undone.`;
+      ? t('students.removeWithLessons', { name: student.name, count: scheduledLessons.length })
+      : t('students.removeNoLessons', { name: student.name });
 
     Alert.alert(
-      'Remove Student?',
+      t('students.removeTitle'),
       message,
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: () => removeStudent(student.id),
         },
@@ -305,8 +374,8 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
 
   const showAddNote = (student: Student) => {
     Alert.prompt(
-      'Add Note',
-      `Add a note for ${student.name}:`,
+      t('notes.addNote'),
+      t('students.addNoteFor', { name: student.name }),
       (text) => {
         if (text !== null) {
           updateStudent(student.id, { notes: text.trim() || undefined });
@@ -318,17 +387,17 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
   };
 
   const getLastLessonText = () => {
-    if (!student.lastLessonDate) return 'No lessons yet';
+    if (!student.lastLessonDate) return t('students.noLessonsYet');
     
     const lastLesson = new Date(student.lastLessonDate);
     const today = new Date();
     const diffInDays = Math.floor((today.getTime() - lastLesson.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    return `${Math.floor(diffInDays / 30)} months ago`;
+    if (diffInDays === 0) return t('common.today');
+    if (diffInDays === 1) return t('students.yesterday');
+    if (diffInDays < 7) return t('students.daysAgo', { count: diffInDays });
+    if (diffInDays < 30) return t('students.weeksAgo', { count: Math.floor(diffInDays / 7) });
+    return t('students.monthsAgo', { count: Math.floor(diffInDays / 30) });
   };
 
   const handleContactPress = () => {
@@ -348,9 +417,9 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
           backgroundColor: 'white',
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#E0E0E0',
+          borderColor: DesignTokens.colors.line.default,
           padding: 16,
-          shadowColor: '#000',
+          shadowColor: DesignTokens.colors.black,
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.05,
           shadowRadius: 2,
@@ -358,7 +427,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
         },
         unpaidAmount > 0 && {
           borderLeftWidth: 3,
-          borderLeftColor: '#F57C00',
+          borderLeftColor: DesignTokens.colors.amber.strong,
         },
       ]}
     >
@@ -371,16 +440,16 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             onPress={(e) => { e.stopPropagation(); handleContactPress(); }}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
-            <Text style={{ fontSize: 13, color: '#1E88E5', marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, color: DesignTokens.colors.brand.default, marginBottom: 4 }}>
               {student.contact}
             </Text>
           </Pressable>
           <Text className="text-small text-ink-600">
-            Last lesson: {getLastLessonText()}
+            {t('students.lastLesson', { when: getLastLessonText() })}
           </Text>
           {student.notes && (
             <Text className="text-small text-ink-600 mt-2 italic">
-              {`"${student.notes}"`}
+              {t('common.quoted', { text: student.notes })}
             </Text>
           )}
         </View>
@@ -390,7 +459,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             <BalancePill amount={unpaidAmount} />
           )}
           <Text className="text-small text-ink-600 mt-2">
-            {actualTotalLessons} {actualTotalLessons === 1 ? 'lesson' : 'lessons'}
+            {t('students.lessonCount', { count: actualTotalLessons })}
           </Text>
           {actualTotalSpent > 0 ? (
             <PaymentSummary
@@ -400,7 +469,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             />
           ) : (
             <Text className="text-small text-ink-600">
-              $0 total
+              {t('students.total', { amount: formatMoney(0) })}
             </Text>
           )}
 
@@ -412,9 +481,9 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             }}
             className="flex-row items-center gap-1 mt-2 px-2 py-1 rounded-lg bg-blue-50 active:bg-blue-100"
           >
-            <Ionicons name="document-text" size={14} color="#1E88E5" />
-            <Text className="text-xs font-medium" style={{ color: '#1E88E5' }}>
-              {notesCount > 0 ? `${notesCount}` : 'Notes'}
+            <Ionicons name="document-text" size={14} color={DesignTokens.colors.brand.default} />
+            <Text className="text-xs font-medium" style={{ color: DesignTokens.colors.brand.default }}>
+              {notesCount > 0 ? `${notesCount}` : t('students.notesButton')}
             </Text>
           </Pressable>
         </View>

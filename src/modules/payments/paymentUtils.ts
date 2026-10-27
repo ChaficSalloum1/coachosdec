@@ -1,3 +1,4 @@
+import { DEFAULT_CURRENCY, formatMoneyFromCents, resolveCurrency, type CurrencyCode } from './currency';
 import type {
   CoachPaymentSettings,
   PaymentInstruction,
@@ -5,6 +6,7 @@ import type {
   PaymentPreference,
   PaymentStatus,
 } from './paymentTypes';
+import { t } from '../../i18n';
 
 export function centsToEuro(amountCents: number): number {
   return amountCents / 100;
@@ -15,10 +17,7 @@ export function eurosToCents(amountEur: number): number {
 }
 
 export function formatEuro(amountCents: number): string {
-  return new Intl.NumberFormat('en-IE', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(centsToEuro(amountCents));
+  return formatMoneyFromCents(amountCents, 'EUR');
 }
 
 export function generatePaymentReferenceCode(
@@ -30,7 +29,7 @@ export function generatePaymentReferenceCode(
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, 8) || 'COACH';
 
-  return `COACHIKO-${cleanName}-${lessonId.slice(0, 6).toUpperCase()}`;
+  return `COACHOS-${cleanName}-${lessonId.slice(0, 6).toUpperCase()}`;
 }
 
 export function buildSepaQrPayload(params: {
@@ -67,6 +66,7 @@ export function normalizePaymentSettings(
     ibanBeneficiaryName: settings?.ibanBeneficiaryName,
     cancellationPolicy: settings?.cancellationPolicy,
     cashEnabled: settings?.cashEnabled ?? true,
+    currency: resolveCurrency(settings?.currency),
     qrCode: settings?.qrCode,
     phoneId: settings?.phoneId,
   };
@@ -117,37 +117,44 @@ export function createPaymentInstruction(params: {
   irisAlias?: string;
   iban?: string;
   ibanBeneficiaryName?: string;
+  currency?: CurrencyCode;
 }): PaymentInstruction {
-  const amount = formatEuro(params.amountCents);
+  const currency = params.currency ?? DEFAULT_CURRENCY;
+  const amount = formatMoneyFromCents(params.amountCents, currency);
 
   if (params.method === 'REVOLUT') {
     return {
       method: 'REVOLUT',
-      title: 'Pay with Revolut',
+      title: t('payments.payWithRevolut'),
       amountCents: params.amountCents,
-      currency: 'EUR',
+      currency,
       reference: params.reference,
       externalUrl: params.revolutLink,
       qrPayload: params.revolutLink,
-      displayText: `Pay ${amount} via Revolut. Use reference: ${params.reference}`,
+      displayText: t('payments.revolutText', { amount, reference: params.reference }),
     };
   }
 
   if (params.method === 'IRIS') {
     return {
       method: 'IRIS',
-      title: 'Pay with IRIS',
+      title: t('payments.payWithIris'),
       amountCents: params.amountCents,
-      currency: 'EUR',
+      currency,
       reference: params.reference,
-      qrPayload: `IRIS payment\nAlias: ${params.irisAlias ?? ''}\nAmount: ${amount}\nReference: ${params.reference}`,
-      displayText: `Pay ${amount} via IRIS to ${params.irisAlias ?? 'your coach alias'}. Use reference: ${params.reference}.`,
+      qrPayload: t('payments.irisQr', { alias: params.irisAlias ?? '', amount, reference: params.reference }),
+      displayText: t('payments.irisText', {
+        amount,
+        alias: params.irisAlias ?? t('payments.coachAlias'),
+        reference: params.reference,
+      }),
     };
   }
 
   if (params.method === 'IBAN') {
+    // The SEPA QR format only exists for euros; other currencies show the IBAN text only.
     const qrPayload =
-      params.iban && params.ibanBeneficiaryName
+      currency === 'EUR' && params.iban && params.ibanBeneficiaryName
         ? buildSepaQrPayload({
             beneficiaryName: params.ibanBeneficiaryName,
             iban: params.iban,
@@ -158,22 +165,27 @@ export function createPaymentInstruction(params: {
 
     return {
       method: 'IBAN',
-      title: 'Pay by Bank Transfer',
+      title: t('payments.payByBank'),
       amountCents: params.amountCents,
-      currency: 'EUR',
+      currency,
       reference: params.reference,
       qrPayload,
-      displayText: `Pay ${amount} to IBAN ${params.iban ?? ''}. Beneficiary: ${params.ibanBeneficiaryName ?? ''}. Use reference: ${params.reference}.`,
+      displayText: t('payments.ibanText', {
+        amount,
+        iban: params.iban ?? '',
+        beneficiary: params.ibanBeneficiaryName ?? '',
+        reference: params.reference,
+      }),
     };
   }
 
   return {
     method: 'CASH',
-    title: 'Pay in Cash',
+    title: t('payments.payInCash'),
     amountCents: params.amountCents,
-    currency: 'EUR',
+    currency,
     reference: params.reference,
-    displayText: `Pay ${amount} directly to the coach. Reference: ${params.reference}.`,
+    displayText: t('payments.cashText', { amount, reference: params.reference }),
   };
 }
 
@@ -194,6 +206,7 @@ export function createInstructionFromSettings(params: {
     irisAlias: settings.irisAlias,
     iban: settings.iban,
     ibanBeneficiaryName: settings.ibanBeneficiaryName,
+    currency: settings.currency,
   });
 }
 
@@ -201,16 +214,16 @@ export function getPaymentStatusLabel(status: PaymentStatus | undefined, isPaid?
   const normalized = normalizePaymentStatus(status, isPaid);
   switch (normalized) {
     case 'REQUESTED':
-      return 'Payment requested';
+      return t('payments.statusRequested');
     case 'REMINDER_SENT':
-      return 'Reminder sent';
+      return t('payments.statusReminderSent');
     case 'PAID_CONFIRMED':
-      return 'Marked as paid by coach';
+      return t('payments.statusPaid');
     case 'FAILED_OR_CANCELLED':
-      return 'Payment cancelled';
+      return t('payments.statusCancelled');
     case 'NOT_REQUESTED':
     default:
-      return 'Payment not requested';
+      return t('payments.statusNotRequested');
   }
 }
 

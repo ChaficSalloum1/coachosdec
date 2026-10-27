@@ -11,9 +11,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Haptics from 'expo-haptics';
-import { addDays, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
+import { showToast } from '../state/toastStore';
+import { addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, parseISO } from 'date-fns';
 
 import { AvailabilityRange, BlackoutDate, Area, Facility, Court } from '../types/coach';
+import { formatClockTime } from '../utils/timeFormat';
+import { DesignTokens } from '../utils/designTokens';
+import { formatLocalized, weekdayName } from '../i18n/formatDate';
+import { formatDateForDisplay } from '../utils/dayNav';
+import { t } from '../i18n';
 
 interface RangeEditorModalProps {
   visible: boolean;
@@ -69,12 +75,12 @@ export function RangeEditorModal({
 
   const handleSave = () => {
     if (!selectedAreaId) {
-      Alert.alert('Missing Area', 'Please select an area.');
+      showToast(t('availability.selectArea'), 'error');
       return;
     }
 
     if (startTime >= endTime) {
-      Alert.alert('Invalid Time Range', 'End time must be after start time.');
+      showToast(t('availability.endAfterStart'), 'error');
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       return;
     }
@@ -96,9 +102,9 @@ export function RangeEditorModal({
     const hasOverlap = validateRangeOverlap(rangeData, range?.id);
     if (hasOverlap) {
       Alert.alert(
-        'Time Conflict',
-        'You already have availability set for this day and time. You can only be in one place at a time.\n\nPlease choose a different time or edit your existing availability.',
-        [{ text: 'OK' }]
+        t('availability.conflictTitle'),
+        t('availability.conflictBody'),
+        [{ text: t('common.ok') }]
       );
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       return;
@@ -135,49 +141,49 @@ export function RangeEditorModal({
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: '#1E88E5' }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>{t('common.cancel')}</Text>
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-            {range ? 'Edit Time Range' : 'Add Time Range'}
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+            {range ? t('availability.editTimeRange') : t('availability.addTimeRange')}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: '#1E88E5' }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>{t('common.save')}</Text>
           </Pressable>
         </View>
 
         <ScrollView className="flex-1">
           {/* Time Range */}
           <View className="p-4">
-            <Text className="text-lg font-semibold mb-4" style={{ color: '#0B1220' }}>
-              Time Range
+            <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('availability.timeRange')}
             </Text>
             
             <View className="flex-row space-x-4 mb-6">
               <View className="flex-1">
-                <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
-                  Start Time
+                <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+                  {t('availability.startTime')}
                 </Text>
                 <Pressable
                   onPress={() => setShowStartPicker(true)}
                   className="bg-gray-50 rounded-lg px-3 py-3 border border-gray-200"
                   style={{ minHeight: 44 }}
                 >
-                  <Text className="text-base" style={{ color: '#0B1220' }}>
+                  <Text className="text-base" style={{ color: DesignTokens.colors.text.strong }}>
                     {formatTimeDisplay(startTime)}
                   </Text>
                 </Pressable>
               </View>
               
               <View className="flex-1">
-                <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
-                  End Time
+                <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+                  {t('availability.endTime')}
                 </Text>
                 <Pressable
                   onPress={() => setShowEndPicker(true)}
                   className="bg-gray-50 rounded-lg px-3 py-3 border border-gray-200"
                   style={{ minHeight: 44 }}
                 >
-                  <Text className="text-base" style={{ color: '#0B1220' }}>
+                  <Text className="text-base" style={{ color: DesignTokens.colors.text.strong }}>
                     {formatTimeDisplay(endTime)}
                   </Text>
                 </Pressable>
@@ -187,14 +193,14 @@ export function RangeEditorModal({
 
           {/* Location Picker */}
           <View className="p-4 border-t border-gray-200">
-            <Text className="text-lg font-semibold mb-4" style={{ color: '#0B1220' }}>
-              Location
+            <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('availability.location')}
             </Text>
 
             {/* Area Selection */}
             <View className="mb-4">
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
-                Area (Required)
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+                {t('availability.areaRequired')}
               </Text>
               <View className="bg-gray-50 rounded-lg border border-gray-200">
                 {areas.map((area) => (
@@ -208,16 +214,16 @@ export function RangeEditorModal({
                     className="px-3 py-3 flex-row items-center"
                     style={{
                       borderBottomWidth: areas.indexOf(area) < areas.length - 1 ? 1 : 0,
-                      borderBottomColor: '#E0E0E0',
+                      borderBottomColor: DesignTokens.colors.line.default,
                       minHeight: 44,
                     }}
                   >
                     <Ionicons
                       name={selectedAreaId === area.id ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color="#1E88E5"
+                      color={DesignTokens.colors.brand.default}
                     />
-                    <Text className="text-base ml-3" style={{ color: '#0B1220' }}>
+                    <Text className="text-base ml-3" style={{ color: DesignTokens.colors.text.strong }}>
                       {area.name}
                     </Text>
                   </Pressable>
@@ -228,8 +234,8 @@ export function RangeEditorModal({
             {/* Facility Selection */}
             {availableFacilities.length > 0 && (
               <View className="mb-4">
-                <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
-                  Facility (Optional)
+                <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+                  {t('availability.facilityOptional')}
                 </Text>
                 <View className="bg-gray-50 rounded-lg border border-gray-200">
                   <Pressable
@@ -243,10 +249,10 @@ export function RangeEditorModal({
                     <Ionicons
                       name={selectedFacilityId === '' ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color="#1E88E5"
+                      color={DesignTokens.colors.brand.default}
                     />
-                    <Text className="text-base ml-3" style={{ color: '#42526E' }}>
-                      No specific facility
+                    <Text className="text-base ml-3" style={{ color: DesignTokens.colors.text.muted }}>
+                      {t('availability.noFacility')}
                     </Text>
                   </Pressable>
                   {availableFacilities.map((facility) => (
@@ -259,16 +265,16 @@ export function RangeEditorModal({
                       className="px-3 py-3 flex-row items-center"
                       style={{
                         borderBottomWidth: availableFacilities.indexOf(facility) < availableFacilities.length - 1 ? 1 : 0,
-                        borderBottomColor: '#E0E0E0',
+                        borderBottomColor: DesignTokens.colors.line.default,
                         minHeight: 44,
                       }}
                     >
                       <Ionicons
                         name={selectedFacilityId === facility.id ? 'radio-button-on' : 'radio-button-off'}
                         size={20}
-                        color="#1E88E5"
+                        color={DesignTokens.colors.brand.default}
                       />
-                      <Text className="text-base ml-3" style={{ color: '#0B1220' }}>
+                      <Text className="text-base ml-3" style={{ color: DesignTokens.colors.text.strong }}>
                         {facility.name}
                       </Text>
                     </Pressable>
@@ -280,8 +286,8 @@ export function RangeEditorModal({
             {/* Court Selection */}
             {selectedFacilityId && availableCourts.length > 0 && (
               <View className="mb-4">
-                <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
-                  Court (Optional)
+                <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+                  {t('availability.courtOptional')}
                 </Text>
                 <View className="bg-gray-50 rounded-lg border border-gray-200">
                   <Pressable
@@ -292,10 +298,10 @@ export function RangeEditorModal({
                     <Ionicons
                       name={selectedCourtId === '' ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color="#1E88E5"
+                      color={DesignTokens.colors.brand.default}
                     />
-                    <Text className="text-base ml-3" style={{ color: '#42526E' }}>
-                      No specific court
+                    <Text className="text-base ml-3" style={{ color: DesignTokens.colors.text.muted }}>
+                      {t('availability.noCourt')}
                     </Text>
                   </Pressable>
                   {availableCourts.map((court) => (
@@ -305,16 +311,16 @@ export function RangeEditorModal({
                       className="px-3 py-3 flex-row items-center"
                       style={{
                         borderBottomWidth: availableCourts.indexOf(court) < availableCourts.length - 1 ? 1 : 0,
-                        borderBottomColor: '#E0E0E0',
+                        borderBottomColor: DesignTokens.colors.line.default,
                         minHeight: 44,
                       }}
                     >
                       <Ionicons
                         name={selectedCourtId === court.id ? 'radio-button-on' : 'radio-button-off'}
                         size={20}
-                        color="#1E88E5"
+                        color={DesignTokens.colors.brand.default}
                       />
-                      <Text className="text-base ml-3" style={{ color: '#0B1220' }}>
+                      <Text className="text-base ml-3" style={{ color: DesignTokens.colors.text.strong }}>
                         {court.label}
                       </Text>
                     </Pressable>
@@ -325,10 +331,10 @@ export function RangeEditorModal({
 
             {/* Location Preview */}
             <View className="bg-blue-50 rounded-lg p-3">
-              <Text className="text-sm font-medium mb-1" style={{ color: '#0B1220' }}>
-                Selected Location:
+              <Text className="text-sm font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
+                {t('availability.selectedLocation')}
               </Text>
-              <Text className="text-sm" style={{ color: '#42526E' }}>
+              <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                 {formatLocationText(selectedAreaId, selectedFacilityId || undefined, selectedCourtId || undefined)}
               </Text>
             </View>
@@ -429,10 +435,10 @@ export function BlackoutCalendarModal({
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: '#1E88E5' }}>Done</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>{t('common.done')}</Text>
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-            Blackout Dates
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+            {t('availability.blackoutDates')}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -445,11 +451,11 @@ export function BlackoutCalendarModal({
               className="p-2 rounded-lg active:bg-gray-100"
               style={{ minWidth: 44, minHeight: 44 }}
             >
-              <Ionicons name="chevron-back" size={24} color="#0B1220" />
+              <Ionicons name="chevron-back" size={24} color={DesignTokens.colors.text.strong} />
             </Pressable>
             
-            <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-              {selectedMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+            <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+              {formatLocalized(selectedMonth, 'LLLL yyyy')}
             </Text>
             
             <Pressable
@@ -457,16 +463,16 @@ export function BlackoutCalendarModal({
               className="p-2 rounded-lg active:bg-gray-100"
               style={{ minWidth: 44, minHeight: 44 }}
             >
-              <Ionicons name="chevron-forward" size={24} color="#0B1220" />
+              <Ionicons name="chevron-forward" size={24} color={DesignTokens.colors.text.strong} />
             </Pressable>
           </View>
 
           {/* Day Headers */}
           <View className="flex-row mb-2">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            {[0, 1, 2, 3, 4, 5, 6].map(day => (
               <View key={day} className="flex-1 items-center py-2">
-                <Text className="text-sm font-medium" style={{ color: '#42526E' }}>
-                  {day}
+                <Text className="text-sm font-medium" style={{ color: DesignTokens.colors.text.muted }}>
+                  {weekdayName(day)}
                 </Text>
               </View>
             ))}
@@ -492,11 +498,11 @@ export function BlackoutCalendarModal({
 
         <View className="px-4 pb-4">
           <View className="bg-blue-50 rounded-lg p-3">
-            <Text className="text-sm font-medium mb-1" style={{ color: '#0B1220' }}>
-              Instructions:
+            <Text className="text-sm font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('availability.instructions')}
             </Text>
-            <Text className="text-sm" style={{ color: '#42526E' }}>
-              {"Tap dates to add/remove blackouts. Blacked out dates won't show available slots to students."}
+            <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
+              {t('availability.blackoutHelp')}
             </Text>
           </View>
         </View>
@@ -520,7 +526,7 @@ function DayCell({ date, isBlackedOut, onPress }: DayCellProps) {
       onPress={onPress}
       className="flex-1 items-center justify-center rounded-lg"
       style={{
-        backgroundColor: isBlackedOut ? '#C62828' : isToday ? '#E3F2FD' : 'transparent',
+        backgroundColor: isBlackedOut ? DesignTokens.colors.red['800'] : isToday ? DesignTokens.colors.brand.tintMaterial : 'transparent',
         opacity: isPast ? 0.5 : 1,
         minHeight: 44,
       }}
@@ -528,7 +534,7 @@ function DayCell({ date, isBlackedOut, onPress }: DayCellProps) {
       <Text
         className="text-sm font-medium"
         style={{
-          color: isBlackedOut ? 'white' : isToday ? '#1E88E5' : '#0B1220',
+          color: isBlackedOut ? 'white' : isToday ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong,
         }}
       >
         {date.getDate()}
@@ -557,25 +563,7 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
   }, {} as Record<string, typeof slots>);
 
   const formatDate = (dateString: string) => {
-    const date = parseISO(dateString);
-    const today = new Date();
-    const tomorrow = addDays(today, 1);
-
-    if (isSameDay(date, today)) {
-      return 'Today';
-    } else if (isSameDay(date, tomorrow)) {
-      return 'Tomorrow';
-    } else {
-      return format(date, 'EEE, MMM d');
-    }
-  };
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
+    return formatDateForDisplay(parseISO(dateString));
   };
 
   return (
@@ -583,10 +571,10 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: '#1E88E5' }}>Close</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>{t('common.close')}</Text>
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
-            14-Day Preview
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
+            {t('availability.preview14')}
           </Text>
           <View style={{ width: 40 }} />
         </View>
@@ -594,12 +582,12 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
         <ScrollView className="flex-1">
           {Object.keys(groupedSlots).length === 0 ? (
             <View className="items-center justify-center py-12">
-              <Ionicons name="calendar-outline" size={64} color="#42526E" />
-              <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: '#0B1220' }}>
-                No availability yet
+              <Ionicons name="calendar-outline" size={64} color={DesignTokens.colors.text.muted} />
+              <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
+                {t('availability.noAvailabilityYet')}
               </Text>
-              <Text className="text-base text-center" style={{ color: '#42526E' }}>
-                Add your weekly times below
+              <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
+                {t('availability.addWeeklyTimes')}
               </Text>
             </View>
           ) : (
@@ -608,7 +596,7 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([date, daySlots]) => (
                   <View key={date} className="mb-6">
-                    <Text className="text-lg font-semibold mb-3" style={{ color: '#0B1220' }}>
+                    <Text className="text-lg font-semibold mb-3" style={{ color: DesignTokens.colors.text.strong }}>
                       {formatDate(date)}
                     </Text>
                     <View className="space-y-2">
@@ -619,11 +607,11 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
                             key={`${slot.time}-${index}`}
                             className="bg-gray-50 rounded-lg p-3 flex-row items-center"
                           >
-                            <Ionicons name="time-outline" size={16} color="#42526E" />
-                            <Text className="text-base font-medium ml-2" style={{ color: '#0B1220' }}>
-                              {formatTime(slot.time)}
+                            <Ionicons name="time-outline" size={16} color={DesignTokens.colors.text.muted} />
+                            <Text className="text-base font-medium ml-2" style={{ color: DesignTokens.colors.text.strong }}>
+                              {formatClockTime(slot.time)}
                             </Text>
-                            <Text className="text-sm ml-2" style={{ color: '#42526E' }}>
+                            <Text className="text-sm ml-2" style={{ color: DesignTokens.colors.text.muted }}>
                               • {formatLocationText(slot.range.areaId, slot.range.facilityId, slot.range.courtId)}
                             </Text>
                           </View>

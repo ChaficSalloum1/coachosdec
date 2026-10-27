@@ -5,7 +5,10 @@ import { BookingRequest } from '../types/coach';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveBookingRequestToSupabase } from '../services/supabaseSync';
+import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { v4 as uuidv4 } from 'uuid';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export function PublicBookingWrapper() {
   const insets = useSafeAreaInsets();
@@ -18,7 +21,7 @@ export function PublicBookingWrapper() {
     facilities,
     courts,
     formatLocationText,
-    generateSlotsForNext14Days,
+    getOpenSlots,
     addBookingRequest,
     isDemoMode,
   } = useCoachStore();
@@ -26,9 +29,9 @@ export function PublicBookingWrapper() {
   if (!coach) {
     return (
       <View className="flex-1 bg-white items-center justify-center" style={{ paddingTop: insets.top }}>
-        <ActivityIndicator size="large" color="#1E88E5" />
-        <Text className="text-lg mt-4" style={{ color: '#0B1220' }}>
-          Loading coach information...
+        <ActivityIndicator size="large" color={DesignTokens.colors.brand.default} />
+        <Text className="text-lg mt-4" style={{ color: DesignTokens.colors.text.strong }}>
+          {t('booking.loadingCoach')}
         </Text>
       </View>
     );
@@ -43,15 +46,11 @@ export function PublicBookingWrapper() {
         createdAt: new Date().toISOString(),
       };
       
-      const hasSupabaseConfig =
-        Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL) &&
-        Boolean(process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY);
-
-      if (hasSupabaseConfig && !isDemoMode) {
+      if (isSupabaseConfigured() && !isDemoMode) {
         // Public booking links must reach Supabase so the coach can receive them.
         const result = await saveBookingRequestToSupabase(fullRequest);
         if (!result.success) {
-          throw new Error(result.error || 'Unable to submit booking request.');
+          throw new Error(result.error || t('errors.bookingSubmitFailed'));
         }
       }
 
@@ -74,7 +73,7 @@ export function PublicBookingWrapper() {
       facilities={facilities}
       courts={courts}
       formatLocationText={formatLocationText}
-      generateSlotsForNext14Days={generateSlotsForNext14Days}
+      getOpenSlots={getOpenSlots}
       onBookingRequest={handleBookingRequest}
     />
   );

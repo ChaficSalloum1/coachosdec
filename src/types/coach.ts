@@ -127,6 +127,13 @@ export interface Lesson {
   facilityId?: string;
   courtId?: string;
   calendarEventId?: string; // Device calendar event ID for synced lessons
+  // Lessons sharing a groupId are one group session (one lesson per player,
+  // so payments, notes and totals stay per player). groupCapacity = max players.
+  groupId?: string;
+  groupCapacity?: number;
+  // Lessons created together by "Repeat weekly" share a seriesId so the coach
+  // can cancel "this and all later". Undefined for one-off lessons.
+  seriesId?: string;
   version?: number; // Optimistic locking version number
 }
 

@@ -7,6 +7,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
@@ -14,6 +15,27 @@ import * as Haptics from 'expo-haptics';
 import { useCoachStore } from '../state/coachStore';
 import { Lesson } from '../types/coach';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
+
+// One-tap topics so a note takes seconds between lessons; free text is optional.
+// `id` is what is stored on the note (always English, so old notes keep matching); `key` is the shown name.
+const NOTE_TOPICS = [
+  { id: 'Great session', key: 'topicGreatSession' },
+  { id: 'Forehand', key: 'topicForehand' },
+  { id: 'Backhand', key: 'topicBackhand' },
+  { id: 'Serve', key: 'topicServe' },
+  { id: 'Volley', key: 'topicVolley' },
+  { id: 'Footwork', key: 'topicFootwork' },
+  { id: 'Positioning', key: 'topicPositioning' },
+  { id: 'Tactics', key: 'topicTactics' },
+  { id: 'Fitness', key: 'topicFitness' },
+  { id: 'Needs rest', key: 'topicNeedsRest' },
+] as const;
+
+const topicLabel = (tag: string) => {
+  const topic = NOTE_TOPICS.find((item) => item.id === tag);
+  return topic ? t(`notes.${topic.key}`) : tag;
+};
 
 interface QuickNoteSheetProps {
   visible: boolean;
@@ -25,24 +47,38 @@ export function QuickNoteSheet({ visible, lesson, onClose }: QuickNoteSheetProps
   const insets = useSafeAreaInsets();
   const addStudentNote = useCoachStore(s => s.addStudentNote);
   const [text, setText] = useState('');
+  const [topics, setTopics] = useState<string[]>([]);
+  const canSave = text.trim().length > 0 || topics.length > 0;
 
   const handleSave = () => {
-    if (!lesson || !text.trim()) return;
+    if (!lesson || !canSave) return;
+    const typed = text.trim();
+    const content = topics.length > 0 ? `${topics.map(topicLabel).join(', ')}${typed ? ` — ${typed}` : ''}` : typed;
     addStudentNote({
       studentId: lesson.studentId,
       coachId: lesson.coachId,
-      content: text.trim(),
+      content,
       lessonId: lesson.id,
-      tags: [],
+      tags: topics,
     });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setText('');
+    reset();
     onClose();
   };
 
-  const handleClose = () => {
+  const reset = () => {
     setText('');
+    setTopics([]);
+  };
+
+  const handleClose = () => {
+    reset();
     onClose();
+  };
+
+  const toggleTopic = (topic: string) => {
+    Haptics.selectionAsync();
+    setTopics((prev) => (prev.includes(topic) ? prev.filter((item) => item !== topic) : [...prev, topic]));
   };
 
   if (!lesson) return null;
@@ -73,25 +109,25 @@ export function QuickNoteSheet({ visible, lesson, onClose }: QuickNoteSheetProps
         >
           <Pressable onPress={handleClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.grey }}>
-              Cancel
+              {t('common.cancel')}
             </Text>
           </Pressable>
           <Text style={{ ...DesignTokens.typography.headline, color: DesignTokens.colors.graphite }}>
-            Note — {lesson.studentName}
+            {t('notes.noteFor', { name: lesson.studentName })}
           </Text>
           <Pressable
             onPress={handleSave}
-            disabled={!text.trim()}
+            disabled={!canSave}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Text
               style={{
                 ...DesignTokens.typography.body,
                 fontWeight: '600',
-                color: text.trim() ? DesignTokens.colors.accent : DesignTokens.colors.grey,
+                color: canSave ? DesignTokens.colors.accent : DesignTokens.colors.grey,
               }}
             >
-              Save
+              {t('common.save')}
             </Text>
           </Pressable>
         </View>
@@ -106,7 +142,7 @@ export function QuickNoteSheet({ visible, lesson, onClose }: QuickNoteSheetProps
             color: DesignTokens.colors.graphite,
             textAlignVertical: 'top',
           }}
-          placeholder="What happened in this lesson?"
+          placeholder={t('notes.anythingToAdd')}
           placeholderTextColor={DesignTokens.colors.grey}
           multiline
           autoFocus
@@ -115,13 +151,51 @@ export function QuickNoteSheet({ visible, lesson, onClose }: QuickNoteSheetProps
           returnKeyType="default"
         />
 
+        {/* One-tap topics */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 8, gap: 8 }}
+        >
+          {NOTE_TOPICS.map(({ id: topic }) => {
+            const selected = topics.includes(topic);
+            return (
+              <Pressable
+                key={topic}
+                onPress={() => toggleTopic(topic)}
+                accessibilityRole="button"
+                accessibilityState={{ selected }}
+                style={{
+                  minHeight: 44,
+                  paddingHorizontal: 16,
+                  justifyContent: 'center',
+                  borderRadius: 22,
+                  backgroundColor: selected ? DesignTokens.colors.accent : DesignTokens.colors.superLightGrey,
+                }}
+              >
+                <Text
+                  style={{
+                    ...DesignTokens.typography.subhead,
+                    fontWeight: '500',
+                    color: selected ? 'white' : DesignTokens.colors.graphite,
+                  }}
+                >
+                  {topicLabel(topic)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
         {/* Save button */}
         <View style={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 16, paddingTop: 12 }}>
           <Pressable
             onPress={handleSave}
-            disabled={!text.trim()}
+            disabled={!canSave}
             style={{
-              backgroundColor: text.trim() ? DesignTokens.colors.accent : DesignTokens.colors.superLightGrey,
+              backgroundColor: canSave ? DesignTokens.colors.accent : DesignTokens.colors.superLightGrey,
               borderRadius: 12,
               paddingVertical: 16,
               alignItems: 'center',
@@ -130,10 +204,10 @@ export function QuickNoteSheet({ visible, lesson, onClose }: QuickNoteSheetProps
             <Text
               style={{
                 ...DesignTokens.typography.headline,
-                color: text.trim() ? 'white' : DesignTokens.colors.grey,
+                color: canSave ? 'white' : DesignTokens.colors.grey,
               }}
             >
-              Save Note
+              {t('notes.saveNote')}
             </Text>
           </Pressable>
         </View>

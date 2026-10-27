@@ -7,6 +7,10 @@ import { TabNavigator } from './TabNavigator';
 import { LoginScreen } from '../screens/LoginScreen';
 import { getSession, onAuthStateChange } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
+import { UI_TIMING } from '../config/appSettings';
+import { isSupabaseConfigured } from '../utils/supabaseConfig';
+import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -14,12 +18,6 @@ export type RootStackParamList = {
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
-
-const isSupabaseConfigured = () => {
-  const url = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_URL;
-  const key = process.env.EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY;
-  return !!(url && key && !url.includes('your_supabase') && !key.includes('your_supabase'));
-};
 
 const initSubscriptions = async () => {
   try {
@@ -70,7 +68,7 @@ export function RootNavigator() {
       if (mounted) {
         setSession(null);
       }
-    }, 3000);
+    }, UI_TIMING.authStartupTimeoutMs);
 
     initSubscriptions();
 
@@ -136,10 +134,10 @@ export function RootNavigator() {
 
   if (session === undefined) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator color="#1E88E5" size="large" />
-        <Text style={{ color: '#42526E', fontSize: 14, marginTop: 12 }}>
-          CoachOS is opening...
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: DesignTokens.colors.white }}>
+        <ActivityIndicator color={DesignTokens.colors.brand.default} size="large" />
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 14, marginTop: 12 }}>
+          {t('shell.opening')}
         </Text>
       </View>
     );

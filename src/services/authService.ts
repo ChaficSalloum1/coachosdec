@@ -6,6 +6,7 @@ import { useCoachStore } from '../state/coachStore';
 import { getSupabaseClient } from "../api/supabase";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
 import { makeAuthError, normalizeAuthError } from './authErrors';
+import { t } from '../i18n';
 
 const getPasswordResetRedirectUrl = () => {
   return __DEV__
@@ -39,7 +40,7 @@ const withAuthTimeout = async <T,>(promise: Promise<T>, action: string): Promise
 
   const timeoutPromise = new Promise<never>((_, reject) => {
     timeoutId = setTimeout(() => {
-      reject(new Error(`${action} timed out. Please check your internet connection and Supabase configuration, then try again.`));
+      reject(new Error(t('errors.requestTimedOut', { action })));
     }, AUTH_TIMEOUT_MS);
   });
 
@@ -54,15 +55,15 @@ const withAuthTimeout = async <T,>(promise: Promise<T>, action: string): Promise
 
 const validateEmailPassword = (email: string, password: string, isSignUp: boolean): AuthError | null => {
   if (!emailRegex.test(email.trim())) {
-    return makeAuthError("Please enter a valid email address.");
+    return makeAuthError(t('auth.invalidEmail'));
   }
 
   if (!password) {
-    return makeAuthError("Please enter your password.");
+    return makeAuthError(t('auth.enterPassword'));
   }
 
   if (isSignUp && password.length < 6) {
-    return makeAuthError("Password must be at least 6 characters.");
+    return makeAuthError(t('auth.passwordMinLength'));
   }
 
   return null;
@@ -90,7 +91,7 @@ export const signUp = async (
           data: credentials.metadata || {},
         },
       }),
-      "Sign up"
+      t('auth.signUp')
     );
 
     return {
@@ -126,7 +127,7 @@ export const signIn = async (
         email,
         password: credentials.password,
       }),
-      "Sign in"
+      t('auth.signIn')
     );
 
     return {
@@ -266,4 +267,25 @@ export const updateUserMetadata = async (
   } catch (error) {
     return { user: null, error: normalizeAuthError(error) };
   }
+};
+
+/**
+ * Permanently delete the signed-in coach's account and all their data
+ * (server-side function from scripts/priority7-delete-account.sql), then wipe
+ * the local session. Required by App Store review for apps with sign-up.
+ */
+export const deleteAccount = async (): Promise<{ error: string | null }> => {
+  try {
+    const supabase = getSupabaseClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc('delete_my_account');
+    if (error) {
+      return { error: error.message || t('auth.deleteFailed') };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : t('auth.unreachable') };
+  }
+
+  await signOut();
+  return { error: null };
 };
