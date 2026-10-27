@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <meta property="og:title" content="Book a lesson" />
+    <meta property="og:description" content="Pick a time and send a lesson request to your coach." />
+    <title>Book a lesson</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --card: #f4f6f9;
+        --text: #0b1220;
+        --muted: #5b6678;
+        --accent: #1e88e5;
+        --on-accent: #ffffff;
+        --danger: #d32f2f;
+        --ok: #2e7d32;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0e1116;
+          --card: #1a2029;
+          --text: #f2f5f9;
+          --muted: #9aa6b8;
+          --accent: #4da3f0;
+          --on-accent: #08111c;
+          --danger: #ff8a80;
+          --ok: #81c784;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        -webkit-text-size-adjust: 100%;
+      }
+      main { max-width: 480px; margin: 0 auto; padding: 24px 16px calc(40px + env(safe-area-inset-bottom)); }
+      h1 { font-size: 24px; margin: 0 0 4px; }
+      h2 { font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); margin: 24px 0 8px; }
+      p { margin: 0; }
+      .muted { color: var(--muted); }
+      .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+      .grid { display: flex; flex-wrap: wrap; gap: 8px; }
+      button, input, textarea { font: inherit; color: inherit; }
+      .chip {
+        min-height: 44px; padding: 0 16px; border: 0; border-radius: 22px;
+        background: var(--card); white-space: nowrap; cursor: pointer;
+      }
+      .chip[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+      input, textarea {
+        width: 100%; min-height: 48px; padding: 12px 14px; margin-bottom: 10px;
+        border: 1px solid transparent; border-radius: 10px; background: var(--card);
+      }
+      textarea { min-height: 72px; resize: vertical; }
+      .primary {
+        width: 100%; min-height: 56px; border: 0; border-radius: 14px; margin-top: 8px;
+        background: var(--accent); color: var(--on-accent); font-weight: 600; font-size: 17px; cursor: pointer;
+      }
+      .primary:disabled { opacity: 0.5; cursor: default; }
+      .error { color: var(--danger); margin: 4px 0 8px; }
+      .done { text-align: center; padding-top: 48px; }
+      .done .tick { font-size: 48px; color: var(--ok); }
+      [hidden] { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <main id="app" aria-live="polite">
+      <p class="muted">Loading…</p>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

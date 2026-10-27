@@ -8,6 +8,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Coach } from '../types/coach';
+import { buildBookingUrl } from '../utils/publicBooking';
 
 interface BookingLinkCardProps {
   coach: Coach;
@@ -19,7 +20,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   const [showQR, setShowQR] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
-  const bookingUrl = `https://coachos.app/book/${coach.bookingLink}`;
+  const bookingUrl = buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL);
 
   const shareBookingLink = async () => {
     try {

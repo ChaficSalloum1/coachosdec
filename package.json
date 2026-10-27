@@ -10,7 +10,9 @@
     "test:payments": "vitest run src/modules/payments",
     "test:maestro": "maestro test maestro/",
     "test:maestro:ios": "maestro test maestro/ --ios",
-    "test:maestro:android": "maestro test maestro/ --android"
+    "test:maestro:android": "maestro test maestro/ --android",
+    "build:booking": "vite build --config web/booking/vite.config.ts",
+    "dev:booking": "vite --config web/booking/vite.config.ts"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.5",
@@ -130,6 +132,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "typescript": "~5.8.3",
+    "vite": "^8.0.14",
     "vitest": "^4.1.7"
   },
   "overrides": {

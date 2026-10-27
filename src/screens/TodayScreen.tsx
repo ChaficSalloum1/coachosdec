@@ -30,6 +30,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { buildBookingUrl } from '../utils/publicBooking';
 import { buildCancellationMessage, buildContactUrl } from '../utils/cancellationMessage';
 import { useNavigation } from '@react-navigation/native';
 
@@ -457,8 +458,8 @@ const AnimatedDayPage = React.memo(({
           {isToday(dateISO) && coach?.bookingLink && (
             <Pressable
               onPress={() => Share.share({
-                message: `Book a lesson: https://coachos.app/book/${coach.bookingLink}`,
-                url: `https://coachos.app/book/${coach.bookingLink}`,
+                message: `Book a lesson: ${buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL)}`,
+                url: buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL),
               })}
               style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
