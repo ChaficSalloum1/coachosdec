@@ -60,6 +60,17 @@ export const isValidTimeFormat = (time: string): boolean => {
 };
 
 /**
+ * Postgres returns time columns as "18:30:00"; the app works with "18:30".
+ * Trims seconds so every value inside the app has one shape.
+ * Anything that is not a clock time is returned unchanged.
+ */
+export const normalizeClockTime = <T>(time: T): T | string => {
+  if (typeof time !== 'string') return time;
+  const match = /^(\d{2}:\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(time);
+  return match ? match[1] : time;
+};
+
+/**
  * Parse time string to hours and minutes
  * @param time - Time string in HH:mm format
  * @returns Object with hours and minutes as numbers
@@ -75,19 +86,19 @@ export const parseTime = (time: string): { hours: number; minutes: number } => {
 };
 
 /**
- * Add minutes to a time string
+ * Add minutes to a time string, staying within the same day.
+ * Lessons are stored with same-day start and end times, so a result past
+ * midnight is clamped to 23:59 ("24:30" is not a valid time and the database
+ * rejects it); the Add Lesson sheet stops people creating such lessons.
  * @param time - Start time in HH:mm format
  * @param minutesToAdd - Minutes to add
  * @returns New time in HH:mm format
  */
 export const addMinutesToTime = (time: string, minutesToAdd: number): string => {
   const { hours, minutes } = parseTime(time);
-  const date = new Date();
-  date.setHours(hours, minutes + minutesToAdd, 0, 0);
-
-  const newHours = date.getHours().toString().padStart(2, '0');
-  const newMinutes = date.getMinutes().toString().padStart(2, '0');
-
+  const total = Math.min(hours * 60 + minutes + minutesToAdd, 24 * 60 - 1);
+  const newHours = Math.floor(total / 60).toString().padStart(2, '0');
+  const newMinutes = (total % 60).toString().padStart(2, '0');
   return `${newHours}:${newMinutes}`;
 };
 

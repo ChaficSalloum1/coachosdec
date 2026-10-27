@@ -4,6 +4,7 @@ This service handles syncing data back and forth automatically
 */
 import { getSupabaseClient } from "../api/supabase";
 import { getCurrentUser } from "./authService";
+import { normalizeClockTime } from "../utils/timeFormat";
 import {
   encryptPaymentSettings,
   decryptPaymentSettings,
@@ -141,6 +142,8 @@ export const loadCoachDataFromSupabase = async (
         const converted = toCamelCase(lesson) as Lesson;
         return {
           ...converted,
+          startTime: normalizeClockTime(converted.startTime),
+          endTime: normalizeClockTime(converted.endTime),
           paymentStatus: normalizePaymentStatus(converted.paymentStatus, converted.isPaid),
           paymentReferenceCode: converted.paymentReferenceCode ?? (
             coachData ? generatePaymentReferenceCode(coachData.name, converted.id) : converted.paymentReferenceCode
@@ -152,14 +155,22 @@ export const loadCoachDataFromSupabase = async (
           ),
         };
       }),
-      bookingRequests: ((bookingRequestsResult as any).data || []).map(toCamelCase),
+      bookingRequests: ((bookingRequestsResult as any).data || []).map((row: any) => {
+        const converted = toCamelCase(row);
+        return { ...converted, requestedTime: normalizeClockTime(converted.requestedTime) };
+      }),
       studentNotes: ((studentNotesResult as any).data || []).map(toCamelCase),
       areas: ((areasResult as any).data || []).map(toCamelCase),
       facilities: ((facilitiesResult as any).data || []).map(toCamelCase),
       courts: ((courtsResult as any).data || []).map(toCamelCase),
-      availabilityRanges: ((availabilityRangesResult as any).data || []).map(
-        toCamelCase
-      ),
+      availabilityRanges: ((availabilityRangesResult as any).data || []).map((row: any) => {
+        const converted = toCamelCase(row);
+        return {
+          ...converted,
+          startTime: normalizeClockTime(converted.startTime),
+          endTime: normalizeClockTime(converted.endTime),
+        };
+      }),
       blackoutDates: ((blackoutDatesResult as any).data || []).map(toCamelCase),
     };
   } catch (error) {
