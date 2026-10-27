@@ -47,7 +47,7 @@ export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
     <Animated.View
       style={[
         {
-          backgroundColor: '#EBF5FF',
+          backgroundColor: DesignTokens.colors.brand.tintSoft,
           borderWidth: 1,
           borderColor: DesignTokens.colors.accent,
           borderRadius: DesignTokens.radius?.card ?? 12,

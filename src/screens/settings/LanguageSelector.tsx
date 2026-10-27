@@ -2,6 +2,7 @@ import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { saveLanguage } from '../../i18n/config';
+import { DesignTokens } from '../../utils/designTokens';
 
 export function LanguageSelector() {
   const { t, i18n } = useTranslation();
@@ -27,13 +28,13 @@ export function LanguageSelector() {
             </View>
             <Text
               className="text-base font-medium"
-              style={{ color: currentLanguage === 'en' ? '#1E88E5' : '#0B1220' }}
+              style={{ color: currentLanguage === 'en' ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong }}
             >
               {t('english')}
             </Text>
           </View>
           {currentLanguage === 'en' && (
-            <Ionicons name="checkmark-circle" size={24} color="#1E88E5" />
+            <Ionicons name="checkmark-circle" size={24} color={DesignTokens.colors.brand.default} />
           )}
         </Pressable>
 
@@ -49,13 +50,13 @@ export function LanguageSelector() {
             </View>
             <Text
               className="text-base font-medium"
-              style={{ color: currentLanguage === 'el' ? '#1E88E5' : '#0B1220' }}
+              style={{ color: currentLanguage === 'el' ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong }}
             >
               {t('greek')}
             </Text>
           </View>
           {currentLanguage === 'el' && (
-            <Ionicons name="checkmark-circle" size={24} color="#1E88E5" />
+            <Ionicons name="checkmark-circle" size={24} color={DesignTokens.colors.brand.default} />
           )}
         </Pressable>
       </View>

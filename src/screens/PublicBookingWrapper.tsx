@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { saveBookingRequestToSupabase } from '../services/supabaseSync';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { v4 as uuidv4 } from 'uuid';
+import { DesignTokens } from '../utils/designTokens';
 
 export function PublicBookingWrapper() {
   const insets = useSafeAreaInsets();
@@ -27,8 +28,8 @@ export function PublicBookingWrapper() {
   if (!coach) {
     return (
       <View className="flex-1 bg-white items-center justify-center" style={{ paddingTop: insets.top }}>
-        <ActivityIndicator size="large" color="#1E88E5" />
-        <Text className="text-lg mt-4" style={{ color: '#0B1220' }}>
+        <ActivityIndicator size="large" color={DesignTokens.colors.brand.default} />
+        <Text className="text-lg mt-4" style={{ color: DesignTokens.colors.text.strong }}>
           Loading coach information...
         </Text>
       </View>

@@ -79,7 +79,7 @@ export function RequestsScreen() {
     <View className="flex-1 bg-white">
       {/* Header */}
       <View className="px-4 py-3 border-b border-gray-200" style={{ paddingTop: insets.top + 12 }}>
-        <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
+        <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
           Requests
         </Text>
       </View>
@@ -298,7 +298,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            backgroundColor: DesignTokens.colors.overlay.whiteStrong,
             borderRadius: DesignTokens.radius.card,
             alignItems: 'center',
             justifyContent: 'center',

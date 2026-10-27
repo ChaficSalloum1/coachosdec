@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
 import { BookingRequest } from '../types/coach';
+import { DesignTokens } from '../utils/designTokens';
 
 interface RouteParams {
   slug?: string;
@@ -41,7 +42,7 @@ export function PublicBookingPreview() {
   if (!coach) {
     return (
       <View className="flex-1 bg-white items-center justify-center">
-        <Text className="text-lg" style={{ color: '#42526E' }}>
+        <Text className="text-lg" style={{ color: DesignTokens.colors.text.muted }}>
           No coach profile found
         </Text>
       </View>
@@ -113,9 +114,9 @@ export function PublicBookingPreview() {
       <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={() => setShowBookingForm(false)}>
-            <Ionicons name="arrow-back" size={24} color="#0B1220" />
+            <Ionicons name="arrow-back" size={24} color={DesignTokens.colors.text.strong} />
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
             Book Lesson
           </Text>
           <View style={{ width: 24 }} />
@@ -124,7 +125,7 @@ export function PublicBookingPreview() {
         <ScrollView className="flex-1 px-4 py-6">
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Your Name *
               </Text>
               <TextInput
@@ -132,12 +133,12 @@ export function PublicBookingPreview() {
                 onChangeText={setStudentName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="John Smith"
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Contact (Email or Phone) *
               </Text>
               <TextInput
@@ -145,20 +146,20 @@ export function PublicBookingPreview() {
                 onChangeText={setStudentContact}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="john@email.com or (555) 123-4567"
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
                 keyboardType="email-address"
                 autoCapitalize="none"
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Selected Time
               </Text>
-              <Text className="text-base" style={{ color: '#42526E' }}>
+              <Text className="text-base" style={{ color: DesignTokens.colors.text.muted }}>
                 {formatDate(selectedSlot.date)} at {selectedSlot.time}
                 {(selectedSlot.range.areaId || selectedSlot.range.facilityId || selectedSlot.range.courtId) && (
-                  <Text className="text-sm" style={{ color: '#42526E' }}>
+                  <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                     {'\n'}{formatLocationText(selectedSlot.range.areaId, selectedSlot.range.facilityId, selectedSlot.range.courtId)}
                   </Text>
                 )}
@@ -166,7 +167,7 @@ export function PublicBookingPreview() {
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Note (Optional)
               </Text>
               <TextInput
@@ -176,7 +177,7 @@ export function PublicBookingPreview() {
                 placeholder="Any specific requests or goals..."
                 multiline
                 numberOfLines={3}
-                style={{ color: '#0B1220', textAlignVertical: 'top' }}
+                style={{ color: DesignTokens.colors.text.strong, textAlignVertical: 'top' }}
               />
             </View>
           </View>
@@ -184,7 +185,7 @@ export function PublicBookingPreview() {
           <Pressable
             onPress={handleBookingSubmit}
             className="mt-8 rounded-lg py-4 px-4 active:opacity-80"
-            style={{ backgroundColor: '#1E88E5' }}
+            style={{ backgroundColor: DesignTokens.colors.brand.default }}
           >
             <Text className="text-base font-medium text-white text-center">
               Send Booking Request
@@ -203,9 +204,9 @@ export function PublicBookingPreview() {
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
         <Pressable onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={24} color="#0B1220" />
+          <Ionicons name="close" size={24} color={DesignTokens.colors.text.strong} />
         </Pressable>
-        <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+        <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
           Public Booking
         </Text>
         <View style={{ width: 24 }} />
@@ -214,15 +215,15 @@ export function PublicBookingPreview() {
       {/* Coach Profile */}
       <View className="items-center px-4 py-6 border-b border-gray-200">
         <View className="w-20 h-20 bg-gray-200 rounded-full items-center justify-center mb-4">
-          <Ionicons name="person" size={40} color="#42526E" />
+          <Ionicons name="person" size={40} color={DesignTokens.colors.text.muted} />
         </View>
-        <Text className="text-xl font-semibold mb-2" style={{ color: '#0B1220' }}>
+        <Text className="text-xl font-semibold mb-2" style={{ color: DesignTokens.colors.text.strong }}>
           {coach.name}
         </Text>
-        <Text className="text-base mb-1" style={{ color: '#42526E' }}>
+        <Text className="text-base mb-1" style={{ color: DesignTokens.colors.text.muted }}>
           {coach.sports.join(' • ')}
         </Text>
-        <Text className="text-lg font-medium" style={{ color: '#1E88E5' }}>
+        <Text className="text-lg font-medium" style={{ color: DesignTokens.colors.brand.default }}>
           ${coach.pricePerHour}/hour
         </Text>
       </View>
@@ -230,14 +231,14 @@ export function PublicBookingPreview() {
       {/* Available Times */}
       <ScrollView className="flex-1">
         <View className="px-4 py-6">
-          <Text className="text-lg font-semibold mb-4" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
             Available Times
           </Text>
           
           {sortedDates.length === 0 ? (
             <View className="items-center py-8">
-              <Ionicons name="calendar-outline" size={48} color="#42526E" />
-              <Text className="text-base mt-4" style={{ color: '#42526E' }}>
+              <Ionicons name="calendar-outline" size={48} color={DesignTokens.colors.text.muted} />
+              <Text className="text-base mt-4" style={{ color: DesignTokens.colors.text.muted }}>
                 No available slots in the next 14 days
               </Text>
             </View>
@@ -247,7 +248,7 @@ export function PublicBookingPreview() {
               
               return (
                 <View key={date} className="mb-6">
-                  <Text className="text-base font-medium mb-3" style={{ color: '#0B1220' }}>
+                  <Text className="text-base font-medium mb-3" style={{ color: DesignTokens.colors.text.strong }}>
                     {formatDate(date)}
                   </Text>
                   <View className="flex-row flex-wrap gap-2">
@@ -260,11 +261,11 @@ export function PublicBookingPreview() {
                         }}
                         className="bg-gray-100 px-4 py-2 rounded-lg active:bg-gray-200"
                       >
-                        <Text className="text-sm font-medium" style={{ color: '#0B1220' }}>
+                        <Text className="text-sm font-medium" style={{ color: DesignTokens.colors.text.strong }}>
                           {slot.time}
                         </Text>
                         {(slot.range.areaId || slot.range.facilityId || slot.range.courtId) && (
-                          <Text className="text-xs mt-1" style={{ color: '#42526E' }}>
+                          <Text className="text-xs mt-1" style={{ color: DesignTokens.colors.text.muted }}>
                             {formatLocationText(slot.range.areaId, slot.range.facilityId, slot.range.courtId)}
                           </Text>
                         )}

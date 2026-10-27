@@ -6,6 +6,7 @@ import { LocationsScreen } from '../screens/LocationsScreen';
 import { AvailabilityScreen } from '../screens/AvailabilityScreen';
 import { PublicBookingPreview } from '../screens/PublicBookingPreview';
 import { PublicBookingWrapper } from '../screens/PublicBookingWrapper';
+import { DesignTokens } from '../utils/designTokens';
 
 export type SettingsStackParamList = {
   SettingsMain: undefined;
@@ -47,18 +48,18 @@ function PaywallRoute() {
   }
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF', padding: 24 }}>
+    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: DesignTokens.colors.white, padding: 24 }}>
       {failed ? (
         <>
-          <Text style={{ color: '#0B1220', fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
+          <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 18, fontWeight: '700', marginBottom: 8 }}>
             Subscriptions unavailable
           </Text>
-          <Text style={{ color: '#42526E', fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
+          <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 14, textAlign: 'center', lineHeight: 20 }}>
             The app is running normally. Subscription setup can be revisited later.
           </Text>
         </>
       ) : (
-        <ActivityIndicator color="#1E88E5" size="large" />
+        <ActivityIndicator color={DesignTokens.colors.brand.default} size="large" />
       )}
     </View>
   );

@@ -2,6 +2,7 @@ import * as Calendar from 'expo-calendar';
 import { Platform } from 'react-native';
 import { Lesson } from '../types/coach';
 import { formatMoney, resolveCurrency, type CurrencyCode } from '../modules/payments/currency';
+import { DesignTokens } from './designTokens';
 
 /**
  * CalendarService - Device calendar integration for lesson management
@@ -49,7 +50,7 @@ export class CalendarService {
           // Create new calendar for CoachOS
           this.defaultCalendarId = await Calendar.createCalendarAsync({
             title: 'CoachOS Lessons',
-            color: '#1E88E5',
+            color: DesignTokens.colors.brand.default,
             entityType: Calendar.EntityTypes.EVENT,
             source: { 
               isLocalAccount: true, 

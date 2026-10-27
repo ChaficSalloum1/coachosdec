@@ -32,8 +32,8 @@ import {
 } from '../services/revenueCatService';
 import { DesignTokens } from '../utils/designTokens';
 
-const NAVY = '#0B1220';
-const GOLD = '#F5A623';
+const NAVY = DesignTokens.colors.text.strong;
+const GOLD = DesignTokens.colors.gold;
 
 const FEATURES: { icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
   { icon: 'people',           label: 'Unlimited students' },
@@ -209,7 +209,7 @@ export function PaywallScreen() {
             style={styles.closeButton}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons name="close" size={20} color="rgba(255,255,255,0.6)" />
+            <Ionicons name="close" size={20} color={DesignTokens.colors.overlay.whiteSoft} />
           </Pressable>
 
           <Ionicons name="star" size={40} color={GOLD} style={styles.crownIcon} />
@@ -394,7 +394,7 @@ function AnimatedTierCard({ tier, index, selected, onSelect }: AnimatedTierCardP
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DesignTokens.colors.white,
   },
   scroll: {
     flex: 1,
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: DesignTokens.colors.overlay.whiteFaint,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -428,14 +428,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     textAlign: 'center',
     letterSpacing: 0.3,
     marginBottom: 8,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: 'rgba(255,255,255,0.65)',
+    color: DesignTokens.colors.overlay.whiteMid,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 28,
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   featureLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     flex: 1,
   },
 
@@ -496,14 +496,14 @@ const styles = StyleSheet.create({
   tierCard: {
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#E5E5EA',
-    backgroundColor: '#FAFAFA',
+    borderColor: DesignTokens.colors.line.hairline,
+    backgroundColor: DesignTokens.colors.surface.paywall,
     overflow: 'hidden',
     ...DesignTokens.shadows.sm,
   },
   tierCardSelected: {
     borderColor: DesignTokens.colors.accent,
-    backgroundColor: '#EFF6FF',
+    backgroundColor: DesignTokens.colors.brand.tintPaywall,
     ...DesignTokens.shadows.default,
   },
   tierBadge: {
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   tierBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     letterSpacing: 0.3,
   },
   tierCardInner: {
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#C7C7CC',
+    borderColor: DesignTokens.colors.lightGrey,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
   ctaText: {
     fontSize: 17,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: DesignTokens.colors.white,
     letterSpacing: 0.2,
   },
   restoreButton: {
@@ -619,12 +619,12 @@ const styles = StyleSheet.create({
   // Loading overlay
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(11, 18, 32, 0.65)',
+    backgroundColor: DesignTokens.colors.overlay.scrimInk,
     alignItems: 'center',
     justifyContent: 'center',
   },
   overlayCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: DesignTokens.colors.white,
     borderRadius: 20,
     paddingHorizontal: 40,
     paddingVertical: 28,

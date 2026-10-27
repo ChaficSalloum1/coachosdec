@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import type { PaymentInstruction } from '../../modules/payments';
 import { PaymentQRCode } from './PaymentQRCode';
+import { DesignTokens } from '../../utils/designTokens';
 
 type Props = {
   instruction: PaymentInstruction;
@@ -29,9 +30,9 @@ function ActionButton({
   disabled?: boolean;
 }) {
   const colors = {
-    primary: { bg: '#1E88E5', fg: '#FFFFFF', border: '#1E88E5' },
-    secondary: { bg: '#FFFFFF', fg: '#0B1220', border: '#D7DEE8' },
-    danger: { bg: '#FFFFFF', fg: '#B3261E', border: '#F0B8B3' },
+    primary: { bg: DesignTokens.colors.brand.default, fg: DesignTokens.colors.white, border: DesignTokens.colors.brand.default },
+    secondary: { bg: DesignTokens.colors.white, fg: DesignTokens.colors.text.strong, border: DesignTokens.colors.brand.outline },
+    danger: { bg: DesignTokens.colors.white, fg: DesignTokens.colors.red.deep, border: DesignTokens.colors.red.border },
   }[variant];
 
   return (
@@ -43,7 +44,7 @@ function ActionButton({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.border,
-        backgroundColor: disabled ? '#EEF1F5' : colors.bg,
+        backgroundColor: disabled ? DesignTokens.colors.surface.disabled : colors.bg,
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'row',
@@ -87,21 +88,21 @@ export function PaymentRequestPanel({
   return (
     <View style={{ gap: 14 }}>
       <View>
-        <Text style={{ color: '#0B1220', fontSize: 18, fontWeight: '700', marginBottom: 4 }}>
+        <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 18, fontWeight: '700', marginBottom: 4 }}>
           {instruction.title}
         </Text>
-        <Text style={{ color: '#42526E', fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 13, lineHeight: 18 }}>
           {instruction.displayText}
         </Text>
       </View>
 
       <PaymentQRCode payload={instruction.qrPayload} label={qrLabel} />
 
-      <View style={{ padding: 12, backgroundColor: '#F7F8FA', borderRadius: 8 }}>
-        <Text style={{ color: '#42526E', fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
+      <View style={{ padding: 12, backgroundColor: DesignTokens.colors.surface.raised, borderRadius: 8 }}>
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
           Message preview
         </Text>
-        <Text style={{ color: '#0B1220', fontSize: 13, lineHeight: 18 }}>
+        <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 13, lineHeight: 18 }}>
           {message}
         </Text>
       </View>

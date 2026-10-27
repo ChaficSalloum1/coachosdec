@@ -4,6 +4,7 @@ import { Coach } from '../../types/coach';
 import type { PaymentPreference } from '../../modules/payments';
 import { getRevolutLinkError, normalizePaymentSettings } from '../../modules/payments';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
+import { DesignTokens } from '../../utils/designTokens';
 
 interface PaymentSettingsProps {
   coach: Coach;
@@ -58,10 +59,10 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
   return (
     <View className="bg-gray-50 rounded-card p-4">
       <View className="mb-5">
-        <Text className="text-base font-semibold mb-1" style={{ color: '#0B1220' }}>
+        <Text className="text-base font-semibold mb-1" style={{ color: DesignTokens.colors.text.strong }}>
           How do you want clients to pay you?
         </Text>
-        <Text className="text-sm" style={{ color: '#42526E', lineHeight: 19 }}>
+        <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted, lineHeight: 19 }}>
           Coachiko does not process payments directly yet. We help you send clear payment requests and track who has paid.
         </Text>
       </View>
@@ -85,13 +86,13 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
                 onPress={() => updatePaymentSettings({ paymentPreference: method.value })}
                 className="rounded-lg px-3 py-2 border"
                 style={{
-                  backgroundColor: selected ? '#E8F2FF' : '#FFFFFF',
-                  borderColor: selected ? '#1E88E5' : '#D7DEE8',
+                  backgroundColor: selected ? DesignTokens.colors.brand.tint : DesignTokens.colors.white,
+                  borderColor: selected ? DesignTokens.colors.brand.default : DesignTokens.colors.brand.outline,
                 }}
               >
                 <Text
                   className="text-sm font-semibold"
-                  style={{ color: selected ? '#1E88E5' : '#0B1220' }}
+                  style={{ color: selected ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong }}
                 >
                   {method.label}
                 </Text>
@@ -113,11 +114,11 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
             keyboardType="url"
           />
           {revolutError ? (
-            <Text className="text-xs mt-2" style={{ color: '#C62828' }}>
+            <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.red['800'] }}>
               {revolutError}
             </Text>
           ) : (
-            <Text className="text-xs mt-2" style={{ color: '#42526E' }}>
+            <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.text.muted }}>
               Clients can open this directly from their session reminder.
             </Text>
           )}
@@ -134,7 +135,7 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
             placeholder="@coachalias or phone"
             autoCapitalize="none"
           />
-          <Text className="text-xs mt-2" style={{ color: '#42526E' }}>
+          <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.text.muted }}>
             Clients will use this alias inside their own banking app.
           </Text>
         </View>
@@ -157,7 +158,7 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
             className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
             placeholder={coach.name}
           />
-          <Text className="text-xs mt-2" style={{ color: '#42526E' }}>
+          <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.text.muted }}>
             Used for bank transfer instructions and SEPA-compatible QR codes where supported.
           </Text>
         </View>
@@ -168,8 +169,8 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
         <Switch
           value={settings.cashEnabled}
           onValueChange={(value) => updatePaymentSettings({ cashEnabled: value })}
-          trackColor={{ false: '#E0E0E0', true: '#1E88E5' }}
-          thumbColor="#FFFFFF"
+          trackColor={{ false: DesignTokens.colors.line.default, true: DesignTokens.colors.brand.default }}
+          thumbColor={DesignTokens.colors.white}
         />
       </View>
 

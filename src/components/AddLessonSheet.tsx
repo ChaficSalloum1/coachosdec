@@ -352,7 +352,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' }}>
+      <View style={{ flex: 1, backgroundColor: DesignTokens.colors.overlay.scrimLight, justifyContent: 'flex-end' }}>
         <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close" />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View
@@ -386,8 +386,8 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 <Switch
                   value={isGroup}
                   onValueChange={changeGroupMode}
-                  trackColor={{ false: '#E0E0E0', true: DesignTokens.colors.accent }}
-                  thumbColor="#FFFFFF"
+                  trackColor={{ false: DesignTokens.colors.line.default, true: DesignTokens.colors.accent }}
+                  thumbColor={DesignTokens.colors.white}
                 />
               </View>
             </View>
@@ -499,8 +499,8 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                   <Switch
                     value={repeat}
                     onValueChange={setRepeat}
-                    trackColor={{ false: '#E0E0E0', true: DesignTokens.colors.accent }}
-                    thumbColor="#FFFFFF"
+                    trackColor={{ false: DesignTokens.colors.line.default, true: DesignTokens.colors.accent }}
+                    thumbColor={DesignTokens.colors.white}
                   />
                 </View>
                 {repeat && (

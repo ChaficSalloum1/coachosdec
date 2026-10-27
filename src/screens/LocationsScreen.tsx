@@ -16,6 +16,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { Area, Facility, Court } from '../types/coach';
+import { DesignTokens } from '../utils/designTokens';
 
 type TabType = 'areas' | 'facilities' | 'courts';
 
@@ -27,7 +28,7 @@ export function LocationsScreen() {
     <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
       {/* Header */}
       <View className="px-4 py-3 border-b border-gray-200">
-        <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
+        <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
           Locations
         </Text>
       </View>
@@ -44,13 +45,13 @@ export function LocationsScreen() {
             className="flex-1 py-4 items-center"
             style={{
               borderBottomWidth: activeTab === tab ? 2 : 0,
-              borderBottomColor: '#1E88E5',
+              borderBottomColor: DesignTokens.colors.brand.default,
             }}
           >
             <Text
               className="text-base font-medium capitalize"
               style={{
-                color: activeTab === tab ? '#1E88E5' : '#42526E',
+                color: activeTab === tab ? DesignTokens.colors.brand.default : DesignTokens.colors.text.muted,
               }}
             >
               {tab}
@@ -107,11 +108,11 @@ function AreasTab() {
       <ScrollView className="flex-1 px-4 py-6">
         {areas.length === 0 ? (
           <View className="items-center justify-center py-12">
-            <Ionicons name="location-outline" size={64} color="#42526E" />
-            <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: '#0B1220' }}>
+            <Ionicons name="location-outline" size={64} color={DesignTokens.colors.text.muted} />
+            <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
               No areas yet
             </Text>
-            <Text className="text-base text-center" style={{ color: '#42526E' }}>
+            <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
               Create areas to organize your{"\n"}coaching locations
             </Text>
           </View>
@@ -125,14 +126,14 @@ function AreasTab() {
                 style={{ minHeight: 44 }}
               >
                 <View className="flex-row justify-between items-center">
-                  <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+                  <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
                     {area.name}
                   </Text>
                   <Pressable
                     onPress={() => handleDelete(area)}
                     className="p-2 active:bg-gray-200 rounded-lg"
                   >
-                    <Ionicons name="trash-outline" size={20} color="#C62828" />
+                    <Ionicons name="trash-outline" size={20} color={DesignTokens.colors.red['800']} />
                   </Pressable>
                 </View>
               </Pressable>
@@ -146,7 +147,7 @@ function AreasTab() {
         <Pressable
           onPress={handleAdd}
           className="rounded-lg py-4 px-4 active:opacity-80"
-          style={{ backgroundColor: '#1E88E5', minHeight: 44 }}
+          style={{ backgroundColor: DesignTokens.colors.brand.default, minHeight: 44 }}
         >
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
@@ -222,11 +223,11 @@ function FacilitiesTab() {
       <ScrollView className="flex-1 px-4 py-6">
         {facilities.length === 0 ? (
           <View className="items-center justify-center py-12">
-            <Ionicons name="business-outline" size={64} color="#42526E" />
-            <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: '#0B1220' }}>
+            <Ionicons name="business-outline" size={64} color={DesignTokens.colors.text.muted} />
+            <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
               No facilities yet
             </Text>
-            <Text className="text-base text-center" style={{ color: '#42526E' }}>
+            <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
               Add facilities within your areas{"\n"}like clubs or venues
             </Text>
           </View>
@@ -243,14 +244,14 @@ function FacilitiesTab() {
                 >
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1">
-                      <Text className="text-lg font-semibold mb-1" style={{ color: '#0B1220' }}>
+                      <Text className="text-lg font-semibold mb-1" style={{ color: DesignTokens.colors.text.strong }}>
                         {facility.name}
                       </Text>
-                      <Text className="text-sm" style={{ color: '#42526E' }}>
+                      <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                         {area?.name}
                       </Text>
                       {facility.address && (
-                        <Text className="text-sm mt-1" style={{ color: '#42526E' }}>
+                        <Text className="text-sm mt-1" style={{ color: DesignTokens.colors.text.muted }}>
                           {facility.address}
                         </Text>
                       )}
@@ -259,7 +260,7 @@ function FacilitiesTab() {
                       onPress={() => handleDelete(facility)}
                       className="p-2 active:bg-gray-200 rounded-lg"
                     >
-                      <Ionicons name="trash-outline" size={20} color="#C62828" />
+                      <Ionicons name="trash-outline" size={20} color={DesignTokens.colors.red['800']} />
                     </Pressable>
                   </View>
                 </Pressable>
@@ -274,7 +275,7 @@ function FacilitiesTab() {
         <Pressable
           onPress={handleAdd}
           className="rounded-lg py-4 px-4 active:opacity-80"
-          style={{ backgroundColor: '#1E88E5', minHeight: 44 }}
+          style={{ backgroundColor: DesignTokens.colors.brand.default, minHeight: 44 }}
         >
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
@@ -351,11 +352,11 @@ function CourtsTab() {
       <ScrollView className="flex-1 px-4 py-6">
         {courts.length === 0 ? (
           <View className="items-center justify-center py-12">
-            <Ionicons name="tennisball-outline" size={64} color="#42526E" />
-            <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: '#0B1220' }}>
+            <Ionicons name="tennisball-outline" size={64} color={DesignTokens.colors.text.muted} />
+            <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
               No courts yet
             </Text>
-            <Text className="text-base text-center" style={{ color: '#42526E' }}>
+            <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
               Add specific courts within{"\n"}your facilities
             </Text>
           </View>
@@ -373,14 +374,14 @@ function CourtsTab() {
                 >
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1">
-                      <Text className="text-lg font-semibold mb-1" style={{ color: '#0B1220' }}>
+                      <Text className="text-lg font-semibold mb-1" style={{ color: DesignTokens.colors.text.strong }}>
                         {court.label}
                       </Text>
-                      <Text className="text-sm" style={{ color: '#42526E' }}>
+                      <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                         {facility?.name} • {area?.name}
                       </Text>
                       {court.sport && (
-                        <Text className="text-sm mt-1" style={{ color: '#42526E' }}>
+                        <Text className="text-sm mt-1" style={{ color: DesignTokens.colors.text.muted }}>
                           {court.sport}
                         </Text>
                       )}
@@ -389,7 +390,7 @@ function CourtsTab() {
                       onPress={() => handleDelete(court)}
                       className="p-2 active:bg-gray-200 rounded-lg"
                     >
-                      <Ionicons name="trash-outline" size={20} color="#C62828" />
+                      <Ionicons name="trash-outline" size={20} color={DesignTokens.colors.red['800']} />
                     </Pressable>
                   </View>
                 </Pressable>
@@ -404,7 +405,7 @@ function CourtsTab() {
         <Pressable
           onPress={handleAdd}
           className="rounded-lg py-4 px-4 active:opacity-80"
-          style={{ backgroundColor: '#1E88E5', minHeight: 44 }}
+          style={{ backgroundColor: DesignTokens.colors.brand.default, minHeight: 44 }}
         >
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
@@ -469,18 +470,18 @@ function AreaFormModal({ visible, onClose, area, onSave }: AreaFormModalProps) {
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: '#1E88E5' }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>Cancel</Text>
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
             {area ? 'Edit Area' : 'Add Area'}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: '#1E88E5' }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>Save</Text>
           </Pressable>
         </View>
 
         <View className="p-4">
-          <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+          <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
             Area Name *
           </Text>
           <TextInput
@@ -488,7 +489,7 @@ function AreaFormModal({ visible, onClose, area, onSave }: AreaFormModalProps) {
             onChangeText={setName}
             className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
             placeholder="Downtown, Northside, etc."
-            style={{ color: '#0B1220' }}
+            style={{ color: DesignTokens.colors.text.strong }}
             autoFocus
           />
         </View>
@@ -539,20 +540,20 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: '#1E88E5' }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>Cancel</Text>
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
             {facility ? 'Edit Facility' : 'Add Facility'}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: '#1E88E5' }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>Save</Text>
           </Pressable>
         </View>
 
         <ScrollView className="flex-1 p-4">
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Area *
               </Text>
               <View className="bg-gray-50 rounded-lg border border-gray-200">
@@ -563,15 +564,15 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
                     className="px-3 py-3 flex-row items-center"
                     style={{
                       borderBottomWidth: areas.indexOf(area) < areas.length - 1 ? 1 : 0,
-                      borderBottomColor: '#E0E0E0',
+                      borderBottomColor: DesignTokens.colors.line.default,
                     }}
                   >
                     <Ionicons
                       name={areaId === area.id ? 'radio-button-on' : 'radio-button-off'}
                       size={20}
-                      color="#1E88E5"
+                      color={DesignTokens.colors.brand.default}
                     />
-                    <Text className="text-base ml-3" style={{ color: '#0B1220' }}>
+                    <Text className="text-base ml-3" style={{ color: DesignTokens.colors.text.strong }}>
                       {area.name}
                     </Text>
                   </Pressable>
@@ -580,7 +581,7 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Facility Name *
               </Text>
               <TextInput
@@ -588,12 +589,12 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
                 onChangeText={setName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="Pro Club, Tennis Center, etc."
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Address (Optional)
               </Text>
               <TextInput
@@ -601,12 +602,12 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
                 onChangeText={setAddress}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="123 Main St, City, State"
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Notes (Optional)
               </Text>
               <TextInput
@@ -614,7 +615,7 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
                 onChangeText={setNotes}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="Parking info, special instructions, etc."
-                style={{ color: '#0B1220', textAlignVertical: 'top' }}
+                style={{ color: DesignTokens.colors.text.strong, textAlignVertical: 'top' }}
                 multiline
                 numberOfLines={3}
               />
@@ -665,20 +666,20 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: '#1E88E5' }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>Cancel</Text>
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
             {court ? 'Edit Court' : 'Add Court'}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: '#1E88E5' }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>Save</Text>
           </Pressable>
         </View>
 
         <ScrollView className="flex-1 p-4">
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Facility *
               </Text>
               <View className="bg-gray-50 rounded-lg border border-gray-200">
@@ -691,19 +692,19 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
                       className="px-3 py-3 flex-row items-center"
                       style={{
                         borderBottomWidth: facilities.indexOf(facility) < facilities.length - 1 ? 1 : 0,
-                        borderBottomColor: '#E0E0E0',
+                        borderBottomColor: DesignTokens.colors.line.default,
                       }}
                     >
                       <Ionicons
                         name={facilityId === facility.id ? 'radio-button-on' : 'radio-button-off'}
                         size={20}
-                        color="#1E88E5"
+                        color={DesignTokens.colors.brand.default}
                       />
                       <View className="ml-3">
-                        <Text className="text-base" style={{ color: '#0B1220' }}>
+                        <Text className="text-base" style={{ color: DesignTokens.colors.text.strong }}>
                           {facility.name}
                         </Text>
-                        <Text className="text-sm" style={{ color: '#42526E' }}>
+                        <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                           {area?.name}
                         </Text>
                       </View>
@@ -714,7 +715,7 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Court Label *
               </Text>
               <TextInput
@@ -722,12 +723,12 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
                 onChangeText={setLabel}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="Court 1, Center Court, etc."
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Sport (Optional)
               </Text>
               <TextInput
@@ -735,7 +736,7 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
                 onChangeText={setSport}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="Tennis, Pickleball, etc."
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
           </View>

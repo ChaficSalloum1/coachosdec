@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { CURRENCY_CODES, CURRENCY_LABELS, currencySymbol, type CurrencyCode } from '../modules/payments';
+import { DesignTokens } from '../utils/designTokens';
 
 interface CurrencyPickerProps {
   value: CurrencyCode;
@@ -26,11 +27,11 @@ export function CurrencyPicker({ value, onChange }: CurrencyPickerProps) {
             style={{
               minHeight: 44,
               justifyContent: 'center',
-              backgroundColor: selected ? '#E8F2FF' : '#FFFFFF',
-              borderColor: selected ? '#1E88E5' : '#D7DEE8',
+              backgroundColor: selected ? DesignTokens.colors.brand.tint : DesignTokens.colors.white,
+              borderColor: selected ? DesignTokens.colors.brand.default : DesignTokens.colors.brand.outline,
             }}
           >
-            <Text className="text-sm font-semibold" style={{ color: selected ? '#1E88E5' : '#0B1220' }}>
+            <Text className="text-sm font-semibold" style={{ color: selected ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong }}>
               {symbol === code ? code : `${symbol} ${code}`}
             </Text>
           </Pressable>

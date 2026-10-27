@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Coach } from '../types/coach';
 import { UI_TIMING } from '../config/appSettings';
 import { buildBookingUrl } from '../utils/publicBooking';
+import { DesignTokens } from '../utils/designTokens';
 
 interface BookingLinkCardProps {
   coach: Coach;
@@ -47,7 +48,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   if (!bookingUrl) {
     return (
       <View className="bg-gray-50 rounded-xl p-4">
-        <Text className="text-sm" style={{ color: '#42526E' }}>
+        <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
           Your student booking page is not switched on yet. Once it is, your link and QR code will appear here.
         </Text>
       </View>
@@ -57,10 +58,10 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   return (
     <>
       <View className="bg-gray-50 rounded-xl p-4">
-        <Text className="text-sm mb-1" style={{ color: '#42526E' }}>
+        <Text className="text-sm mb-1" style={{ color: DesignTokens.colors.text.muted }}>
           Share this link with students so they can book lessons with you:
         </Text>
-        <Text className="text-sm font-medium mb-4" numberOfLines={1} style={{ color: '#1E88E5' }}>
+        <Text className="text-sm font-medium mb-4" numberOfLines={1} style={{ color: DesignTokens.colors.brand.default }}>
           {bookingUrl}
         </Text>
 
@@ -71,12 +72,12 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
             style={{
               width: 72,
               height: 72,
-              backgroundColor: '#FFFFFF',
+              backgroundColor: DesignTokens.colors.white,
               borderRadius: 10,
               alignItems: 'center',
               justifyContent: 'center',
               borderWidth: 1,
-              borderColor: '#E0E0E0',
+              borderColor: DesignTokens.colors.line.default,
             }}
           >
             <QRCode value={bookingUrl} size={60} />
@@ -86,7 +87,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
             <Pressable
               onPress={shareBookingLink}
               className="flex-row items-center justify-center rounded-lg py-3 active:opacity-80"
-              style={{ backgroundColor: '#1E88E5' }}
+              style={{ backgroundColor: DesignTokens.colors.brand.default }}
             >
               <Ionicons name="share-outline" size={16} color="white" />
               <Text className="text-sm font-semibold text-white ml-2">Share Link</Text>
@@ -95,14 +96,14 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
             <Pressable
               onPress={copyBookingLink}
               className="flex-row items-center justify-center rounded-lg py-3 active:bg-gray-200"
-              style={{ backgroundColor: '#F0F0F0' }}
+              style={{ backgroundColor: DesignTokens.colors.surface.muted }}
             >
               <Ionicons
                 name={copied ? 'checkmark-outline' : 'copy-outline'}
                 size={16}
-                color={copied ? '#2E7D32' : '#0B1220'}
+                color={copied ? DesignTokens.colors.green.strong : DesignTokens.colors.text.strong}
               />
-              <Text className="text-sm font-medium ml-2" style={{ color: copied ? '#2E7D32' : '#0B1220' }}>
+              <Text className="text-sm font-medium ml-2" style={{ color: copied ? DesignTokens.colors.green.strong : DesignTokens.colors.text.strong }}>
                 {copied ? 'Copied!' : 'Copy Link'}
               </Text>
             </Pressable>
@@ -113,10 +114,10 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
         <Pressable
           onPress={() => (navigation as any).navigate('PublicBooking')}
           className="mt-3 flex-row items-center justify-center rounded-lg py-3 active:bg-blue-100"
-          style={{ backgroundColor: '#EBF3FF' }}
+          style={{ backgroundColor: DesignTokens.colors.brand.tint }}
         >
-          <Ionicons name="eye-outline" size={16} color="#1E88E5" />
-          <Text className="text-sm font-medium ml-2" style={{ color: '#1E88E5' }}>
+          <Ionicons name="eye-outline" size={16} color={DesignTokens.colors.brand.default} />
+          <Text className="text-sm font-medium ml-2" style={{ color: DesignTokens.colors.brand.default }}>
             Preview student booking page
           </Text>
         </Pressable>
@@ -125,25 +126,25 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
       {/* Full-screen QR modal */}
       <Modal visible={showQR} transparent animationType="fade" onRequestClose={() => setShowQR(false)}>
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', alignItems: 'center', justifyContent: 'center' }}
+          style={{ flex: 1, backgroundColor: DesignTokens.colors.overlay.scrimHeavy, alignItems: 'center', justifyContent: 'center' }}
           onPress={() => setShowQR(false)}
         >
           <View style={{
-            backgroundColor: '#FFFFFF',
+            backgroundColor: DesignTokens.colors.white,
             borderRadius: 20,
             padding: 32,
             alignItems: 'center',
             marginHorizontal: 32,
             paddingBottom: Math.max(insets.bottom + 32, 32),
           }}>
-            <Text style={{ fontSize: 18, fontWeight: '700', color: '#0B1220', marginBottom: 4 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: DesignTokens.colors.text.strong, marginBottom: 4 }}>
               {coach.name}
             </Text>
-            <Text style={{ fontSize: 13, color: '#42526E', marginBottom: 24, textAlign: 'center' }}>
+            <Text style={{ fontSize: 13, color: DesignTokens.colors.text.muted, marginBottom: 24, textAlign: 'center' }}>
               Students scan this to book a lesson
             </Text>
             <QRCode value={bookingUrl} size={220} />
-            <Text style={{ fontSize: 12, color: '#9BA3AF', marginTop: 20, textAlign: 'center' }}>
+            <Text style={{ fontSize: 12, color: DesignTokens.colors.text.faint, marginTop: 20, textAlign: 'center' }}>
               Tap anywhere to close
             </Text>
           </View>

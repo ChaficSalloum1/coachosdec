@@ -1,0 +1,130 @@
+{
+  "white": "#FFFFFF",
+  "black": "#000000",
+  "ios": {
+    "blue": "#007AFF",
+    "green": "#34C759",
+    "orange": "#FF9500",
+    "red": "#FF3B30",
+    "graphite": "#1C1C1E",
+    "grey": "#8E8E93",
+    "lightGrey": "#C7C7CC",
+    "superLightGrey": "#F2F2F7"
+  },
+  "brand": {
+    "default": "#1E88E5",
+    "tint": "#E8F2FF",
+    "tintMaterial": "#E3F2FD",
+    "mid": "#90CAF9",
+    "deep": "#1E5B8E",
+    "outline": "#D7DEE8",
+    "link": "#1976D2",
+    "tintSoft": "#EBF5FF",
+    "tintPaywall": "#EFF6FF",
+    "statusText": "#1E5AA8"
+  },
+  "text": {
+    "strong": "#0B1220",
+    "muted": "#42526E",
+    "subtle": "#6B7280",
+    "faint": "#9CA3AF",
+    "ghost": "#D1D5DB",
+    "errorDark": "#7A271A",
+    "successDark": "#276749"
+  },
+  "surface": {
+    "raised": "#F7F8FA",
+    "subtle": "#F5F5F5",
+    "muted": "#F0F0F0",
+    "disabled": "#EEF1F5",
+    "paywall": "#FAFAFA",
+    "tintInfo": "#F1F8FF",
+    "tintSuccess": "#F0FFF4"
+  },
+  "line": {
+    "default": "#E0E0E0",
+    "soft": "#E5E7EB",
+    "hairline": "#E5E5EA",
+    "error": "#F5B5B5",
+    "success": "#A7D7B3",
+    "info": "#B8D7F4"
+  },
+  "red": {
+    "700": "#D32F2F",
+    "800": "#C62828",
+    "deep": "#B42318",
+    "bright": "#EF4444",
+    "tint": "#FDECEA",
+    "tintFaint": "#FFF1F1",
+    "600": "#DC2626",
+    "border": "#F0B8B3"
+  },
+  "amber": {
+    "text": "#8A5A00",
+    "textWarm": "#B26A00",
+    "strong": "#F57C00",
+    "warm": "#F59E0B",
+    "warning": "#F9A825",
+    "tint": "#FFF7E0",
+    "border": "#F2D28A",
+    "glow": "rgba(245, 124, 0, 0.12)"
+  },
+  "green": {
+    "text": "#1F7A3A",
+    "strong": "#2E7D32",
+    "statusText": "#1F7A45",
+    "tint": "#E8F7EF"
+  },
+  "purple": "#8B5CF6",
+  "overlay": {
+    "scrimLight": "rgba(0,0,0,0.35)",
+    "scrimHeavy": "rgba(0,0,0,0.75)",
+    "scrimInk": "rgba(11, 18, 32, 0.65)",
+    "whiteFaint": "rgba(255,255,255,0.1)",
+    "whiteSoft": "rgba(255,255,255,0.6)",
+    "whiteMid": "rgba(255,255,255,0.65)",
+    "whiteStrong": "rgba(255, 255, 255, 0.9)"
+  },
+  "violet": {
+    "text": "#6542A6",
+    "tint": "#F1EAFE"
+  },
+  "indigo": {
+    "600": "#4F46E5"
+  },
+  "gold": "#F5A623",
+  "avatar": {
+    "blue": [
+      "#3B82F6",
+      "#60A5FA"
+    ],
+    "purple": [
+      "#8B5CF6",
+      "#A78BFA"
+    ],
+    "pink": [
+      "#EC4899",
+      "#F472B6"
+    ],
+    "amber": [
+      "#F59E0B",
+      "#FBBF24"
+    ],
+    "green": [
+      "#10B981",
+      "#34D399"
+    ],
+    "cyan": [
+      "#06B6D4",
+      "#22D3EE"
+    ],
+    "red": [
+      "#EF4444",
+      "#F87171"
+    ],
+    "indigo": [
+      "#6366F1",
+      "#818CF8"
+    ]
+  }
+}

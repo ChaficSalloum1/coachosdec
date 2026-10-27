@@ -1,6 +1,7 @@
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SPORT_OPTIONS } from '../../constants/sports';
+import { DesignTokens } from '../../utils/designTokens';
 
 interface SportsTileSelectorProps {
   selectedSports: string[];
@@ -50,8 +51,8 @@ export function SportsTileSelector({
                 minHeight: compact ? 86 : 104,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: selected ? '#1E88E5' : '#D7DEE8',
-                backgroundColor: selected ? '#E8F2FF' : '#FFFFFF',
+                borderColor: selected ? DesignTokens.colors.brand.default : DesignTokens.colors.brand.outline,
+                backgroundColor: selected ? DesignTokens.colors.brand.tint : DesignTokens.colors.white,
                 padding: compact ? 10 : 14,
                 justifyContent: 'space-between',
               }}
@@ -60,13 +61,13 @@ export function SportsTileSelector({
                 <Ionicons
                   name={option.icon}
                   size={compact ? 22 : 26}
-                  color={selected ? '#1E88E5' : '#42526E'}
+                  color={selected ? DesignTokens.colors.brand.default : DesignTokens.colors.text.muted}
                 />
-                {selected && <Ionicons name="checkmark-circle" size={18} color="#1E88E5" />}
+                {selected && <Ionicons name="checkmark-circle" size={18} color={DesignTokens.colors.brand.default} />}
               </View>
               <Text
                 style={{
-                  color: selected ? '#1E88E5' : '#0B1220',
+                  color: selected ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong,
                   fontSize: compact ? 13 : 15,
                   fontWeight: '700',
                   marginTop: 10,

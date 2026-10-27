@@ -4,14 +4,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { UI_TIMING } from '../config/appSettings';
 import { ToastMessage, useToastStore } from '../state/toastStore';
+import { DesignTokens } from '../utils/designTokens';
 
 // Matches the bottom tab bar height in TabNavigator (60 + safe area).
 const TAB_BAR_HEIGHT = 60;
 
 const BACKGROUND: Record<ToastMessage['type'], string> = {
-  info: '#0B1220',
-  success: '#1F7A3A',
-  error: '#C62828',
+  info: DesignTokens.colors.text.strong,
+  success: DesignTokens.colors.green.text,
+  error: DesignTokens.colors.red['800'],
 };
 
 export function ToastHost() {
@@ -61,7 +62,7 @@ export function ToastHost() {
           maxWidth: 520,
         }}
       >
-        <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '500', textAlign: 'center' }}>
+        <Text style={{ color: DesignTokens.colors.white, fontSize: 14, fontWeight: '500', textAlign: 'center' }}>
           {shown.message}
         </Text>
       </Animated.View>

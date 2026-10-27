@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { Lesson } from '../../types/coach';
 import { useCurrency } from '../../hooks/useCurrency';
 import { summarizeIncome } from '../../utils/income';
+import { DesignTokens } from '../../utils/designTokens';
 
 export function EarningsCard({ lessons }: { lessons: Lesson[] }) {
   const { formatMoney: money } = useCurrency();
@@ -17,10 +18,10 @@ export function EarningsCard({ lessons }: { lessons: Lesson[] }) {
       {rows.map(({ label, value }) => (
         <View key={label}>
           <View className="flex-row items-baseline justify-between">
-            <Text className="text-sm" style={{ color: '#42526E' }}>{label}</Text>
-            <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>{money(value.paid)}</Text>
+            <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>{label}</Text>
+            <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>{money(value.paid)}</Text>
           </View>
-          <Text className="text-sm mt-1" style={{ color: '#42526E' }}>
+          <Text className="text-sm mt-1" style={{ color: DesignTokens.colors.text.muted }}>
             {value.lessons} {value.lessons === 1 ? 'lesson' : 'lessons'}
             {value.outstanding > 0 ? ` · ${money(value.outstanding)} still to be paid` : ''}
           </Text>

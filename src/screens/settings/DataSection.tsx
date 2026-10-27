@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useCoachStore } from '../../state/coachStore';
 import { exportData } from '../../utils/dataExport';
 import { SettingsSection } from './SettingsSection';
+import { DesignTokens } from '../../utils/designTokens';
 
 // Lets the coach take a copy of their data.
 export function DataSection() {
@@ -30,14 +31,14 @@ export function DataSection() {
         <Pressable onPress={confirmExport} className="bg-gray-50 rounded-xl p-4 active:bg-gray-100">
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
-              <Text className="text-base font-medium mb-1" style={{ color: '#0B1220' }}>
+              <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
                 {t('exportData')}
               </Text>
-              <Text className="text-sm" style={{ color: '#42526E' }}>
+              <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                 {t('exportDataDesc')}
               </Text>
             </View>
-            <Ionicons name="download-outline" size={20} color="#42526E" />
+            <Ionicons name="download-outline" size={20} color={DesignTokens.colors.text.muted} />
           </View>
         </Pressable>
       </View>

@@ -14,6 +14,7 @@ import { addDays, format } from 'date-fns';
 
 import { PUBLIC_BOOKING } from '../config/appSettings';
 import { Coach, BookingRequest, TimeSlot, AvailabilityRange, Lesson } from '../types/coach';
+import { DesignTokens } from '../utils/designTokens';
 
 
 interface PublicBookingScreenProps {
@@ -204,9 +205,9 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
       <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={() => setShowBookingForm(false)}>
-            <Ionicons name="arrow-back" size={24} color="#0B1220" />
+            <Ionicons name="arrow-back" size={24} color={DesignTokens.colors.text.strong} />
           </Pressable>
-          <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
             Book Lesson
           </Text>
           <View style={{ width: 24 }} />
@@ -215,7 +216,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
         <ScrollView className="flex-1 px-4 py-6">
           <View className="space-y-4">
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Your Name *
               </Text>
               <TextInput
@@ -224,12 +225,12 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="John Smith"
                 maxLength={PUBLIC_BOOKING.maxNameLength}
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Contact (Email or Phone) *
               </Text>
               <TextInput
@@ -238,18 +239,18 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="john@email.com or (555) 123-4567"
                 maxLength={PUBLIC_BOOKING.maxContactLength}
-                style={{ color: '#0B1220' }}
+                style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Selected Time
               </Text>
-              <Text className="text-base" style={{ color: '#42526E' }}>
+              <Text className="text-base" style={{ color: DesignTokens.colors.text.muted }}>
                 {formatDate(new Date(selectedDate))} at {selectedTime}
                 {selectedSlot && (selectedSlot.areaId || selectedSlot.facilityId || selectedSlot.courtId) && (
-                  <Text className="text-sm" style={{ color: '#42526E' }}>
+                  <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                     {'\n'}{formatLocationText(selectedSlot.areaId, selectedSlot.facilityId, selectedSlot.courtId)}
                   </Text>
                 )}
@@ -257,7 +258,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
             </View>
 
             <View>
-              <Text className="text-sm font-medium mb-2" style={{ color: '#0B1220' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
                 Note (Optional)
               </Text>
               <TextInput
@@ -268,7 +269,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 multiline
                 numberOfLines={3}
                 maxLength={PUBLIC_BOOKING.maxNoteLength}
-                style={{ color: '#0B1220', textAlignVertical: 'top' }}
+                style={{ color: DesignTokens.colors.text.strong, textAlignVertical: 'top' }}
               />
             </View>
           </View>
@@ -278,13 +279,13 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
             disabled={isSubmitting}
             className="mt-8 rounded-lg py-4 px-4 active:opacity-80"
             style={{
-              backgroundColor: isSubmitting ? '#90CAF9' : '#1E88E5',
+              backgroundColor: isSubmitting ? DesignTokens.colors.brand.mid : DesignTokens.colors.brand.default,
               opacity: isSubmitting ? 0.7 : 1
             }}
           >
             {isSubmitting ? (
               <View className="flex-row items-center justify-center">
-                <ActivityIndicator color="#FFFFFF" size="small" />
+                <ActivityIndicator color={DesignTokens.colors.white} size="small" />
                 <Text className="text-base font-medium text-white ml-2">
                   Sending...
                 </Text>
@@ -305,15 +306,15 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
       {/* Header */}
       <View className="items-center px-4 py-6 border-b border-gray-200">
         <View className="w-20 h-20 bg-gray-200 rounded-full items-center justify-center mb-4">
-          <Ionicons name="person" size={40} color="#42526E" />
+          <Ionicons name="person" size={40} color={DesignTokens.colors.text.muted} />
         </View>
-        <Text className="text-xl font-semibold mb-2" style={{ color: '#0B1220' }}>
+        <Text className="text-xl font-semibold mb-2" style={{ color: DesignTokens.colors.text.strong }}>
           {coach.name}
         </Text>
-        <Text className="text-base mb-1" style={{ color: '#42526E' }}>
+        <Text className="text-base mb-1" style={{ color: DesignTokens.colors.text.muted }}>
           {coach.sports.join(' • ')}
         </Text>
-        <Text className="text-lg font-medium" style={{ color: '#1E88E5' }}>
+        <Text className="text-lg font-medium" style={{ color: DesignTokens.colors.brand.default }}>
           ${coach.pricePerHour}/hour
         </Text>
       </View>
@@ -321,7 +322,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
       {/* Available Times */}
       <ScrollView className="flex-1">
         <View className="px-4 py-6">
-          <Text className="text-lg font-semibold mb-4" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
             Available Times
           </Text>
           
@@ -331,7 +332,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
 
             return (
               <View key={format(date, 'yyyy-MM-dd')} className="mb-6">
-                <Text className="text-base font-medium mb-3" style={{ color: '#0B1220' }}>
+                <Text className="text-base font-medium mb-3" style={{ color: DesignTokens.colors.text.strong }}>
                   {formatDate(date)}
                 </Text>
                 <View className="flex-row flex-wrap gap-2">
@@ -346,11 +347,11 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                       }}
                       className="bg-gray-100 px-4 py-2 rounded-lg active:bg-gray-200"
                     >
-                      <Text className="text-sm font-medium" style={{ color: '#0B1220' }}>
+                      <Text className="text-sm font-medium" style={{ color: DesignTokens.colors.text.strong }}>
                         {time}
                       </Text>
                       {(slot.areaId || slot.facilityId || slot.courtId) && (
-                        <Text className="text-xs mt-1" style={{ color: '#42526E' }}>
+                        <Text className="text-xs mt-1" style={{ color: DesignTokens.colors.text.muted }}>
                           {formatLocationText(slot.areaId, slot.facilityId, slot.courtId)}
                         </Text>
                       )}

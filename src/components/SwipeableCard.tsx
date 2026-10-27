@@ -194,7 +194,7 @@ export function SwipeableCard({
       {rightSwipeEnabled && (
         <Animated.View style={rightBackgroundStyle}>
           <Animated.View style={rightIconStyle}>
-            <Ionicons name="checkmark-circle" size={32} color="#FFFFFF" />
+            <Ionicons name="checkmark-circle" size={32} color={DesignTokens.colors.white} />
           </Animated.View>
         </Animated.View>
       )}
@@ -203,7 +203,7 @@ export function SwipeableCard({
       {leftSwipeEnabled && (
         <Animated.View style={leftBackgroundStyle}>
           <Animated.View style={leftIconStyle}>
-            <Ionicons name="close-circle" size={32} color="#FFFFFF" />
+            <Ionicons name="close-circle" size={32} color={DesignTokens.colors.white} />
           </Animated.View>
         </Animated.View>
       )}

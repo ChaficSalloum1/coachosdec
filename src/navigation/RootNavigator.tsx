@@ -9,6 +9,7 @@ import { getSession, onAuthStateChange } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
 import { UI_TIMING } from '../config/appSettings';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
+import { DesignTokens } from '../utils/designTokens';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -132,9 +133,9 @@ export function RootNavigator() {
 
   if (session === undefined) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' }}>
-        <ActivityIndicator color="#1E88E5" size="large" />
-        <Text style={{ color: '#42526E', fontSize: 14, marginTop: 12 }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: DesignTokens.colors.white }}>
+        <ActivityIndicator color={DesignTokens.colors.brand.default} size="large" />
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 14, marginTop: 12 }}>
           CoachOS is opening...
         </Text>
       </View>

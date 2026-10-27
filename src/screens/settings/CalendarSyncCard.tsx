@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { showToast } from '../../state/toastStore';
 import { Coach } from '../../types/coach';
+import { DesignTokens } from '../../utils/designTokens';
 
 interface CalendarSyncCardProps {
   coach: Coach;
@@ -51,12 +52,12 @@ export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-1 mr-4">
           <View className="flex-row items-center mb-2">
-            <Ionicons name="calendar-outline" size={20} color="#1E88E5" style={{ marginRight: 8 }} />
-            <Text className="text-base font-semibold" style={{ color: '#0B1220' }}>
+            <Ionicons name="calendar-outline" size={20} color={DesignTokens.colors.brand.default} style={{ marginRight: 8 }} />
+            <Text className="text-base font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
               {t('syncToCalendar')}
             </Text>
           </View>
-          <Text className="text-sm" style={{ color: '#42526E' }}>
+          <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
             {t('syncToCalendarDesc')}
           </Text>
         </View>
@@ -64,16 +65,16 @@ export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
           value={coach.calendarSyncEnabled ?? false}
           onValueChange={handleToggle}
           disabled={isInitializing}
-          trackColor={{ false: '#E0E0E0', true: '#1E88E5' }}
-          thumbColor="#FFFFFF"
+          trackColor={{ false: DesignTokens.colors.line.default, true: DesignTokens.colors.brand.default }}
+          thumbColor={DesignTokens.colors.white}
         />
       </View>
 
       {coach.calendarSyncEnabled && (
         <View className="bg-blue-50 rounded-lg p-3 mt-2">
           <View className="flex-row items-start">
-            <Ionicons name="checkmark-circle" size={16} color="#1E88E5" style={{ marginRight: 6, marginTop: 2 }} />
-            <Text className="text-xs flex-1" style={{ color: '#1E88E5' }}>
+            <Ionicons name="checkmark-circle" size={16} color={DesignTokens.colors.brand.default} style={{ marginRight: 6, marginTop: 2 }} />
+            <Text className="text-xs flex-1" style={{ color: DesignTokens.colors.brand.default }}>
               {t('calendarSyncActive')}
             </Text>
           </View>

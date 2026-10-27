@@ -21,6 +21,7 @@ import { StudentNotesScreen } from '../components/StudentNotesScreen';
 import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
 import { summarizeUnpaid } from '../utils/unpaid';
 import { todayISO } from '../utils/dayNav';
+import { DesignTokens } from '../utils/designTokens';
 
 export function StudentsScreen() {
   const insets = useSafeAreaInsets();
@@ -60,7 +61,7 @@ export function StudentsScreen() {
         className="px-4 border-b border-gray-200"
         style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
       >
-        <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
+        <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
           Students
         </Text>
       </View>
@@ -74,7 +75,7 @@ export function StudentsScreen() {
         <View className="px-4 py-4">
           {showOwing ? (
             <View>
-              <Text className="text-sm mb-3" style={{ color: '#42526E' }}>
+              <Text className="text-sm mb-3" style={{ color: DesignTokens.colors.text.muted }}>
                 {formatMoney(unpaid.total)} owed by {unpaid.students.length} {unpaid.students.length === 1 ? 'student' : 'students'}
               </Text>
               {unpaid.students.map((row) => (
@@ -84,14 +85,14 @@ export function StudentsScreen() {
                   style={{ minHeight: 64 }}
                 >
                   <View className="flex-1">
-                    <Text className="text-base font-semibold" style={{ color: '#0B1220' }} numberOfLines={1}>
+                    <Text className="text-base font-semibold" style={{ color: DesignTokens.colors.text.strong }} numberOfLines={1}>
                       {row.student.name}
                     </Text>
-                    <Text className="text-sm" style={{ color: '#42526E' }}>
+                    <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                       {row.lessonCount} {row.lessonCount === 1 ? 'lesson' : 'lessons'} · since {row.oldestDate}
                     </Text>
                   </View>
-                  <Text className="text-base font-semibold mr-3" style={{ color: '#D32F2F' }}>
+                  <Text className="text-base font-semibold mr-3" style={{ color: DesignTokens.colors.red['700'] }}>
                     {formatMoney(row.amount)}
                   </Text>
                   <Pressable
@@ -99,9 +100,9 @@ export function StudentsScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={`Request payment from ${row.student.name}`}
                     className="rounded-full px-4 justify-center"
-                    style={{ minHeight: 44, backgroundColor: '#1E88E5' }}
+                    style={{ minHeight: 44, backgroundColor: DesignTokens.colors.brand.default }}
                   >
-                    <Text className="font-semibold" style={{ color: '#FFFFFF' }}>Request</Text>
+                    <Text className="font-semibold" style={{ color: DesignTokens.colors.white }}>Request</Text>
                   </Pressable>
                 </View>
               ))}
@@ -132,11 +133,11 @@ export function StudentsScreen() {
       >
         <View className="flex-row items-center" style={{ gap: 8 }}>
         <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
-          <Ionicons name="search" size={20} color="#42526E" />
+          <Ionicons name="search" size={20} color={DesignTokens.colors.text.muted} />
           <TextInput
             className="flex-1 ml-2 text-base text-ink-900"
             placeholder="Search students..."
-            placeholderTextColor="#42526E"
+            placeholderTextColor={DesignTokens.colors.text.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -149,9 +150,9 @@ export function StudentsScreen() {
             accessibilityRole="button"
             accessibilityState={{ selected: showOwing }}
             className="rounded-xl px-3 justify-center"
-            style={{ minHeight: 44, backgroundColor: showOwing ? '#D32F2F' : '#FDECEA' }}
+            style={{ minHeight: 44, backgroundColor: showOwing ? DesignTokens.colors.red['700'] : DesignTokens.colors.red.tint }}
           >
-            <Text className="font-semibold" style={{ color: showOwing ? '#FFFFFF' : '#D32F2F' }}>
+            <Text className="font-semibold" style={{ color: showOwing ? DesignTokens.colors.white : DesignTokens.colors.red['700'] }}>
               Owing {formatMoney(unpaid.total)}
             </Text>
           </Pressable>
@@ -196,12 +197,12 @@ function EmptyState({ hasSearch }: EmptyStateProps) {
       <Ionicons
         name={hasSearch ? "search-outline" : "people-outline"}
         size={64}
-        color="#42526E"
+        color={DesignTokens.colors.text.muted}
       />
-      <Text className="text-xl font-semibold mt-4 mb-2" style={{ color: '#0B1220' }}>
+      <Text className="text-xl font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
         {hasSearch ? 'No students found' : 'No students yet'}
       </Text>
-      <Text className="text-base text-center" style={{ color: '#42526E' }}>
+      <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
         {hasSearch
           ? 'Try adjusting your search terms'
           : "Students will appear here after their\nfirst approved booking."
@@ -218,7 +219,7 @@ const styles = StyleSheet.create({
     right: 0,
     backgroundColor: 'white',
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E0E0E0',
+    borderTopColor: DesignTokens.colors.line.default,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
@@ -231,8 +232,8 @@ interface BalancePillProps {
 function BalancePill({ amount }: BalancePillProps) {
   const { formatMoney } = useCurrency();
   return (
-    <View style={{ backgroundColor: 'rgba(245, 124, 0, 0.12)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
-      <Text style={{ fontSize: 14, fontWeight: '700', color: '#F57C00' }}>
+    <View style={{ backgroundColor: DesignTokens.colors.amber.glow, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+      <Text style={{ fontSize: 14, fontWeight: '700', color: DesignTokens.colors.amber.strong }}>
         {formatMoney(amount)} due
       </Text>
     </View>
@@ -415,9 +416,9 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
           backgroundColor: 'white',
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: '#E0E0E0',
+          borderColor: DesignTokens.colors.line.default,
           padding: 16,
-          shadowColor: '#000',
+          shadowColor: DesignTokens.colors.black,
           shadowOffset: { width: 0, height: 1 },
           shadowOpacity: 0.05,
           shadowRadius: 2,
@@ -425,7 +426,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
         },
         unpaidAmount > 0 && {
           borderLeftWidth: 3,
-          borderLeftColor: '#F57C00',
+          borderLeftColor: DesignTokens.colors.amber.strong,
         },
       ]}
     >
@@ -438,7 +439,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             onPress={(e) => { e.stopPropagation(); handleContactPress(); }}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
           >
-            <Text style={{ fontSize: 13, color: '#1E88E5', marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, color: DesignTokens.colors.brand.default, marginBottom: 4 }}>
               {student.contact}
             </Text>
           </Pressable>
@@ -479,8 +480,8 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             }}
             className="flex-row items-center gap-1 mt-2 px-2 py-1 rounded-lg bg-blue-50 active:bg-blue-100"
           >
-            <Ionicons name="document-text" size={14} color="#1E88E5" />
-            <Text className="text-xs font-medium" style={{ color: '#1E88E5' }}>
+            <Ionicons name="document-text" size={14} color={DesignTokens.colors.brand.default} />
+            <Text className="text-xs font-medium" style={{ color: DesignTokens.colors.brand.default }}>
               {notesCount > 0 ? `${notesCount}` : 'Notes'}
             </Text>
           </Pressable>

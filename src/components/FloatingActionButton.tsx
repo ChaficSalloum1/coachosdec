@@ -64,10 +64,10 @@ export function FloatingActionButton({
             width: 56,
             height: 56,
             borderRadius: 28,
-            backgroundColor: '#007AFF',
+            backgroundColor: DesignTokens.colors.accent,
             alignItems: 'center',
             justifyContent: 'center',
-            shadowColor: '#000',
+            shadowColor: DesignTokens.colors.black,
             shadowOffset: { width: 0, height: 4 },
             shadowOpacity: 0.16,
             shadowRadius: 8,
@@ -76,7 +76,7 @@ export function FloatingActionButton({
           animatedStyle,
         ]}
       >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
+        <Ionicons name="add" size={28} color={DesignTokens.colors.white} />
       </Animated.View>
     </Pressable>
   );

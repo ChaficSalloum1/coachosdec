@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useCoachStore } from '../../state/coachStore';
 import { useNavigation } from '@react-navigation/native';
+import { DesignTokens } from '../../utils/designTokens';
 
 export function LocationsCard() {
   const { t } = useTranslation();
@@ -26,14 +27,14 @@ export function LocationsCard() {
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
-          <Text className="text-base font-medium mb-1" style={{ color: '#0B1220' }}>
+          <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
             {t('manageLocations')}
           </Text>
-          <Text className="text-sm" style={{ color: '#42526E' }}>
+          <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
             {getLocationsText()}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#42526E" />
+        <Ionicons name="chevron-forward" size={20} color={DesignTokens.colors.text.muted} />
       </View>
     </Pressable>
   );

@@ -28,6 +28,7 @@ import { showToast } from '../state/toastStore';
 import { AvailabilityRange, BlackoutDate } from '../types/coach';
 import { RangeEditorModal, BlackoutCalendarModal, PreviewModal } from '../components/AvailabilityModals';
 import { formatTime12Hour } from '../utils/timeFormat';
+import { DesignTokens } from '../utils/designTokens';
 
 const DAYS = [
   { name: 'Sun', value: 0 },
@@ -167,12 +168,12 @@ export function AvailabilityScreen() {
           className="w-11 h-11 rounded-lg items-center justify-center active:bg-gray-100 mr-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={26} color="#0B1220" />
+          <Ionicons name="close" size={26} color={DesignTokens.colors.text.strong} />
         </Pressable>
         
         {/* Center: Title */}
         <View className="flex-1 items-center">
-          <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>
+          <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
             Availability
           </Text>
         </View>
@@ -191,7 +192,7 @@ export function AvailabilityScreen() {
           }}
           className="px-3 py-2 rounded-lg active:bg-gray-100"
         >
-          <Text className="text-base font-medium" style={{ color: '#1E88E5' }}>
+          <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>
             Preview
           </Text>
         </Pressable>
@@ -200,7 +201,7 @@ export function AvailabilityScreen() {
        {isPreviewLoading && (
          <View className="px-4 py-3">
            <View className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-             <Text className="text-base mb-2" style={{ color: '#42526E' }}>Loading preview…</Text>
+             <Text className="text-base mb-2" style={{ color: DesignTokens.colors.text.muted }}>Loading preview…</Text>
              <View className="flex-row flex-wrap gap-2">
                <View className="w-20 h-8 bg-gray-200 rounded-md" />
                <View className="w-24 h-8 bg-gray-200 rounded-md" />
@@ -212,7 +213,7 @@ export function AvailabilityScreen() {
        <ScrollView className="flex-1">
          {/* Day Chips */}
          <View className="px-4 py-6">
-          <Text className="text-lg font-semibold mb-4" style={{ color: '#0B1220' }}>
+          <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
             Select Day
           </Text>
           <View className="flex-row justify-between">
@@ -230,12 +231,12 @@ export function AvailabilityScreen() {
         {/* Time Ranges */}
         <View className="px-4 pb-6">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+            <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
               {DAYS.find(d => d.value === selectedDay)?.name} Times
             </Text>
             {dayRanges.length > 0 && (
               <Pressable onPress={handleClearDay} className="px-3 py-1 rounded-lg active:bg-gray-100">
-                <Text className="text-sm font-medium" style={{ color: '#C62828' }}>
+                <Text className="text-sm font-medium" style={{ color: DesignTokens.colors.red['800'] }}>
                   Clear day
                 </Text>
               </Pressable>
@@ -244,11 +245,11 @@ export function AvailabilityScreen() {
 
           {dayRanges.length === 0 ? (
             <View className="items-center py-8">
-              <Ionicons name="time-outline" size={48} color="#42526E" />
-              <Text className="text-base mt-2 mb-1" style={{ color: '#0B1220' }}>
+              <Ionicons name="time-outline" size={48} color={DesignTokens.colors.text.muted} />
+              <Text className="text-base mt-2 mb-1" style={{ color: DesignTokens.colors.text.strong }}>
                 No times set
               </Text>
-              <Text className="text-sm text-center" style={{ color: '#42526E' }}>
+              <Text className="text-sm text-center" style={{ color: DesignTokens.colors.text.muted }}>
                 Add your available hours{'\n'}for this day
               </Text>
             </View>
@@ -270,10 +271,10 @@ export function AvailabilityScreen() {
         {/* Blackout Dates */}
         <View className="px-4 pb-6">
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+            <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
               Blackout Dates
             </Text>
-            <Text className="text-sm" style={{ color: '#42526E' }}>
+            <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
               {blackoutDates.length} dates
             </Text>
           </View>
@@ -284,17 +285,17 @@ export function AvailabilityScreen() {
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className="text-base font-medium mb-1" style={{ color: '#0B1220' }}>
+                <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
                   Manage Blackout Dates
                 </Text>
-                <Text className="text-sm" style={{ color: '#42526E' }}>
+                <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                   {blackoutDates.length === 0 
                     ? 'No blackout dates set' 
                     : `${blackoutDates.length} dates unavailable`
                   }
                 </Text>
               </View>
-              <Ionicons name="calendar-outline" size={24} color="#42526E" />
+              <Ionicons name="calendar-outline" size={24} color={DesignTokens.colors.text.muted} />
             </View>
           </Pressable>
         </View>
@@ -305,7 +306,7 @@ export function AvailabilityScreen() {
         <Pressable
           onPress={handleAddRange}
           className="rounded-lg py-4 px-4 active:opacity-80 mt-4"
-          style={{ backgroundColor: '#1E88E5', minHeight: 44 }}
+          style={{ backgroundColor: DesignTokens.colors.brand.default, minHeight: 44 }}
         >
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
@@ -421,7 +422,7 @@ function DayChip({ day, isSelected, onPress }: DayChipProps) {
         <View
           className="w-11 h-11 rounded-full items-center justify-center"
           style={{
-            backgroundColor: isSelected ? '#1E88E5' : '#F5F5F5',
+            backgroundColor: isSelected ? DesignTokens.colors.brand.default : DesignTokens.colors.surface.subtle,
             minWidth: 44,
             minHeight: 44,
           }}
@@ -429,7 +430,7 @@ function DayChip({ day, isSelected, onPress }: DayChipProps) {
           <Text
             className="text-sm font-medium"
             style={{
-              color: isSelected ? 'white' : '#42526E',
+              color: isSelected ? 'white' : DesignTokens.colors.text.muted,
             }}
           >
             {day.name}
@@ -482,19 +483,19 @@ function RangeCard({ range, onEdit, onDelete, formatLocationText }: RangeCardPro
         <View className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
           <View className="flex-row justify-between items-start">
             <View className="flex-1">
-              <Text className="text-lg font-semibold mb-1" style={{ color: '#0B1220' }}>
+              <Text className="text-lg font-semibold mb-1" style={{ color: DesignTokens.colors.text.strong }}>
                 {formatTime12Hour(range.startTime)} - {formatTime12Hour(range.endTime)}
               </Text>
-              <Text className="text-sm" style={{ color: '#42526E' }}>
+              <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                 {formatLocationText(range.areaId, range.facilityId, range.courtId)}
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#42526E" />
+            <Ionicons name="chevron-forward" size={20} color={DesignTokens.colors.text.muted} />
           </View>
           
           {/* Swipe hint */}
           <View className="mt-3 pt-3 border-t border-gray-100">
-            <Text className="text-xs font-medium text-center" style={{ color: '#C62828' }}>
+            <Text className="text-xs font-medium text-center" style={{ color: DesignTokens.colors.red['800'] }}>
               ← Swipe left to delete
             </Text>
           </View>

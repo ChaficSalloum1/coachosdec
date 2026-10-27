@@ -11,6 +11,7 @@ import { CurrencyPicker } from '../components/CurrencyPicker';
 
 import { SportsTileSelector } from './settings/SportsTileSelector';
 import { buildSportsSelection } from '../utils/sportsSelection';
+import { DesignTokens } from '../utils/designTokens';
 
 interface OnboardingScreenProps {
   onComplete: (coach: Coach) => void;
@@ -74,18 +75,18 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
               width: 54,
               height: 54,
               borderRadius: 16,
-              backgroundColor: '#E8F2FF',
+              backgroundColor: DesignTokens.colors.brand.tint,
               alignItems: 'center',
               justifyContent: 'center',
               marginBottom: 18,
             }}
           >
-            <Ionicons name="briefcase-outline" size={28} color="#1E88E5" />
+            <Ionicons name="briefcase-outline" size={28} color={DesignTokens.colors.brand.default} />
           </View>
-          <Text style={{ color: '#0B1220', fontSize: 28, fontWeight: '800', lineHeight: 34 }}>
+          <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 28, fontWeight: '800', lineHeight: 34 }}>
             Set up your coaching profile
           </Text>
-          <Text style={{ color: '#42526E', fontSize: 15, lineHeight: 22, marginTop: 8 }}>
+          <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 15, lineHeight: 22, marginTop: 8 }}>
             Start with the essentials. Payments, availability, locations, and booking link can all be finished later in Settings.
           </Text>
         </View>
@@ -104,7 +105,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
 
           <View>
             <Text className="text-small font-medium text-ink-900 mb-2">Sports you coach</Text>
-            <Text style={{ color: '#42526E', fontSize: 13, lineHeight: 18, marginBottom: 12 }}>
+            <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 13, lineHeight: 18, marginBottom: 12 }}>
               Choose one or more. You can change this later.
             </Text>
             <SportsTileSelector
@@ -144,7 +145,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
           </Text>
         </Pressable>
 
-        <Text style={{ color: '#42526E', fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 14 }}>
+        <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 13, lineHeight: 18, textAlign: 'center', marginTop: 14 }}>
           Optional setup steps are waiting in Settings whenever you are ready.
         </Text>
       </ScrollView>

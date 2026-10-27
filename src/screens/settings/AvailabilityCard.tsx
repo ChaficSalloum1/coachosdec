@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useCoachStore } from '../../state/coachStore';
 import { Coach } from '../../types/coach';
 import { useNavigation } from '@react-navigation/native';
+import { DesignTokens } from '../../utils/designTokens';
 
 interface AvailabilityCardProps {
   coach: Coach;
@@ -27,14 +28,14 @@ export function AvailabilityCard({ coach: _coach }: AvailabilityCardProps) {
     >
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
-          <Text className="text-base font-medium mb-1" style={{ color: '#0B1220' }}>
+          <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
             {t('weeklySchedule')}
           </Text>
-          <Text className="text-sm" style={{ color: '#42526E' }}>
+          <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
             {getAvailabilityText()}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={20} color="#42526E" />
+        <Ionicons name="chevron-forward" size={20} color={DesignTokens.colors.text.muted} />
       </View>
     </Pressable>
   );

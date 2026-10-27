@@ -47,15 +47,15 @@ export function SyncStatusBanner() {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
-        backgroundColor: stuck ? '#FFF4E0' : DesignTokens.colors.superLightGrey,
+        backgroundColor: stuck ? DesignTokens.colors.amber.tint : DesignTokens.colors.superLightGrey,
       }}
     >
       <Ionicons
         name={stuck ? 'warning-outline' : 'cloud-offline-outline'}
         size={14}
-        color={stuck ? '#B26A00' : DesignTokens.colors.grey}
+        color={stuck ? DesignTokens.colors.amber.textWarm : DesignTokens.colors.grey}
       />
-      <Text style={{ ...DesignTokens.typography.caption1, color: stuck ? '#B26A00' : DesignTokens.colors.grey }}>{label}</Text>
+      <Text style={{ ...DesignTokens.typography.caption1, color: stuck ? DesignTokens.colors.amber.textWarm : DesignTokens.colors.grey }}>{label}</Text>
     </Pressable>
   );
 }

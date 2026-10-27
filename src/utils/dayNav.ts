@@ -1,4 +1,5 @@
 import { addDays, format, parseISO, startOfDay, startOfWeek, differenceInDays } from 'date-fns';
+import { DesignTokens } from './designTokens';
 
 // DST-safe day navigation helpers using date-fns
 // Handles Daylight Saving Time transitions properly to prevent day skipping
@@ -82,10 +83,10 @@ export function getWeekDates(dateISO: string): string[] {
 export function getTimeOfDayColor(timeString: string): string {
   const hour = parseInt(timeString.split(':')[0]);
   
-  if (hour >= 6 && hour < 12) return '#F59E0B'; // Morning: amber
-  if (hour >= 12 && hour < 18) return '#007AFF'; // Afternoon: blue
-  if (hour >= 18 && hour < 22) return '#8B5CF6'; // Evening: purple
-  return '#6B7280'; // Night: grey
+  if (hour >= 6 && hour < 12) return DesignTokens.colors.amber.warm; // Morning: amber
+  if (hour >= 12 && hour < 18) return DesignTokens.colors.accent; // Afternoon: blue
+  if (hour >= 18 && hour < 22) return DesignTokens.colors.purple; // Evening: purple
+  return DesignTokens.colors.text.subtle; // Night: grey
 }
 
 export function getTimeOfDayPeriod(timeString: string): string {

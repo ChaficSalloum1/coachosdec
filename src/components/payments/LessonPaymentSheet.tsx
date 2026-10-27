@@ -70,7 +70,7 @@ export function LessonPaymentSheet({ lessonId, onClose }: LessonPaymentSheetProp
 
   return (
     <Modal visible animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <ScrollView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <ScrollView style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
         <View style={{ padding: 20, paddingTop: 24, gap: 18 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View>

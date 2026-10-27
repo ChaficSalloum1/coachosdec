@@ -15,6 +15,7 @@ import { showToast } from '../state/toastStore';
 
 import { StudentNote } from '../types/coach';
 import { formatDateRelative, getTimeAgo } from '../utils/dateFormat';
+import { DesignTokens } from '../utils/designTokens';
 
 interface StudentNotesScreenProps {
   studentId: string;
@@ -128,14 +129,14 @@ export function StudentNotesScreen({
               className="w-11 h-11 items-center justify-center active:opacity-50"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="close" size={28} color="#1C1C1E" />
+              <Ionicons name="close" size={28} color={DesignTokens.colors.graphite} />
             </Pressable>
 
             <View className="flex-1 items-center px-4">
-              <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+              <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
                 {`${studentName}'s Notes`}
               </Text>
-              <Text className="text-sm mt-1" style={{ color: '#6B7280' }}>
+              <Text className="text-sm mt-1" style={{ color: DesignTokens.colors.text.subtle }}>
                 {notes.length} {notes.length === 1 ? 'note' : 'notes'}
               </Text>
             </View>
@@ -145,25 +146,25 @@ export function StudentNotesScreen({
               className="w-11 h-11 items-center justify-center rounded-full active:bg-gray-100"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons name="add" size={32} color="#1E88E5" />
+              <Ionicons name="add" size={32} color={DesignTokens.colors.brand.default} />
             </Pressable>
           </View>
 
           {/* Search Bar */}
           <View className="mt-4">
             <View className="flex-row items-center bg-gray-100 rounded-xl px-4 py-3">
-              <Ionicons name="search" size={20} color="#6B7280" />
+              <Ionicons name="search" size={20} color={DesignTokens.colors.text.subtle} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search notes..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={DesignTokens.colors.text.faint}
                 className="flex-1 ml-2 text-base"
-                style={{ color: '#1C1C1E' }}
+                style={{ color: DesignTokens.colors.graphite }}
               />
               {searchQuery.length > 0 && (
                 <Pressable onPress={() => setSearchQuery('')}>
-                  <Ionicons name="close-circle" size={20} color="#6B7280" />
+                  <Ionicons name="close-circle" size={20} color={DesignTokens.colors.text.subtle} />
                 </Pressable>
               )}
             </View>
@@ -174,11 +175,11 @@ export function StudentNotesScreen({
         <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 40 }}>
           {displayNotes.length === 0 ? (
             <View className="flex-1 items-center justify-center py-20">
-              <Ionicons name="document-text-outline" size={64} color="#D1D5DB" />
-              <Text className="text-lg font-medium mt-4" style={{ color: '#6B7280' }}>
+              <Ionicons name="document-text-outline" size={64} color={DesignTokens.colors.text.ghost} />
+              <Text className="text-lg font-medium mt-4" style={{ color: DesignTokens.colors.text.subtle }}>
                 {searchQuery ? 'No notes found' : 'No notes yet'}
               </Text>
-              <Text className="text-base mt-2 text-center px-8" style={{ color: '#9CA3AF' }}>
+              <Text className="text-base mt-2 text-center px-8" style={{ color: DesignTokens.colors.text.faint }}>
                 {searchQuery
                   ? 'Try a different search term'
                   : 'Add notes to track progress, observations, and goals'}
@@ -193,7 +194,7 @@ export function StudentNotesScreen({
                     <View className="flex-1 h-px bg-gray-200" />
                     <Text
                       className="text-sm font-semibold mx-4"
-                      style={{ color: '#6B7280' }}
+                      style={{ color: DesignTokens.colors.text.subtle }}
                     >
                       {formatDateRelative(date)}
                     </Text>
@@ -208,12 +209,12 @@ export function StudentNotesScreen({
                         <View className="items-center mr-3">
                           <View
                             className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: '#1E88E5' }}
+                            style={{ backgroundColor: DesignTokens.colors.brand.default }}
                           />
                           {noteIndex < groupedNotes[date].length - 1 && (
                             <View
                               className="flex-1 w-px mt-1"
-                              style={{ backgroundColor: '#E5E7EB', minHeight: 40 }}
+                              style={{ backgroundColor: DesignTokens.colors.line.soft, minHeight: 40 }}
                             />
                           )}
                         </View>
@@ -226,7 +227,7 @@ export function StudentNotesScreen({
                           >
                             <Text
                               className="text-base leading-6"
-                              style={{ color: '#1C1C1E' }}
+                              style={{ color: DesignTokens.colors.graphite }}
                             >
                               {note.content}
                             </Text>
@@ -238,11 +239,11 @@ export function StudentNotesScreen({
                                   <View
                                     key={i}
                                     className="px-3 py-1 rounded-full"
-                                    style={{ backgroundColor: '#E3F2FD' }}
+                                    style={{ backgroundColor: DesignTokens.colors.brand.tintMaterial }}
                                   >
                                     <Text
                                       className="text-xs font-medium"
-                                      style={{ color: '#1976D2' }}
+                                      style={{ color: DesignTokens.colors.brand.link }}
                                     >
                                       {tag}
                                     </Text>
@@ -253,7 +254,7 @@ export function StudentNotesScreen({
 
                             {/* Footer */}
                             <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-gray-200">
-                              <Text className="text-xs" style={{ color: '#9CA3AF' }}>
+                              <Text className="text-xs" style={{ color: DesignTokens.colors.text.faint }}>
                                 {getTimeAgo(note.createdAt)}
                                 {note.updatedAt && ' • edited'}
                               </Text>
@@ -263,13 +264,13 @@ export function StudentNotesScreen({
                                   onPress={() => startEditNote(note)}
                                   className="px-3 py-1 rounded-lg active:bg-gray-200"
                                 >
-                                  <Ionicons name="pencil" size={16} color="#6B7280" />
+                                  <Ionicons name="pencil" size={16} color={DesignTokens.colors.text.subtle} />
                                 </Pressable>
                                 <Pressable
                                   onPress={() => handleDeleteNote(note.id)}
                                   className="px-3 py-1 rounded-lg active:bg-gray-200"
                                 >
-                                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                                  <Ionicons name="trash-outline" size={16} color={DesignTokens.colors.red.bright} />
                                 </Pressable>
                               </View>
                             </View>
@@ -307,43 +308,43 @@ export function StudentNotesScreen({
                   setNewNoteContent('');
                 }}
               >
-                <Text className="text-base" style={{ color: '#1E88E5' }}>
+                <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>
                   Cancel
                 </Text>
               </Pressable>
 
-              <Text className="text-lg font-semibold" style={{ color: '#0B1220' }}>
+              <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
                 {editingNote ? 'Edit Note' : 'Add Note'}
               </Text>
 
               <Pressable onPress={editingNote ? handleUpdateNote : handleAddNote}>
-                <Text className="text-base font-semibold" style={{ color: '#1E88E5' }}>
+                <Text className="text-base font-semibold" style={{ color: DesignTokens.colors.brand.default }}>
                   {editingNote ? 'Save' : 'Add'}
                 </Text>
               </Pressable>
             </View>
 
             <ScrollView className="flex-1 p-4">
-              <Text className="text-sm font-medium mb-2" style={{ color: '#6B7280' }}>
+              <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.subtle }}>
                 Note Content
               </Text>
               <TextInput
                 value={newNoteContent}
                 onChangeText={setNewNoteContent}
                 placeholder="Enter your observation, progress note, or goal..."
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor={DesignTokens.colors.text.faint}
                 multiline
                 numberOfLines={8}
                 textAlignVertical="top"
                 className="bg-gray-50 rounded-xl p-4 text-base border border-gray-200"
                 style={{
-                  color: '#1C1C1E',
+                  color: DesignTokens.colors.graphite,
                   minHeight: 200,
                 }}
                 autoFocus
               />
 
-              <Text className="text-xs mt-3" style={{ color: '#9CA3AF' }}>
+              <Text className="text-xs mt-3" style={{ color: DesignTokens.colors.text.faint }}>
                 Long press any note in the timeline to edit it
               </Text>
             </ScrollView>

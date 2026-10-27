@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 const plugin = require("tailwindcss/plugin");
+// One source for brand colours, shared with src/utils/designTokens.ts
+const palette = require("./src/theme/palette.json");
 
 module.exports = {
   // NOTE: Update this to include the paths to all of your component files.
@@ -12,18 +14,18 @@ module.exports = {
     // NOTE to AI: You can extend the theme with custom colors or styles here.
     extend: {
       colors: {
-        primary: '#1E88E5',
-        success: '#2E7D32',
-        warning: '#F9A825',
-        danger: '#C62828',
+        primary: palette.brand.default,
+        success: palette.green.strong,
+        warning: palette.amber.warning,
+        danger: palette.red["800"],
         // Jobsian Apple-inspired colors
-        'accent-blue': '#007AFF',
-        'graphite': '#1C1C1E',
-        'secondary-grey': '#8E8E93',
-        'true-white': '#FFFFFF',
+        'accent-blue': palette.ios.blue,
+        'graphite': palette.ios.graphite,
+        'secondary-grey': palette.ios.grey,
+        'true-white': palette.white,
         ink: {
-          900: '#0B1220',
-          600: '#42526E'
+          900: palette.text.strong,
+          600: palette.text.muted
         }
       },
       spacing: {

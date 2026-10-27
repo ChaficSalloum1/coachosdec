@@ -15,6 +15,7 @@ import { createDefaultLocations } from '../utils/defaultLocations';
 import { v4 as uuidv4 } from 'uuid';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { DemoBanner } from '../components/DemoBanner';
+import { DesignTokens } from '../utils/designTokens';
 
 export type TabParamList = {
   Today: undefined;
@@ -80,14 +81,14 @@ export function TabNavigator() {
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#1E88E5',
-        tabBarInactiveTintColor: '#42526E',
+        tabBarActiveTintColor: DesignTokens.colors.brand.default,
+        tabBarInactiveTintColor: DesignTokens.colors.text.muted,
         tabBarStyle: {
           height: 60 + insets.bottom,
           paddingBottom: insets.bottom,
           paddingTop: 8,
-          backgroundColor: '#FFFFFF',
-          borderTopColor: '#E0E0E0',
+          backgroundColor: DesignTokens.colors.white,
+          borderTopColor: DesignTokens.colors.line.default,
           borderTopWidth: StyleSheet.hairlineWidth,
         },
         tabBarLabelStyle: {
@@ -97,16 +98,16 @@ export function TabNavigator() {
           marginBottom: 4,
         },
         headerStyle: {
-          backgroundColor: '#FFFFFF',
-          borderBottomColor: '#E0E0E0',
+          backgroundColor: DesignTokens.colors.white,
+          borderBottomColor: DesignTokens.colors.line.default,
           borderBottomWidth: StyleSheet.hairlineWidth,
         },
         headerTitleStyle: {
           fontSize: 22,
           fontWeight: '600',
-          color: '#0B1220',
+          color: DesignTokens.colors.text.strong,
         },
-        headerTintColor: '#0B1220',
+        headerTintColor: DesignTokens.colors.text.strong,
       })}
     >
       <Tab.Screen
