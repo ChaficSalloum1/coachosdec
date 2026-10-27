@@ -497,7 +497,7 @@ const AnimatedDayPage = React.memo(({
                 message: `Book a lesson: ${buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL)}`,
                 url: buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL),
               })}
-              style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               accessibilityLabel="Share booking link"
             >

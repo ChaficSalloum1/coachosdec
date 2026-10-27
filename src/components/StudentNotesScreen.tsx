@@ -125,7 +125,7 @@ export function StudentNotesScreen({
           <View className="flex-row items-center justify-between">
             <Pressable
               onPress={onClose}
-              className="w-10 h-10 items-center justify-center active:opacity-50"
+              className="w-11 h-11 items-center justify-center active:opacity-50"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="close" size={28} color="#1C1C1E" />
@@ -142,7 +142,7 @@ export function StudentNotesScreen({
 
             <Pressable
               onPress={() => setShowAddNote(true)}
-              className="w-10 h-10 items-center justify-center rounded-full active:bg-gray-100"
+              className="w-11 h-11 items-center justify-center rounded-full active:bg-gray-100"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons name="add" size={32} color="#1E88E5" />

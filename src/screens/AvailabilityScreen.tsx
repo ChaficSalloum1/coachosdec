@@ -162,7 +162,7 @@ export function AvailabilityScreen() {
         {/* Left: Close Button */}
         <Pressable 
           onPress={() => navigation.goBack()}
-          className="w-10 h-10 rounded-lg items-center justify-center active:bg-gray-100 mr-2"
+          className="w-11 h-11 rounded-lg items-center justify-center active:bg-gray-100 mr-2"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Ionicons name="close" size={26} color="#0B1220" />
@@ -417,7 +417,7 @@ function DayChip({ day, isSelected, onPress }: DayChipProps) {
     <GestureDetector gesture={gesture}>
       <Animated.View style={animatedStyle}>
         <View
-          className="w-10 h-10 rounded-full items-center justify-center"
+          className="w-11 h-11 rounded-full items-center justify-center"
           style={{
             backgroundColor: isSelected ? '#1E88E5' : '#F5F5F5',
             minWidth: 44,
