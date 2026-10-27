@@ -1,0 +1,84 @@
+import React from 'react';
+import { View, Text, Alert, Switch } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
+import { showToast } from '../../state/toastStore';
+import { Coach } from '../../types/coach';
+
+interface CalendarSyncCardProps {
+  coach: Coach;
+  onUpdate: (updates: Partial<Coach>) => void;
+}
+
+export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
+  const { t } = useTranslation();
+  const [isInitializing, setIsInitializing] = React.useState(false);
+
+  const handleToggle = async (value: boolean) => {
+    if (value) {
+      // Request calendar permissions when enabling
+      setIsInitializing(true);
+      try {
+        const { CalendarService } = await import('../../utils/calendarService');
+        const hasPermission = await CalendarService.checkPermissions();
+
+        if (!hasPermission) {
+          const initialized = await CalendarService.initialize();
+          if (!initialized) {
+            Alert.alert(
+              t('calendarAccessRequired'),
+              t('calendarAccessMessage'),
+              [{ text: t('ok') }]
+            );
+            return;
+          }
+        }
+
+        onUpdate({ calendarSyncEnabled: true });
+        showToast(t('calendarSyncEnabledMessage'), 'success');
+      } catch {
+        showToast(t('calendarSyncFailedMessage'), 'error');
+      } finally {
+        setIsInitializing(false);
+      }
+    } else {
+      onUpdate({ calendarSyncEnabled: false });
+    }
+  };
+
+  return (
+    <View className="bg-gray-50 rounded-card p-4">
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-1 mr-4">
+          <View className="flex-row items-center mb-2">
+            <Ionicons name="calendar-outline" size={20} color="#1E88E5" style={{ marginRight: 8 }} />
+            <Text className="text-base font-semibold" style={{ color: '#0B1220' }}>
+              {t('syncToCalendar')}
+            </Text>
+          </View>
+          <Text className="text-sm" style={{ color: '#42526E' }}>
+            {t('syncToCalendarDesc')}
+          </Text>
+        </View>
+        <Switch
+          value={coach.calendarSyncEnabled ?? false}
+          onValueChange={handleToggle}
+          disabled={isInitializing}
+          trackColor={{ false: '#E0E0E0', true: '#1E88E5' }}
+          thumbColor="#FFFFFF"
+        />
+      </View>
+
+      {coach.calendarSyncEnabled && (
+        <View className="bg-blue-50 rounded-lg p-3 mt-2">
+          <View className="flex-row items-start">
+            <Ionicons name="checkmark-circle" size={16} color="#1E88E5" style={{ marginRight: 6, marginTop: 2 }} />
+            <Text className="text-xs flex-1" style={{ color: '#1E88E5' }}>
+              {t('calendarSyncActive')}
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}

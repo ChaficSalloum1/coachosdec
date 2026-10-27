@@ -13,7 +13,7 @@ import { useCoachStore } from '../state/coachStore';
 import type { Coach } from '../types/coach';
 import { createDefaultLocations } from '../utils/defaultLocations';
 import { v4 as uuidv4 } from 'uuid';
-import { OnboardingScreen } from '../screens/SettingsScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { DemoBanner } from '../components/DemoBanner';
 
 export type TabParamList = {
