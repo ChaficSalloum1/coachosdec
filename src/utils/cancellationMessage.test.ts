@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildCancellationMessage, buildContactUrl } from './cancellationMessage';
+import {
+  buildCancellationMessage,
+  buildCancellationNotices,
+  buildContactUrl,
+  lessonsToCancelForDay,
+} from './cancellationMessage';
+import type { Lesson, Student } from '../types/coach';
 
 describe('buildCancellationMessage', () => {
   it('greets by first name and names the day and time', () => {
@@ -36,5 +42,58 @@ describe('buildContactUrl', () => {
     );
     expect(buildContactUrl('   ', 'Hi', { platform: 'ios' })).toBeNull();
     expect(buildContactUrl(undefined, 'Hi', { platform: 'ios' })).toBeNull();
+  });
+});
+
+const lesson = (over: Partial<Lesson>): Lesson =>
+  ({
+    id: 'l',
+    coachId: 'c',
+    studentId: 's1',
+    studentName: 'Ana Papadopoulou',
+    date: '2026-11-02',
+    startTime: '10:00',
+    endTime: '11:00',
+    duration: 60,
+    price: 40,
+    isPaid: false,
+    status: 'scheduled',
+    createdAt: '2026-10-01T00:00:00.000Z',
+    ...over,
+  }) as Lesson;
+
+const student = (id: string, contact: string): Student =>
+  ({ id, coachId: 'c', name: id, contact, totalLessons: 0, totalSpent: 0, balance: 0, createdAt: '' }) as Student;
+
+describe('lessonsToCancelForDay', () => {
+  it("keeps only scheduled lessons that haven't started yet today", () => {
+    const now = new Date('2026-11-02T12:00:00');
+    const lessons = [
+      lesson({ id: 'past', startTime: '09:00' }),
+      lesson({ id: 'later', startTime: '15:00' }),
+      lesson({ id: 'done', startTime: '16:00', status: 'completed' }),
+      lesson({ id: 'gone', startTime: '17:00', status: 'cancelled' }),
+      lesson({ id: 'other-day', date: '2026-11-03', startTime: '15:00' }),
+    ];
+    expect(lessonsToCancelForDay(lessons, '2026-11-02', now).map((l) => l.id)).toEqual(['later']);
+    expect(lessonsToCancelForDay(lessons, '2026-11-03', now).map((l) => l.id)).toEqual(['other-day']);
+  });
+});
+
+describe('buildCancellationNotices', () => {
+  it('makes one notice per student, in time order, with a null url when there is no contact', () => {
+    const notices = buildCancellationNotices({
+      lessons: [
+        lesson({ id: '2', studentId: 's2', studentName: 'Ben Cole', startTime: '12:00' }),
+        lesson({ id: '1', studentId: 's1', startTime: '10:00' }),
+        lesson({ id: '3', studentId: 's1', startTime: '14:00' }),
+      ],
+      students: [student('s1', '+30 694 123 4567'), student('s2', '')],
+      coachName: 'Chris',
+      platform: 'ios',
+    });
+    expect(notices.map((n) => n.studentId)).toEqual(['s1', 's2']);
+    expect(notices[0].url?.startsWith('sms:+306941234567&body=')).toBe(true);
+    expect(notices[1].url).toBeNull();
   });
 });

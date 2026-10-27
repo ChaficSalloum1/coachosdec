@@ -31,7 +31,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { buildBookingUrl } from '../utils/publicBooking';
-import { buildCancellationMessage, buildContactUrl } from '../utils/cancellationMessage';
+import {
+  buildCancellationMessage,
+  buildCancellationNotices,
+  buildContactUrl,
+  lessonsToCancelForDay,
+  type CancellationNotice,
+} from '../utils/cancellationMessage';
+import { CancellationNoticesSheet } from '../components/CancellationNoticesSheet';
 import { useNavigation } from '@react-navigation/native';
 
 import { useCoachStore } from '../state/coachStore';
@@ -385,6 +392,35 @@ const AnimatedDayPage = React.memo(({
   const [openGroupId, setOpenGroupId] = useState<string | null>(null);
   const dayItems = useMemo(() => buildDayItems(lessons), [lessons]);
   const coach = useCoachStore(s => s.coach);
+  const students = useCoachStore(s => s.students);
+  const cancelLessonById = useCoachStore(s => s.cancelLesson);
+  const [notices, setNotices] = useState<CancellationNotice[] | null>(null);
+  const cancellable = useMemo(() => lessonsToCancelForDay(lessons, dateISO), [lessons, dateISO]);
+
+  // Rain-out: cancel everything still to come on this day, then offer one-tap messages.
+  const confirmCancelDay = () => {
+    Alert.alert(
+      cancellable.length === 1 ? 'Cancel 1 lesson?' : `Cancel ${cancellable.length} lessons?`,
+      isToday(dateISO) ? 'This cancels everything still to come today.' : 'This cancels every lesson on this day.',
+      [
+        { text: 'Keep lessons', style: 'cancel' },
+        {
+          text: 'Cancel lessons',
+          style: 'destructive',
+          onPress: async () => {
+            const toCancel = cancellable;
+            for (const lesson of toCancel) {
+              await cancelLessonById(lesson.id);
+            }
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            setNotices(
+              buildCancellationNotices({ lessons: toCancel, students, coachName: coach?.name, platform: Platform.OS })
+            );
+          },
+        },
+      ]
+    );
+  };
   
   const animatedStyle = useAnimatedStyle(() => {
     const inputRange = [
@@ -515,8 +551,22 @@ const AnimatedDayPage = React.memo(({
               )}
             </View>
           )}
+
+          {cancellable.length > 0 && (
+            <Pressable
+              onPress={confirmCancelDay}
+              accessibilityRole="button"
+              style={{ marginTop: 24, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.danger }}>
+                {isToday(dateISO) ? 'Cancel the rest of today' : 'Cancel this day'}
+              </Text>
+            </Pressable>
+          )}
         </View>
       </ScrollView>
+
+      <CancellationNoticesSheet notices={notices} onClose={() => setNotices(null)} />
 
       <GroupLessonSheet groupId={openGroupId} onClose={() => setOpenGroupId(null)} />
 

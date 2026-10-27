@@ -4,6 +4,8 @@ in their messaging app. Pure so it can be tested without React Native.
 */
 import { format } from 'date-fns';
 
+import type { Lesson, Student } from '../types/coach';
+
 const PHONE_PATTERN = /^[\d\s+\-()]{7,}$/;
 
 export function buildCancellationMessage(params: {
@@ -36,4 +38,48 @@ export function buildContactUrl(
 
   const subject = encodeURIComponent(options.subject ?? 'Lesson cancelled');
   return `mailto:${value}?subject=${subject}&body=${encodeURIComponent(message)}`;
+}
+
+// Lessons a "cancel the rest of the day" action should cancel: still scheduled,
+// and (for today) not yet started.
+export function lessonsToCancelForDay(lessons: Lesson[], dateISO: string, now: Date = new Date()): Lesson[] {
+  const today = format(now, 'yyyy-MM-dd');
+  const nowTime = format(now, 'HH:mm');
+  return lessons.filter(
+    (l) => l.date === dateISO && l.status === 'scheduled' && (dateISO !== today || l.startTime >= nowTime)
+  );
+}
+
+export interface CancellationNotice {
+  studentId: string;
+  studentName: string;
+  url: string | null; // null when the student has no contact on file
+}
+
+// One notice per student (a student in two lessons gets one message listing the first).
+export function buildCancellationNotices(args: {
+  lessons: Lesson[];
+  students: Student[];
+  coachName?: string;
+  platform: string;
+}): CancellationNotice[] {
+  const seen = new Set<string>();
+  const notices: CancellationNotice[] = [];
+  for (const lesson of [...args.lessons].sort((a, b) => a.startTime.localeCompare(b.startTime))) {
+    if (seen.has(lesson.studentId)) continue;
+    seen.add(lesson.studentId);
+    const student = args.students.find((s) => s.id === lesson.studentId);
+    const message = buildCancellationMessage({
+      studentName: lesson.studentName,
+      coachName: args.coachName,
+      date: lesson.date,
+      startTime: lesson.startTime,
+    });
+    notices.push({
+      studentId: lesson.studentId,
+      studentName: lesson.studentName,
+      url: buildContactUrl(student?.contact, message, { platform: args.platform }),
+    });
+  }
+  return notices;
 }
