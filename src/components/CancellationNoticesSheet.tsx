@@ -10,13 +10,14 @@ import { DesignTokens } from '../utils/designTokens';
 
 interface CancellationNoticesSheetProps {
   notices: CancellationNotice[] | null; // null = closed
+  title?: string;
   onClose: () => void;
 }
 
 // After cancelling a whole day: one tap per student opens their messaging app
 // with the message already written. Texts cannot be sent in bulk, so each
 // student is a row that turns to "Sent" once tapped.
-export function CancellationNoticesSheet({ notices, onClose }: CancellationNoticesSheetProps) {
+export function CancellationNoticesSheet({ notices, title = 'Lessons cancelled', onClose }: CancellationNoticesSheetProps) {
   const insets = useSafeAreaInsets();
   const [sent, setSent] = useState<string[]>([]);
 
@@ -48,7 +49,7 @@ export function CancellationNoticesSheet({ notices, onClose }: CancellationNotic
         >
           <View style={{ flex: 1 }}>
             <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite }}>
-              Lessons cancelled
+              {title}
             </Text>
             <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
               Tap a name to message them.

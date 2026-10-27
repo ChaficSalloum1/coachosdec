@@ -58,13 +58,13 @@ export interface CancellationNotice {
   url: string | null; // null when the student has no contact on file
 }
 
-// One notice per student (a student in two lessons gets one message listing the first).
-export function buildCancellationNotices(args: {
+// One notice per student (a student in two lessons gets one message about the first).
+function buildNotices(args: {
   lessons: Lesson[];
   students: Student[];
-  coachName?: string;
   platform: string;
-  weekly?: boolean;
+  subject: string;
+  messageFor: (lesson: Lesson) => string;
 }): CancellationNotice[] {
   const seen = new Set<string>();
   const notices: CancellationNotice[] = [];
@@ -72,18 +72,85 @@ export function buildCancellationNotices(args: {
     if (seen.has(lesson.studentId)) continue;
     seen.add(lesson.studentId);
     const student = args.students.find((s) => s.id === lesson.studentId);
-    const message = buildCancellationMessage({
-      studentName: lesson.studentName,
-      coachName: args.coachName,
-      date: lesson.date,
-      startTime: lesson.startTime,
-      weekly: args.weekly,
-    });
     notices.push({
       studentId: lesson.studentId,
       studentName: lesson.studentName,
-      url: buildContactUrl(student?.contact, message, { platform: args.platform }),
+      url: buildContactUrl(student?.contact, args.messageFor(lesson), {
+        platform: args.platform,
+        subject: args.subject,
+      }),
     });
   }
   return notices;
+}
+
+export function buildCancellationNotices(args: {
+  lessons: Lesson[];
+  students: Student[];
+  coachName?: string;
+  platform: string;
+  weekly?: boolean;
+}): CancellationNotice[] {
+  return buildNotices({
+    lessons: args.lessons,
+    students: args.students,
+    platform: args.platform,
+    subject: 'Lesson cancelled',
+    messageFor: (lesson) =>
+      buildCancellationMessage({
+        studentName: lesson.studentName,
+        coachName: args.coachName,
+        date: lesson.date,
+        startTime: lesson.startTime,
+        weekly: args.weekly,
+      }),
+  });
+}
+
+// "today", "tomorrow", or "on Wed 4 Nov" relative to `now`.
+function dayPhrase(date: string, now: Date): string {
+  const today = format(now, 'yyyy-MM-dd');
+  const tomorrow = format(new Date(now.getTime() + 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+  if (date === today) return 'today';
+  if (date === tomorrow) return 'tomorrow';
+  return `on ${format(new Date(`${date}T12:00:00`), 'EEE d MMM')}`;
+}
+
+export function buildReminderMessage(params: {
+  studentName: string;
+  coachName?: string;
+  date: string; // yyyy-MM-dd
+  startTime: string; // HH:mm
+  location?: string;
+  now?: Date;
+}): string {
+  const firstName = params.studentName.trim().split(/\s+/)[0] || 'there';
+  const where = params.location?.trim() ? ` at ${params.location.trim()}` : '';
+  const signOff = params.coachName?.trim() ? `\n${params.coachName.trim()}` : '';
+  return `Hi ${firstName}, a quick reminder about our lesson ${dayPhrase(params.date, params.now ?? new Date())} at ${params.startTime}${where}. See you then!${signOff}`;
+}
+
+export function buildReminderNotices(args: {
+  lessons: Lesson[];
+  students: Student[];
+  coachName?: string;
+  platform: string;
+  locationFor?: (lesson: Lesson) => string;
+  now?: Date;
+}): CancellationNotice[] {
+  return buildNotices({
+    lessons: args.lessons,
+    students: args.students,
+    platform: args.platform,
+    subject: 'Lesson reminder',
+    messageFor: (lesson) =>
+      buildReminderMessage({
+        studentName: lesson.studentName,
+        coachName: args.coachName,
+        date: lesson.date,
+        startTime: lesson.startTime,
+        location: args.locationFor?.(lesson),
+        now: args.now,
+      }),
+  });
 }

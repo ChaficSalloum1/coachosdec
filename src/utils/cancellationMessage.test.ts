@@ -4,6 +4,8 @@ import {
   buildCancellationMessage,
   buildCancellationNotices,
   buildContactUrl,
+  buildReminderMessage,
+  buildReminderNotices,
   lessonsToCancelForDay,
 } from './cancellationMessage';
 import type { Lesson, Student } from '../types/coach';
@@ -100,5 +102,29 @@ describe('buildCancellationNotices', () => {
     expect(notices.map((n) => n.studentId)).toEqual(['s1', 's2']);
     expect(notices[0].url?.startsWith('sms:+306941234567&body=')).toBe(true);
     expect(notices[1].url).toBeNull();
+  });
+});
+
+describe('reminders', () => {
+  const now = new Date('2026-11-02T20:00:00');
+
+  it('says tomorrow, today, or the date, and includes the place when known', () => {
+    const base = { studentName: 'Ana Papadopoulou', coachName: 'Chris', startTime: '18:30', now };
+    expect(buildReminderMessage({ ...base, date: '2026-11-03', location: 'Court 2' })).toBe(
+      'Hi Ana, a quick reminder about our lesson tomorrow at 18:30 at Court 2. See you then!\nChris'
+    );
+    expect(buildReminderMessage({ ...base, date: '2026-11-02' })).toContain('lesson today at 18:30.');
+    expect(buildReminderMessage({ ...base, date: '2026-11-05' })).toContain('lesson on Thu 5 Nov at 18:30.');
+  });
+
+  it('makes one reminder per student with a mailto subject for email contacts', () => {
+    const notices = buildReminderNotices({
+      lessons: [lesson({ id: '1', studentId: 's1', date: '2026-11-03' }), lesson({ id: '2', studentId: 's1', date: '2026-11-03', startTime: '15:00' })],
+      students: [student('s1', 'ana@example.com')],
+      platform: 'ios',
+      now,
+    });
+    expect(notices).toHaveLength(1);
+    expect(notices[0].url?.startsWith('mailto:ana@example.com?subject=Lesson%20reminder')).toBe(true);
   });
 });

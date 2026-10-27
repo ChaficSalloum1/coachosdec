@@ -37,6 +37,7 @@ import {
   buildCancellationMessage,
   buildCancellationNotices,
   buildContactUrl,
+  buildReminderNotices,
   lessonsToCancelForDay,
   type CancellationNotice,
 } from '../utils/cancellationMessage';
@@ -431,7 +432,22 @@ const AnimatedDayPage = React.memo(({
   const students = useCoachStore(s => s.students);
   const cancelLessonById = useCoachStore(s => s.cancelLesson);
   const [notices, setNotices] = useState<CancellationNotice[] | null>(null);
+  const [reminders, setReminders] = useState<CancellationNotice[] | null>(null);
+  const formatLocationText = useCoachStore(s => s.formatLocationText);
   const cancellable = useMemo(() => lessonsToCancelForDay(lessons, dateISO), [lessons, dateISO]);
+
+  // Reminder texts for everyone still to come on this day, one tap per student.
+  const openReminders = () => {
+    setReminders(
+      buildReminderNotices({
+        lessons: cancellable,
+        students,
+        coachName: coach?.name,
+        platform: Platform.OS,
+        locationFor: (l) => formatLocationText(l.areaId, l.facilityId, l.courtId),
+      })
+    );
+  };
 
   // Rain-out: cancel everything still to come on this day, then offer one-tap messages.
   const confirmCancelDay = () => {
@@ -590,20 +606,32 @@ const AnimatedDayPage = React.memo(({
           )}
 
           {cancellable.length > 0 && (
-            <Pressable
-              onPress={confirmCancelDay}
-              accessibilityRole="button"
-              style={{ marginTop: 24, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.danger }}>
-                {isToday(dateISO) ? 'Cancel the rest of today' : 'Cancel this day'}
-              </Text>
-            </Pressable>
+            <View style={{ marginTop: 24 }}>
+              <Pressable
+                onPress={openReminders}
+                accessibilityRole="button"
+                style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.accent }}>
+                  Remind students
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={confirmCancelDay}
+                accessibilityRole="button"
+                style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.danger }}>
+                  {isToday(dateISO) ? 'Cancel the rest of today' : 'Cancel this day'}
+                </Text>
+              </Pressable>
+            </View>
           )}
         </View>
       </ScrollView>
 
       <CancellationNoticesSheet notices={notices} onClose={() => setNotices(null)} />
+      <CancellationNoticesSheet notices={reminders} title="Remind students" onClose={() => setReminders(null)} />
 
       <GroupLessonSheet groupId={openGroupId} onClose={() => setOpenGroupId(null)} />
 
