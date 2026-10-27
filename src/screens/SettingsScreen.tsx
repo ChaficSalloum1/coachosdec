@@ -20,7 +20,7 @@ import { exportData } from '../utils/dataExport';
 import { useNavigation } from '@react-navigation/native';
 import { BookingLinkCard } from '../components/BookingLinkCard';
 import { saveLanguage } from '../i18n/config';
-import { getCurrentUser, signOut } from '../services/authService';
+import { deleteAccount, getCurrentUser, signOut } from '../services/authService';
 import type { PaymentPreference } from '../modules/payments';
 import {
   currencySymbol,
@@ -56,6 +56,27 @@ export function SettingsScreen() {
           onPress: async () => {
             await signOut();
             // RootNavigator's onAuthStateChange listener handles navigation
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      'Delete account?',
+      'This permanently deletes your account, students, lessons and notes. It cannot be undone. Export your data first if you want a copy.',
+      [
+        { text: t('cancel'), style: 'cancel' },
+        {
+          text: 'Delete forever',
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await deleteAccount();
+            if (error) {
+              Alert.alert('Could not delete account', error);
+            }
+            // On success RootNavigator's onAuthStateChange listener returns to sign-in.
           },
         },
       ]
@@ -269,6 +290,17 @@ export function SettingsScreen() {
                 <Ionicons name="log-out-outline" size={20} color="#D32F2F" />
               </View>
             </Pressable>
+            )}
+            {!isDemoMode && (
+              <Pressable
+                onPress={handleDeleteAccount}
+                accessibilityRole="button"
+                style={{ minHeight: 44, justifyContent: 'center', marginTop: 12 }}
+              >
+                <Text className="text-sm" style={{ color: '#D32F2F', textAlign: 'center' }}>
+                  Delete account
+                </Text>
+              </Pressable>
             )}
           </Section>
         </View>

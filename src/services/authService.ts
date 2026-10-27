@@ -267,3 +267,24 @@ export const updateUserMetadata = async (
     return { user: null, error: normalizeAuthError(error) };
   }
 };
+
+/**
+ * Permanently delete the signed-in coach's account and all their data
+ * (server-side function from scripts/priority7-delete-account.sql), then wipe
+ * the local session. Required by App Store review for apps with sign-up.
+ */
+export const deleteAccount = async (): Promise<{ error: string | null }> => {
+  try {
+    const supabase = getSupabaseClient();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc('delete_my_account');
+    if (error) {
+      return { error: error.message || 'Could not delete the account. Please try again.' };
+    }
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Could not reach the server. Check your connection and try again.' };
+  }
+
+  await signOut();
+  return { error: null };
+};
