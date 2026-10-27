@@ -9,6 +9,8 @@ import {
   FlatList,
   Modal,
   Share,
+  Linking,
+  Platform,
   useWindowDimensions,
   ViewToken,
 } from 'react-native';
@@ -28,6 +30,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { buildCancellationMessage, buildContactUrl } from '../utils/cancellationMessage';
 import { useNavigation } from '@react-navigation/native';
 
 import { useCoachStore } from '../state/coachStore';
@@ -70,7 +73,7 @@ const CENTER_PAGE_INDEX = 30; // Today's index
 
 export function TodayScreen() {
   const insets = useSafeAreaInsets();
-  const { lessons, markLessonPaid, cancelLesson } = useCoachStore();
+  const { lessons, students, coach, markLessonPaid, cancelLesson } = useCoachStore();
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   
   const [currentPageIndex, setCurrentPageIndex] = useState(CENTER_PAGE_INDEX);
@@ -192,6 +195,34 @@ export function TodayScreen() {
     [getDateForPageIndex]
   );
 
+  // Cancel, then offer to tell the student in one tap (their messaging app opens prefilled).
+  const cancelAndOfferMessage = useCallback(
+    async (lessonId: string) => {
+      const lesson = lessons.find((l) => l.id === lessonId);
+      const student = lesson ? students.find((s) => s.id === lesson.studentId) : undefined;
+      await cancelLesson(lessonId);
+      if (!lesson || lesson.status === 'cancelled') return;
+
+      const url = buildContactUrl(
+        student?.contact,
+        buildCancellationMessage({
+          studentName: lesson.studentName,
+          coachName: coach?.name,
+          date: lesson.date,
+          startTime: lesson.startTime,
+        }),
+        { platform: Platform.OS }
+      );
+      if (!url) return;
+
+      Alert.alert('Lesson cancelled', `Let ${lesson.studentName.split(' ')[0]} know?`, [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Message', onPress: () => Linking.openURL(url).catch(() => {}) },
+      ]);
+    },
+    [lessons, students, coach?.name, cancelLesson]
+  );
+
   const renderItem = useCallback(({ item, index }: { item: any; index: number }) => {
     const pageLessons = cache[item.dateISO] ?? [];
     
@@ -202,14 +233,14 @@ export function TodayScreen() {
         onPreviousDay={() => handleChevronPress('prev')}
         onNextDay={() => handleChevronPress('next')}
         onMarkPaid={markLessonPaid}
-        onCancel={cancelLesson}
+        onCancel={cancelAndOfferMessage}
         insets={insets}
         index={index}
         scrollX={scrollX}
         screenWidth={SCREEN_WIDTH}
       />
     );
-  }, [cache, handleChevronPress, markLessonPaid, cancelLesson, insets, scrollX, SCREEN_WIDTH]);
+  }, [cache, handleChevronPress, markLessonPaid, cancelAndOfferMessage, insets, scrollX, SCREEN_WIDTH]);
 
   return (
     <View className="flex-1 bg-white">
