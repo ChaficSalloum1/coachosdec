@@ -13,6 +13,7 @@ import {
   buildGroupMemberLesson,
   summarizeGroup,
 } from '../utils/groupLessons';
+import { futureSeriesLessons } from '../utils/lessonSeries';
 import {
   cancelPaymentStatus,
   confirmPaidStatus,
@@ -118,6 +119,7 @@ interface CoachState {
     areaId?: string;
     facilityId?: string;
     courtId?: string;
+    seriesId?: string;
   }) => void;
   // Group lessons: one linked lesson per player. These throw an Error with a
   // coach-readable message when the request is invalid (group full, etc).
@@ -131,10 +133,13 @@ interface CoachState {
     areaId?: string;
     facilityId?: string;
     courtId?: string;
+    seriesId?: string;
   }) => string; // returns the new groupId
   addToGroupLesson: (groupId: string, studentId: string) => void;
   removeFromGroupLesson: (groupId: string, studentId: string) => Promise<void>;
   cancelGroupLesson: (groupId: string) => Promise<void>;
+  // Cancels this lesson and every later active lesson in its series; returns how many were cancelled.
+  cancelSeriesFrom: (lessonId: string) => Promise<number>;
   addLesson: (lesson: Lesson) => void;
   updateLesson: (lessonId: string, updates: Partial<Lesson>) => void;
   requestLessonPayment: (lessonId: string) => void;
@@ -486,6 +491,7 @@ export const useCoachStore = create<CoachState>()(
           areaId: params.areaId,
           facilityId: params.facilityId,
           courtId: params.courtId,
+          ...(params.seriesId ? { seriesId: params.seriesId } : {}),
         }, state.coach);
         const updatedStudents = state.students.map(s => {
           if (s.id !== params.studentId) return s;
@@ -528,6 +534,7 @@ export const useCoachStore = create<CoachState>()(
             areaId: params.areaId,
             facilityId: params.facilityId,
             courtId: params.courtId,
+            seriesId: params.seriesId,
           },
           players,
           now: new Date().toISOString(),
@@ -590,6 +597,16 @@ export const useCoachStore = create<CoachState>()(
         for (const lesson of active) {
           await get().cancelLesson(lesson.id);
         }
+      },
+
+      cancelSeriesFrom: async (lessonId) => {
+        const lesson = get().lessons.find((l) => l.id === lessonId);
+        if (!lesson) return 0;
+        const toCancel = lesson.seriesId ? futureSeriesLessons(get().lessons, lesson) : [lesson];
+        for (const l of toCancel) {
+          await get().cancelLesson(l.id);
+        }
+        return toCancel.length;
       },
 
       addLesson: (lesson) => set((state) => ({

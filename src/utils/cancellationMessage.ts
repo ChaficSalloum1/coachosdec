@@ -13,11 +13,13 @@ export function buildCancellationMessage(params: {
   coachName?: string;
   date: string; // yyyy-MM-dd
   startTime: string; // HH:mm
+  weekly?: boolean; // cancelling a whole run of weekly lessons from this date
 }): string {
   const firstName = params.studentName.trim().split(/\s+/)[0] || 'there';
   const when = `${format(new Date(`${params.date}T12:00:00`), 'EEE d MMM')} at ${params.startTime}`;
   const signOff = params.coachName?.trim() ? `\n${params.coachName.trim()}` : '';
-  return `Hi ${firstName}, I'm sorry, I have to cancel our lesson on ${when}. Let me know when suits you and we'll find a new time.${signOff}`;
+  const what = params.weekly ? `our weekly lessons from ${when}` : `our lesson on ${when}`;
+  return `Hi ${firstName}, I'm sorry, I have to cancel ${what}. Let me know when suits you and we'll find a new time.${signOff}`;
 }
 
 // sms: for phone numbers (iOS separates the body with "&", Android with "?"),
@@ -62,6 +64,7 @@ export function buildCancellationNotices(args: {
   students: Student[];
   coachName?: string;
   platform: string;
+  weekly?: boolean;
 }): CancellationNotice[] {
   const seen = new Set<string>();
   const notices: CancellationNotice[] = [];
@@ -74,6 +77,7 @@ export function buildCancellationNotices(args: {
       coachName: args.coachName,
       date: lesson.date,
       startTime: lesson.startTime,
+      weekly: args.weekly,
     });
     notices.push({
       studentId: lesson.studentId,

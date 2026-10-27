@@ -30,7 +30,9 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { showToast } from '../state/toastStore';
 import { buildBookingUrl } from '../utils/publicBooking';
+import { futureSeriesLessons, laterSeriesCount } from '../utils/lessonSeries';
 import {
   buildCancellationMessage,
   buildCancellationNotices,
@@ -72,12 +74,13 @@ const CENTER_PAGE_INDEX = 30; // Today's index
 
 export function TodayScreen() {
   const insets = useSafeAreaInsets();
-  const { lessons, students, coach, markLessonPaid, cancelLesson } = useCoachStore();
+  const { lessons, students, coach, markLessonPaid, cancelLesson, cancelSeriesFrom } = useCoachStore();
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   
   const [currentPageIndex, setCurrentPageIndex] = useState(CENTER_PAGE_INDEX);
   const [cache, setCache] = useState<Record<string, Lesson[]>>({});
   const [showAddLesson, setShowAddLesson] = useState(false);
+  const [seriesNotices, setSeriesNotices] = useState<CancellationNotice[] | null>(null);
   const flatListRef = useRef<FlatList>(null);
   const lastTapRef = useRef<Record<string, number>>({});
   const scrollX = useSharedValue(CENTER_PAGE_INDEX * SCREEN_WIDTH);
@@ -222,6 +225,34 @@ export function TodayScreen() {
     [lessons, students, coach?.name, cancelLesson]
   );
 
+  // "This and all later": cancel the rest of a weekly series, then offer one message per student.
+  const cancelSeriesAndOfferMessage = useCallback(
+    async (lessonId: string) => {
+      const lesson = lessons.find((l) => l.id === lessonId);
+      if (!lesson) return;
+      const affected = futureSeriesLessons(lessons, lesson);
+      await cancelSeriesFrom(lessonId);
+      showToast(`Cancelled ${affected.length || 1} ${affected.length === 1 ? 'lesson' : 'lessons'}`, 'success');
+      const notices = buildCancellationNotices({
+        lessons: affected,
+        students,
+        coachName: coach?.name,
+        platform: Platform.OS,
+        weekly: true,
+      }).filter((n) => n.url);
+      if (notices.length === 1) {
+        const only = notices[0];
+        Alert.alert('Lessons cancelled', `Let ${only.studentName.split(' ')[0]} know?`, [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Message', onPress: () => Linking.openURL(only.url as string).catch(() => {}) },
+        ]);
+      } else if (notices.length > 1) {
+        setSeriesNotices(notices);
+      }
+    },
+    [lessons, students, coach?.name, cancelSeriesFrom]
+  );
+
   const renderItem = useCallback(({ item, index }: { item: any; index: number }) => {
     const pageLessons = cache[item.dateISO] ?? [];
     
@@ -233,13 +264,14 @@ export function TodayScreen() {
         onNextDay={() => handleChevronPress('next')}
         onMarkPaid={markLessonPaid}
         onCancel={cancelAndOfferMessage}
+        onCancelSeries={cancelSeriesAndOfferMessage}
         insets={insets}
         index={index}
         scrollX={scrollX}
         screenWidth={SCREEN_WIDTH}
       />
     );
-  }, [cache, handleChevronPress, markLessonPaid, cancelAndOfferMessage, insets, scrollX, SCREEN_WIDTH]);
+  }, [cache, handleChevronPress, markLessonPaid, cancelAndOfferMessage, cancelSeriesAndOfferMessage, insets, scrollX, SCREEN_WIDTH]);
 
   return (
     <View className="flex-1 bg-white">
@@ -281,6 +313,8 @@ export function TodayScreen() {
         defaultDate={currentDayISO}
         onClose={() => setShowAddLesson(false)}
       />
+
+      <CancellationNoticesSheet notices={seriesNotices} onClose={() => setSeriesNotices(null)} />
     </View>
   );
 }
@@ -369,6 +403,7 @@ interface AnimatedDayPageProps {
   onNextDay: () => void;
   onMarkPaid: (id: string) => void;
   onCancel: (id: string) => void;
+  onCancelSeries: (id: string) => void;
   insets: any;
   index: number;
   scrollX: Animated.SharedValue<number>;
@@ -382,6 +417,7 @@ const AnimatedDayPage = React.memo(({
   onNextDay,
   onMarkPaid,
   onCancel,
+  onCancelSeries,
   insets,
   index,
   scrollX,
@@ -545,6 +581,7 @@ const AnimatedDayPage = React.memo(({
                     index={idx}
                     onMarkPaid={() => onMarkPaid(item.lesson.id)}
                     onCancel={() => onCancel(item.lesson.id)}
+                    onCancelSeries={() => onCancelSeries(item.lesson.id)}
                     onNotePress={() => setNoteLesson(item.lesson)}
                   />
                 )
@@ -798,10 +835,11 @@ interface AnimatedLessonCardProps {
   index: number;
   onMarkPaid: () => void;
   onCancel: () => void;
+  onCancelSeries: () => void;
   onNotePress: () => void;
 }
 
-function AnimatedLessonCard({ lesson, index, onMarkPaid, onCancel, onNotePress }: AnimatedLessonCardProps) {
+function AnimatedLessonCard({ lesson, index, onMarkPaid, onCancel, onCancelSeries, onNotePress }: AnimatedLessonCardProps) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(20);
 
@@ -825,6 +863,7 @@ function AnimatedLessonCard({ lesson, index, onMarkPaid, onCancel, onNotePress }
         lesson={lesson}
         onMarkPaid={onMarkPaid}
         onCancel={onCancel}
+        onCancelSeries={onCancelSeries}
         onNotePress={onNotePress}
       />
     </Animated.View>
@@ -836,10 +875,11 @@ interface LessonCardProps {
   lesson: Lesson;
   onMarkPaid: () => void;
   onCancel: () => void;
+  onCancelSeries: () => void;
   onNotePress: () => void;
 }
 
-const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: LessonCardProps) => {
+const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSeries, onNotePress }: LessonCardProps) => {
   const { formatLocationText } = useCoachStore();
   const { formatMoney } = useCurrency();
   const cancelAlertOpenRef = useRef(false);
@@ -852,6 +892,9 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
 
     cancelAlertOpenRef.current = true;
 
+    // Read at tap time so the card does not re-render on every lesson change.
+    const later = lesson.seriesId ? laterSeriesCount(useCoachStore.getState().lessons, lesson) : 0;
+
     Alert.alert(
       'Cancel Lesson',
       `Cancel lesson with ${lesson.studentName}?`,
@@ -863,8 +906,21 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
             cancelAlertOpenRef.current = false;
           },
         },
+        ...(later > 0
+          ? [
+              {
+                text: `This and ${later} later`,
+                style: 'destructive' as const,
+                onPress: () => {
+                  cancelAlertOpenRef.current = false;
+                  onCancelSeries();
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                },
+              },
+            ]
+          : []),
         {
-          text: 'Cancel Lesson',
+          text: later > 0 ? 'Just this one' : 'Cancel Lesson',
           style: 'destructive',
           onPress: () => {
             cancelAlertOpenRef.current = false;
@@ -906,6 +962,10 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
     actions.push({
       text: 'Cancel Lesson',
       onPress: () => {
+        if (lesson.seriesId) {
+          handleCancelSwipe();
+          return;
+        }
         onCancel();
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       },

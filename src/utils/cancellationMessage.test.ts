@@ -21,6 +21,11 @@ describe('buildCancellationMessage', () => {
     expect(message.endsWith('\nChris')).toBe(true);
   });
 
+  it('says weekly lessons when a whole series is cancelled', () => {
+    const message = buildCancellationMessage({ studentName: 'Ana', date: '2026-11-02', startTime: '18:30', weekly: true });
+    expect(message).toContain('our weekly lessons from Mon 2 Nov at 18:30');
+  });
+
   it('works without a coach name or a usable student name', () => {
     const message = buildCancellationMessage({ studentName: '  ', date: '2026-11-02', startTime: '09:00' });
     expect(message).toContain('Hi there,');

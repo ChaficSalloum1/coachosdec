@@ -131,6 +131,9 @@ export interface Lesson {
   // so payments, notes and totals stay per player). groupCapacity = max players.
   groupId?: string;
   groupCapacity?: number;
+  // Lessons created together by "Repeat weekly" share a seriesId so the coach
+  // can cancel "this and all later". Undefined for one-off lessons.
+  seriesId?: string;
   version?: number; // Optimistic locking version number
 }
 

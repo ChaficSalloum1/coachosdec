@@ -132,6 +132,7 @@ export interface GroupLessonTemplate {
   areaId?: string;
   facilityId?: string;
   courtId?: string;
+  seriesId?: string;
 }
 
 export interface GroupPlayer {
@@ -164,6 +165,7 @@ function buildLesson(
     courtId: template.courtId,
     groupId,
     groupCapacity: template.capacity,
+    ...(template.seriesId ? { seriesId: template.seriesId } : {}),
   };
 }
 

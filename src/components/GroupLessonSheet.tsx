@@ -12,6 +12,7 @@ import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { DesignTokens } from '../utils/designTokens';
 import { summarizeGroup } from '../utils/groupLessons';
+import { laterSeriesCount } from '../utils/lessonSeries';
 import { useCurrency } from '../hooks/useCurrency';
 
 const formatTime = (time: string) => {
@@ -36,6 +37,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
     addToGroupLesson,
     removeFromGroupLesson,
     cancelGroupLesson,
+    cancelSeriesFrom,
     markLessonPaid,
   } = useCoachStore();
   const [showAddPlayer, setShowAddPlayer] = useState(false);
@@ -86,20 +88,27 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
   };
 
   const confirmCancelGroup = () => {
+    const later = laterSeriesCount(lessons, group.lessons[0]);
+    const cancelThisSession = () => {
+      cancelGroupLesson(group.groupId)
+        .then(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success))
+        .catch((e) => showToast(errorMessage(e), 'error'));
+    };
+    const cancelAllLater = () => {
+      cancelSeriesFrom(group.lessons[0].id)
+        .then(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success))
+        .catch((e) => showToast(errorMessage(e), 'error'));
+    };
+
     Alert.alert(
       'Cancel whole group?',
       `This cancels the lessons of all ${group.lessons.length} players.`,
       [
         { text: 'Keep group', style: 'cancel' },
-        {
-          text: 'Cancel group',
-          style: 'destructive',
-          onPress: () => {
-            cancelGroupLesson(group.groupId)
-              .then(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success))
-              .catch((e) => showToast(errorMessage(e), 'error'));
-          },
-        },
+        ...(later > 0
+          ? [{ text: `This and ${later} later`, style: 'destructive' as const, onPress: cancelAllLater }]
+          : []),
+        { text: later > 0 ? 'Just this one' : 'Cancel group', style: 'destructive', onPress: cancelThisSession },
       ]
     );
   };

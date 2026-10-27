@@ -371,6 +371,10 @@ ALTER TABLE lessons ADD CONSTRAINT check_lesson_group_pair
   CHECK ((group_id IS NULL) = (group_capacity IS NULL));
 CREATE INDEX IF NOT EXISTS idx_lessons_group_id ON lessons(group_id) WHERE group_id IS NOT NULL;
 
+-- Recurring lessons created together share a series_id (scripts/priority8-lesson-series.sql).
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS series_id UUID;
+CREATE INDEX IF NOT EXISTS idx_lessons_series_id ON lessons(series_id) WHERE series_id IS NOT NULL;
+
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================

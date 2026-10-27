@@ -274,6 +274,9 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
         })
       : { book: [date], skipped: [] as string[] };
 
+    // Weekly lessons created together share a series so "cancel all later" works.
+    const seriesId = plan.book.length > 1 ? uuidv4() : undefined;
+
     let created = 0;
     try {
       for (const lessonDate of plan.book) {
@@ -285,6 +288,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
             duration,
             pricePerPlayer: priceNumber,
             capacity,
+            seriesId,
             ...location,
           });
         } else if (student) {
@@ -295,6 +299,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
             startTime,
             duration,
             price: priceNumber,
+            seriesId,
             ...location,
           });
         }
