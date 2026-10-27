@@ -42,10 +42,11 @@ export function buildContactUrl(
   return `mailto:${value}?subject=${subject}&body=${encodeURIComponent(message)}`;
 }
 
-// Lessons a "cancel the rest of the day" action should cancel: still scheduled,
-// and (for today) not yet started.
+// Lessons a "cancel the rest of the day" or "remind students" action applies to:
+// still scheduled, on today or a later day, and (for today) not yet started.
 export function lessonsToCancelForDay(lessons: Lesson[], dateISO: string, now: Date = new Date()): Lesson[] {
   const today = format(now, 'yyyy-MM-dd');
+  if (dateISO < today) return []; // nothing to cancel or remind about on a day that is over
   const nowTime = format(now, 'HH:mm');
   return lessons.filter(
     (l) => l.date === dateISO && l.status === 'scheduled' && (dateISO !== today || l.startTime >= nowTime)

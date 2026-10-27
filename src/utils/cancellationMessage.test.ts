@@ -85,6 +85,11 @@ describe('lessonsToCancelForDay', () => {
     expect(lessonsToCancelForDay(lessons, '2026-11-02', now).map((l) => l.id)).toEqual(['later']);
     expect(lessonsToCancelForDay(lessons, '2026-11-03', now).map((l) => l.id)).toEqual(['other-day']);
   });
+
+  it('offers nothing for a day that has already passed', () => {
+    const now = new Date('2026-11-05T09:00:00');
+    expect(lessonsToCancelForDay([lesson({ date: '2026-11-02', status: 'scheduled' })], '2026-11-02', now)).toEqual([]);
+  });
 });
 
 describe('buildCancellationNotices', () => {
