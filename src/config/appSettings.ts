@@ -37,6 +37,7 @@ export const PUBLIC_BOOKING = {
 
 export const SYNC = {
   debounceMs: 2000, // batch local edits before uploading
+  coachSaveDebounceMs: 1000, // wait after a profile edit before saving it
   retryIntervalMs: 30_000, // how often the offline queue retries
   stuckAfterAttempts: 3, // failures before a change is reported as a sync problem
 } as const;

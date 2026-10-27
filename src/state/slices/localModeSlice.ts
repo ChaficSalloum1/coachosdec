@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import type { Area } from '../../types/coach';
+import { isUuid } from '../../utils/ids';
 import type { SliceCreator } from './types';
 import { emptyData } from './emptyData';
 
@@ -11,14 +12,13 @@ export interface LocalModeSlice {
 }
 
 const GENERAL_AREA_ID = '550e8400-e29b-41d4-a716-446655440009';
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const createLocalModeSlice: SliceCreator<LocalModeSlice> = (set, get) => ({
   migrateExistingData: async () => {
     const state = get();
 
     // Very old data used ids like "coach_1". Start fresh rather than carry them forward.
-    if (state.coach?.id && !UUID_PATTERN.test(state.coach.id)) {
+    if (state.coach?.id && !isUuid(state.coach.id)) {
       try {
         await AsyncStorage.clear();
       } catch (error) {

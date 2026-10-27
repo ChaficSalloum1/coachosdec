@@ -11,62 +11,16 @@ import { useCoachStore } from "../state/coachStore";
 import { useOfflineQueueStore, type PendingMutation } from "../state/offlineQueueStore";
 import { SYNC } from "../config/appSettings";
 import { isSupabaseConfigured } from "../utils/supabaseConfig";
-import {
-  saveCoachToSupabase,
-  saveStudentToSupabase,
-  saveLessonToSupabase,
-  saveBookingRequestToSupabase,
-  saveStudentNoteToSupabase,
-  saveAreaToSupabase,
-  saveFacilityToSupabase,
-  saveCourtToSupabase,
-  saveAvailabilityRangeToSupabase,
-  saveBlackoutDateToSupabase,
-  deleteFromSupabase,
-} from "../services/supabaseSync";
+import { deleteFromSupabase } from "../services/supabaseSync";
+import { entityForKind } from "../services/syncRegistry";
+import type { SaveResult } from "../services/syncTypes";
 
-const TABLE_BY_KIND: Record<PendingMutation["kind"], string> = {
-  coach: "coaches",
-  student: "students",
-  lesson: "lessons",
-  bookingRequest: "booking_requests",
-  studentNote: "student_notes",
-  area: "areas",
-  facility: "facilities",
-  court: "courts",
-  availabilityRange: "availability_ranges",
-  blackoutDate: "blackout_dates",
-};
-
-type ReplayResult = { success: boolean; error?: string; conflict?: boolean };
-
-async function replay(mutation: PendingMutation): Promise<ReplayResult> {
+async function replay(mutation: PendingMutation): Promise<SaveResult> {
+  const entity = entityForKind(mutation.kind);
   if (mutation.operation === "delete") {
-    return deleteFromSupabase(TABLE_BY_KIND[mutation.kind], mutation.entityId, mutation.expectedVersion);
+    return deleteFromSupabase(entity.table, mutation.entityId, mutation.expectedVersion);
   }
-
-  switch (mutation.kind) {
-    case "coach":
-      return saveCoachToSupabase(mutation.payload, mutation.expectedVersion);
-    case "student":
-      return saveStudentToSupabase(mutation.payload, mutation.expectedVersion);
-    case "lesson":
-      return saveLessonToSupabase(mutation.payload, mutation.expectedVersion);
-    case "bookingRequest":
-      return saveBookingRequestToSupabase(mutation.payload, mutation.expectedVersion);
-    case "studentNote":
-      return saveStudentNoteToSupabase(mutation.payload, mutation.expectedVersion);
-    case "area":
-      return saveAreaToSupabase(mutation.payload);
-    case "facility":
-      return saveFacilityToSupabase(mutation.payload);
-    case "court":
-      return saveCourtToSupabase(mutation.payload);
-    case "availabilityRange":
-      return saveAvailabilityRangeToSupabase(mutation.payload);
-    case "blackoutDate":
-      return saveBlackoutDateToSupabase(mutation.payload);
-  }
+  return entity.save(mutation.payload, mutation.expectedVersion);
 }
 
 /**
