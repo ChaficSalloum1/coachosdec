@@ -19,7 +19,7 @@ export function PublicBookingWrapper() {
     facilities,
     courts,
     formatLocationText,
-    generateSlotsForNext14Days,
+    getOpenSlots,
     addBookingRequest,
     isDemoMode,
   } = useCoachStore();
@@ -71,7 +71,7 @@ export function PublicBookingWrapper() {
       facilities={facilities}
       courts={courts}
       formatLocationText={formatLocationText}
-      generateSlotsForNext14Days={generateSlotsForNext14Days}
+      getOpenSlots={getOpenSlots}
       onBookingRequest={handleBookingRequest}
     />
   );

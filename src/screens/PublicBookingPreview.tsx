@@ -27,7 +27,7 @@ export function PublicBookingPreview() {
   
   const { 
     coach, 
-    generateSlotsForNext14Days, 
+    getOpenSlots, 
     addBookingRequest,
     formatLocationText 
   } = useCoachStore();
@@ -95,7 +95,7 @@ export function PublicBookingPreview() {
   };
 
   const groupSlotsByDate = () => {
-    const slots = generateSlotsForNext14Days();
+    const slots = getOpenSlots();
     const grouped: { [date: string]: Array<{date: string, time: string, range: any}> } = {};
     
     slots.forEach(slot => {

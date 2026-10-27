@@ -25,7 +25,7 @@ interface PublicBookingScreenProps {
   facilities: any[];
   courts: any[];
   formatLocationText: (areaId?: string, facilityId?: string, courtId?: string) => string;
-  generateSlotsForNext14Days: () => Array<{date: string, time: string, range: AvailabilityRange}>;
+  getOpenSlots: () => Array<{date: string, time: string, range: AvailabilityRange}>;
   onBookingRequest: (request: Omit<BookingRequest, 'id' | 'status' | 'createdAt'>) => Promise<void>;
 }
 

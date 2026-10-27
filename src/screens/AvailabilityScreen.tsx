@@ -51,7 +51,7 @@ export function AvailabilityScreen() {
     addBlackoutDate,
     removeBlackoutDate,
     getAvailabilityRangesForDay,
-    generateSlotsForNext14Days,
+    getOpenSlots,
     validateRangeOverlap,
     areas,
     facilities,
@@ -383,7 +383,7 @@ export function AvailabilityScreen() {
       <PreviewModal
         visible={showPreview}
         onClose={() => setShowPreview(false)}
-        slots={generateSlotsForNext14Days()}
+        slots={getOpenSlots()}
         formatLocationText={formatLocationText}
       />
     </View>
