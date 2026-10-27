@@ -11,8 +11,6 @@
       "supportsTablet": true,
       "bundleIdentifier": "app.coachos.mobile",
       "infoPlist": {
-        "NSCalendarsUsageDescription": "CoachOS needs access to your calendar to sync approved lessons with your device calendar.",
-        "NSRemindersUsageDescription": "CoachOS needs access to your reminders to help you stay on top of your coaching schedule.",
         "UIBackgroundModes": [
           "remote-notification"
         ],
@@ -36,6 +34,13 @@
     },
     "plugins": [
       "./plugins/fix-fmt-consteval",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "CoachOS needs access to your calendar to sync approved lessons with your device calendar.",
+          "remindersPermission": false
+        }
+      ],
       "@react-native-community/datetimepicker",
       "expo-asset",
       [
