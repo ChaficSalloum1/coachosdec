@@ -109,7 +109,7 @@ export class CalendarService {
       });
 
       if (__DEV__) {
-        console.log('📅 Created calendar event:', eventId, 'for', lesson.studentName);
+        if (__DEV__) console.log('📅 Created calendar event:', eventId, 'for', lesson.studentName);
       }
 
       return eventId;

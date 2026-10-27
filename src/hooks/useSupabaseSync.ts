@@ -573,7 +573,7 @@ export const useSupabaseSync = () => {
           if (!existing.find(r => r.id === request.id)) {
             useCoachStore.setState({ bookingRequests: [request, ...existing] });
             if (__DEV__) {
-              console.log('📬 New booking request received via realtime:', request.studentName);
+              if (__DEV__) console.log('📬 New booking request received via realtime:', request.studentName);
             }
           }
         }

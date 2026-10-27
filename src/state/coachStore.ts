@@ -300,7 +300,7 @@ export const useCoachStore = create<CoachState>()(
         
         // Debug logging for development
         if (__DEV__) {
-          console.log('🎾 Approving booking request:', {
+          if (__DEV__) console.log('🎾 Approving booking request:', {
             student: request.studentName,
             date: request.requestedDate,
             time: request.requestedTime,
@@ -356,7 +356,7 @@ export const useCoachStore = create<CoachState>()(
           }
 
           if (__DEV__ && hasTimeOverlap) {
-            console.log('🔍 Time conflict detected:', {
+            if (__DEV__) console.log('🔍 Time conflict detected:', {
               requestTime: `${request.requestedTime}-${addMinutesToTime(request.requestedTime, request.duration)}`,
               requestDate: request.requestedDate,
               lessonTime: `${lesson.startTime}-${lesson.endTime}`,
