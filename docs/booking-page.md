@@ -42,8 +42,10 @@ is included.)
 
 ## Point the app at the page
 
-The app builds the link it shares from one setting. Add this under
-`build.production.env` in `eas.json`, then build a new app version:
+The app builds the link it shares from one setting. Until it is set, the app
+shows "booking page not switched on yet" and hides the link and QR code, so
+coaches never share a dead link. Add this under `build.production.env` in
+`eas.json`, then build a new app version:
 
 ```json
 "EXPO_PUBLIC_BOOKING_BASE_URL": "https://coachos-booking.pages.dev/book"

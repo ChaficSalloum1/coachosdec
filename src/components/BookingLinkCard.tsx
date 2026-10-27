@@ -23,6 +23,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   const bookingUrl = buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL);
 
   const shareBookingLink = async () => {
+    if (!bookingUrl) return;
     try {
       await Share.share({
         message: `Book a lesson with ${coach.name}: ${bookingUrl}`,
@@ -34,11 +35,23 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
   };
 
   const copyBookingLink = async () => {
+    if (!bookingUrl) return;
     await Clipboard.setStringAsync(bookingUrl);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  // The page is not hosted yet: say so rather than handing out a dead link.
+  if (!bookingUrl) {
+    return (
+      <View className="bg-gray-50 rounded-xl p-4">
+        <Text className="text-sm" style={{ color: '#42526E' }}>
+          Your student booking page is not switched on yet. Once it is, your link and QR code will appear here.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>

@@ -58,8 +58,12 @@ describe('buildBookableDays', () => {
 });
 
 describe('buildBookingUrl', () => {
-  it('uses the default base and a configured base without double slashes', () => {
-    expect(buildBookingUrl('nikos-padel')).toBe('https://coachos.app/book/nikos-padel');
+  it('builds the link from the configured base without double slashes', () => {
     expect(buildBookingUrl('nikos padel', 'https://book.example.com/book/')).toBe('https://book.example.com/book/nikos%20padel');
+  });
+
+  it('returns null until the booking page is configured', () => {
+    expect(buildBookingUrl('nikos-padel')).toBeNull();
+    expect(buildBookingUrl('nikos-padel', '   ')).toBeNull();
   });
 });

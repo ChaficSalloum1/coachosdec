@@ -545,12 +545,12 @@ const AnimatedDayPage = React.memo(({
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {isToday(dateISO) && coach?.bookingLink && (
+          {isToday(dateISO) && coach?.bookingLink && buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL) && (
             <Pressable
-              onPress={() => Share.share({
-                message: `Book a lesson: ${buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL)}`,
-                url: buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL),
-              })}
+              onPress={() => {
+                const url = buildBookingUrl(coach.bookingLink, process.env.EXPO_PUBLIC_BOOKING_BASE_URL);
+                if (url) Share.share({ message: `Book a lesson: ${url}`, url });
+              }}
               style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
               accessibilityLabel="Share booking link"

@@ -86,11 +86,16 @@ export function buildBookableDays(args: {
   return result;
 }
 
-const DEFAULT_BOOKING_BASE_URL = 'https://coachos.app/book';
+// The hosted booking page's address, from EXPO_PUBLIC_BOOKING_BASE_URL (for
+// example https://book.yourdomain.com/book). Null until the page is deployed,
+// so the app never hands coaches a link to a page that does not exist.
+export function getBookingBaseUrl(configured?: string): string | null {
+  const base = configured?.trim().replace(/\/+$/, '');
+  return base ? base : null;
+}
 
-// The one place the shareable link is built. Set EXPO_PUBLIC_BOOKING_BASE_URL
-// (e.g. https://book.yourdomain.com/book) once the page is hosted.
-export function buildBookingUrl(bookingLink: string, baseUrl?: string): string {
-  const base = (baseUrl?.trim() || DEFAULT_BOOKING_BASE_URL).replace(/\/+$/, '');
-  return `${base}/${encodeURIComponent(bookingLink)}`;
+// The one place the shareable link is built; null when the page is not set up.
+export function buildBookingUrl(bookingLink: string, configuredBase?: string): string | null {
+  const base = getBookingBaseUrl(configuredBase);
+  return base ? `${base}/${encodeURIComponent(bookingLink)}` : null;
 }
