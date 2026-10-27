@@ -3,6 +3,8 @@ Logic behind the fast Add Lesson sheet: which start times are free, who to
 suggest, what length and price to prefill, and whether a time double-books.
 Pure functions so the sheet itself stays thin.
 */
+import { addWeeks, format } from 'date-fns';
+
 import type { AvailabilityRange, Lesson, Student } from '../types/coach';
 
 const toMinutes = (hhmm: string): number => {
@@ -145,4 +147,32 @@ export function suggestPrice(args: {
     : undefined;
   if (previous) return previous.price;
   return Math.round((durationMinutes / 60) * pricePerHour);
+}
+
+// The same weekday and time for `occurrences` weeks in a row, starting on `date`.
+export function buildWeeklyDates(date: string, occurrences: number): string[] {
+  const start = new Date(`${date}T12:00:00`); // midday so daylight-saving shifts never change the day
+  return Array.from({ length: Math.max(1, occurrences) }, (_, i) => format(addWeeks(start, i), 'yyyy-MM-dd'));
+}
+
+// Splits weekly dates into ones that can be booked and ones to skip because the
+// time is already taken or the coach is blacked out. The first date is always
+// kept: the coach chose it knowing about any clash.
+export function planWeeklyLessons(args: {
+  dates: string[];
+  startTime: string;
+  durationMinutes: number;
+  lessons: Lesson[];
+  blackoutDates: { date: string }[];
+}): { book: string[]; skipped: string[] } {
+  const book: string[] = [];
+  const skipped: string[] = [];
+  args.dates.forEach((date, index) => {
+    const blocked =
+      args.blackoutDates.some((b) => b.date === date) ||
+      findConflicts({ date, startTime: args.startTime, durationMinutes: args.durationMinutes, lessons: args.lessons }).length > 0;
+    if (index > 0 && blocked) skipped.push(date);
+    else book.push(date);
+  });
+  return { book, skipped };
 }

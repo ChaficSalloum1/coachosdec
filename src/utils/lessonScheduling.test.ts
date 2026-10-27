@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildWeeklyDates,
   findConflicts,
   formatTime12,
   getRecentStudents,
+  planWeeklyLessons,
   suggestDuration,
   suggestFreeStartTimes,
   suggestPrice,
@@ -187,5 +189,36 @@ describe('formatTime12', () => {
     expect(formatTime12('18:00')).toBe('6:00 PM');
     expect(formatTime12('00:15')).toBe('12:15 AM');
     expect(formatTime12('12:00')).toBe('12:00 PM');
+  });
+});
+
+describe('buildWeeklyDates', () => {
+  it('repeats the same weekday, including across a month end and clock change', () => {
+    expect(buildWeeklyDates('2026-10-20', 4)).toEqual(['2026-10-20', '2026-10-27', '2026-11-03', '2026-11-10']);
+    expect(buildWeeklyDates('2026-03-24', 2)).toEqual(['2026-03-24', '2026-03-31']);
+  });
+
+  it('always returns at least the first date', () => {
+    expect(buildWeeklyDates('2026-11-02', 0)).toEqual(['2026-11-02']);
+  });
+});
+
+describe('planWeeklyLessons', () => {
+  const dates = ['2026-11-02', '2026-11-09', '2026-11-16', '2026-11-23'];
+
+  it('skips later weeks that clash or are blacked out, but keeps the first date', () => {
+    const lessons = [
+      lesson({ id: 'a', date: '2026-11-02', startTime: '10:00', endTime: '11:00' }), // clashes with the first date
+      lesson({ id: 'b', date: '2026-11-16', startTime: '10:30', endTime: '11:30' }),
+    ];
+    const result = planWeeklyLessons({
+      dates,
+      startTime: '10:00',
+      durationMinutes: 60,
+      lessons,
+      blackoutDates: [{ date: '2026-11-23' }],
+    });
+    expect(result.book).toEqual(['2026-11-02', '2026-11-09']);
+    expect(result.skipped).toEqual(['2026-11-16', '2026-11-23']);
   });
 });

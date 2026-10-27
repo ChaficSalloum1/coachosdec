@@ -23,9 +23,11 @@ import { DesignTokens } from '../utils/designTokens';
 import { useCurrency } from '../hooks/useCurrency';
 import { DEFAULT_GROUP_CAPACITY, MAX_GROUP_CAPACITY, MIN_GROUP_CAPACITY } from '../utils/groupLessons';
 import {
+  buildWeeklyDates,
   findConflicts,
   formatTime12,
   getRecentStudents,
+  planWeeklyLessons,
   suggestDuration,
   suggestFreeStartTimes,
   suggestPrice,
@@ -38,6 +40,7 @@ interface AddLessonSheetProps {
 }
 
 const DURATIONS = [30, 45, 60, 90, 120];
+const REPEAT_OPTIONS = [4, 8, 12]; // lessons in total, one per week
 const durationLabel = (minutes: number) => (minutes >= 120 ? `${minutes / 60}h` : `${minutes}m`);
 
 function buildDatePills() {
@@ -81,6 +84,8 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   const [priceEdited, setPriceEdited] = useState(false);
   const [courtId, setCourtId] = useState<string | null>(null);
   const [showCourts, setShowCourts] = useState(false);
+  const [repeat, setRepeat] = useState(false);
+  const [repeatCount, setRepeatCount] = useState(8);
   const [error, setError] = useState('');
 
   const pricePerHour = coach?.pricePerHour ?? 0;
@@ -110,6 +115,8 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     setPriceEdited(false);
     setCourtId(courts.some((c) => c.id === lastCourt) ? (lastCourt as string) : courts[0]?.id ?? null);
     setShowCourts(false);
+    setRepeat(false);
+    setRepeatCount(8);
     setError('');
   }, [visible]);
 
@@ -254,38 +261,61 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     setError('');
     if (!canSave || !startTime) return;
     const location = courtLocation(courtId);
+    const student = students.find((s) => s.id === selectedIds[0]);
+    if (!isGroup && !student) return;
 
-    if (isGroup) {
-      try {
-        createGroupLesson({
-          studentIds: selectedIds,
-          date,
+    const plan = repeat
+      ? planWeeklyLessons({
+          dates: buildWeeklyDates(date, repeatCount),
           startTime,
-          duration,
-          pricePerPlayer: priceNumber,
-          capacity,
-          ...location,
-        });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Could not create the group lesson.');
-        return;
+          durationMinutes: duration,
+          lessons,
+          blackoutDates,
+        })
+      : { book: [date], skipped: [] as string[] };
+
+    let created = 0;
+    try {
+      for (const lessonDate of plan.book) {
+        if (isGroup) {
+          createGroupLesson({
+            studentIds: selectedIds,
+            date: lessonDate,
+            startTime,
+            duration,
+            pricePerPlayer: priceNumber,
+            capacity,
+            ...location,
+          });
+        } else if (student) {
+          createLesson({
+            studentId: student.id,
+            studentName: student.name,
+            date: lessonDate,
+            startTime,
+            duration,
+            price: priceNumber,
+            ...location,
+          });
+        }
+        created += 1;
       }
-    } else {
-      const student = students.find((s) => s.id === selectedIds[0]);
-      if (!student) return;
-      createLesson({
-        studentId: student.id,
-        studentName: student.name,
-        date,
-        startTime,
-        duration,
-        price: priceNumber,
-        ...location,
-      });
+    } catch (e) {
+      // Lessons already created stay; tell the coach exactly where it stopped.
+      setError(
+        created > 0
+          ? `Added ${created} of ${plan.book.length} lessons, then: ${e instanceof Error ? e.message : 'something went wrong.'}`
+          : e instanceof Error
+            ? e.message
+            : 'Could not create the lesson.'
+      );
+      return;
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    showToast(isGroup ? 'Group lesson added' : 'Lesson added', 'success');
+    const noun = isGroup ? 'group lesson' : 'lesson';
+    const skippedNote = plan.skipped.length > 0 ? ` Skipped ${plan.skipped.length} clash${plan.skipped.length > 1 ? 'es' : ''}.` : '';
+    showToast(created > 1 ? `Added ${created} weekly ${noun}s.${skippedNote}` : `${isGroup ? 'Group lesson' : 'Lesson'} added`, 'success');
     onClose();
   };
 
@@ -307,6 +337,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     startTime ? formatTime12(startTime) : null,
     durationLabel(duration),
     isNaN(priceNumber) ? null : `${formatMoney(priceNumber)}${isGroup ? ' each' : ''}`,
+    repeat ? `weekly x${repeatCount}` : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -454,6 +485,27 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 </View>
               )}
 
+              <View style={{ paddingHorizontal: 20, paddingTop: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>Repeat weekly</Text>
+                  <Switch
+                    value={repeat}
+                    onValueChange={setRepeat}
+                    trackColor={{ false: '#E0E0E0', true: DesignTokens.colors.accent }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                {repeat && (
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {REPEAT_OPTIONS.map((n) => (
+                      <View key={n} style={{ flex: 1 }}>
+                        <Chip label={`${n} weeks`} selected={repeatCount === n} onPress={() => setRepeatCount(n)} fill />
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
+
               {conflicts.length > 0 && (
                 <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.warning, paddingHorizontal: 20, paddingTop: 10 }}>
                   Overlaps with {conflicts[0].groupId ? 'a group lesson' : conflicts[0].studentName} at {formatTime12(conflicts[0].startTime)}
@@ -531,7 +583,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 }}
               >
                 <Text style={{ ...DesignTokens.typography.headline, color: canSave ? 'white' : DesignTokens.colors.grey }}>
-                  {isGroup ? 'Add group lesson' : 'Add lesson'}
+                  {repeat ? `Add ${repeatCount} weekly lessons` : isGroup ? 'Add group lesson' : 'Add lesson'}
                 </Text>
               </Pressable>
             </View>
