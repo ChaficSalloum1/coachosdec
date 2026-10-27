@@ -42,6 +42,7 @@ import {
   type CancellationNotice,
 } from '../utils/cancellationMessage';
 import { CancellationNoticesSheet } from '../components/CancellationNoticesSheet';
+import { SyncStatusBanner } from '../components/SyncStatusBanner';
 import { useNavigation } from '@react-navigation/native';
 
 import { useCoachStore } from '../state/coachStore';
@@ -276,6 +277,7 @@ export function TodayScreen() {
 
   return (
     <View className="flex-1 bg-white">
+      <SyncStatusBanner />
       <Animated.FlatList
         ref={flatListRef}
         data={pages}

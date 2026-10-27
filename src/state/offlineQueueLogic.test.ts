@@ -5,6 +5,7 @@ import {
   applyRecordAttemptFailure,
   applyRemove,
   applyRemoveForEntity,
+  summarizeSyncQueue,
   type PendingMutation,
 } from './offlineQueueLogic';
 
@@ -115,5 +116,21 @@ describe('offline queue', () => {
     expect(queue).toHaveLength(1);
     expect(queue[0].attempts).toBe(2);
     expect(queue[0].lastError).toBe('network error');
+  });
+});
+
+describe('summarizeSyncQueue', () => {
+  const entry = (attempts: number, lastError?: string) =>
+    ({ id: String(Math.random()), kind: 'lesson', operation: 'upsert', entityId: 'e', createdAt: '', attempts, lastError }) as PendingMutation;
+
+  it('is empty when nothing is waiting', () => {
+    expect(summarizeSyncQueue([])).toEqual({ pending: 0, stuck: 0, lastError: undefined });
+  });
+
+  it('counts waiting changes, and only flags ones that failed repeatedly as stuck', () => {
+    const status = summarizeSyncQueue([entry(0), entry(1, 'offline'), entry(4, 'column "series_id" does not exist')]);
+    expect(status.pending).toBe(3);
+    expect(status.stuck).toBe(1);
+    expect(status.lastError).toBe('column "series_id" does not exist');
   });
 });
