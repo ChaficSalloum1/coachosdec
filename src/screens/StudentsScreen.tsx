@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,9 @@ import { useCoachStore } from '../state/coachStore';
 import { useCurrency } from '../hooks/useCurrency';
 import { Student } from '../types/coach';
 import { StudentNotesScreen } from '../components/StudentNotesScreen';
+import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
+import { summarizeUnpaid } from '../utils/unpaid';
+import { todayISO } from '../utils/dayNav';
 
 export function StudentsScreen() {
   const insets = useSafeAreaInsets();
@@ -28,8 +31,17 @@ export function StudentsScreen() {
   const getStudentNotes = useCoachStore(s => s.getStudentNotes);
   const searchStudentNotes = useCoachStore(s => s.searchStudentNotes);
 
+  const lessons = useCoachStore(s => s.lessons);
+  const { formatMoney } = useCurrency();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [owingOnly, setOwingOnly] = useState(false);
+  const [paymentLessonId, setPaymentLessonId] = useState<string | null>(null);
+
+  const unpaid = useMemo(() => summarizeUnpaid(lessons, students, todayISO()), [lessons, students]);
+  // Nothing owed any more: leave the filter so the list is never stuck empty.
+  const showOwing = owingOnly && unpaid.students.length > 0;
 
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -60,7 +72,41 @@ export function StudentsScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="px-4 py-4">
-          {filteredStudents.length === 0 ? (
+          {showOwing ? (
+            <View>
+              <Text className="text-sm mb-3" style={{ color: '#42526E' }}>
+                {formatMoney(unpaid.total)} owed by {unpaid.students.length} {unpaid.students.length === 1 ? 'student' : 'students'}
+              </Text>
+              {unpaid.students.map((row) => (
+                <View
+                  key={row.student.id}
+                  className="flex-row items-center border-b border-gray-100"
+                  style={{ minHeight: 64 }}
+                >
+                  <View className="flex-1">
+                    <Text className="text-base font-semibold" style={{ color: '#0B1220' }} numberOfLines={1}>
+                      {row.student.name}
+                    </Text>
+                    <Text className="text-sm" style={{ color: '#42526E' }}>
+                      {row.lessonCount} {row.lessonCount === 1 ? 'lesson' : 'lessons'} · since {row.oldestDate}
+                    </Text>
+                  </View>
+                  <Text className="text-base font-semibold mr-3" style={{ color: '#D32F2F' }}>
+                    {formatMoney(row.amount)}
+                  </Text>
+                  <Pressable
+                    onPress={() => setPaymentLessonId(row.oldestLessonId)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Request payment from ${row.student.name}`}
+                    className="rounded-full px-4 justify-center"
+                    style={{ minHeight: 44, backgroundColor: '#1E88E5' }}
+                  >
+                    <Text className="font-semibold" style={{ color: '#FFFFFF' }}>Request</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : filteredStudents.length === 0 ? (
             <EmptyState hasSearch={searchQuery.length > 0} />
           ) : (
             <View className="space-y-3">
@@ -84,7 +130,8 @@ export function StudentsScreen() {
           { bottom: insets.bottom },
         ]}
       >
-        <View className="flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
+        <View className="flex-row items-center" style={{ gap: 8 }}>
+        <View className="flex-1 flex-row items-center bg-gray-100 rounded-xl px-3 py-2">
           <Ionicons name="search" size={20} color="#42526E" />
           <TextInput
             className="flex-1 ml-2 text-base text-ink-900"
@@ -96,7 +143,23 @@ export function StudentsScreen() {
             clearButtonMode="while-editing"
           />
         </View>
+        {unpaid.students.length > 0 && (
+          <Pressable
+            onPress={() => setOwingOnly((v) => !v)}
+            accessibilityRole="button"
+            accessibilityState={{ selected: showOwing }}
+            className="rounded-xl px-3 justify-center"
+            style={{ minHeight: 44, backgroundColor: showOwing ? '#D32F2F' : '#FDECEA' }}
+          >
+            <Text className="font-semibold" style={{ color: showOwing ? '#FFFFFF' : '#D32F2F' }}>
+              Owing {formatMoney(unpaid.total)}
+            </Text>
+          </Pressable>
+        )}
+        </View>
       </View>
+
+      <LessonPaymentSheet lessonId={paymentLessonId} onClose={() => setPaymentLessonId(null)} />
 
       {/* Student Notes Modal */}
       {selectedStudent && (
