@@ -6,7 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { Lesson } from '../../types/coach';
 import { DesignTokens } from '../../utils/designTokens';
 import { getTimeOfDayColor } from '../../utils/dayNav';
-import { formatTime12Hour } from '../../utils/timeFormat';
+import { formatClockTime } from '../../utils/timeFormat';
 import { useCoachStore } from '../../state/coachStore';
 import { useCurrency } from '../../hooks/useCurrency';
 import { SwipeableCard } from '../../components/SwipeableCard';
@@ -14,6 +14,7 @@ import { LessonAvatar } from '../../components/LessonAvatar';
 import { LessonPaymentSheet } from '../../components/payments/LessonPaymentSheet';
 import { PaymentStatusBadge } from '../../components/payments/PaymentStatusBadge';
 import { normalizePaymentStatus } from '../../modules/payments';
+import { t } from '../../i18n';
 
 // Lesson Card Component
 interface LessonCardProps {
@@ -41,11 +42,11 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
     const later = lesson.seriesId ? laterSeriesCount(useCoachStore.getState().lessons, lesson) : 0;
 
     Alert.alert(
-      'Cancel Lesson',
-      `Cancel lesson with ${lesson.studentName}?`,
+      t('today.cancelLesson'),
+      t('today.cancelLessonWith', { studentName: lesson.studentName }),
       [
         {
-          text: 'Keep Lesson',
+          text: t('today.keepLesson'),
           style: 'cancel',
           onPress: () => {
             cancelAlertOpenRef.current = false;
@@ -54,7 +55,7 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
         ...(later > 0
           ? [
               {
-                text: `This and ${later} later`,
+                text: t('today.cancelThisAndLater', { later }),
                 style: 'destructive' as const,
                 onPress: () => {
                   cancelAlertOpenRef.current = false;
@@ -65,7 +66,7 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
             ]
           : []),
         {
-          text: later > 0 ? 'Just this one' : 'Cancel Lesson',
+          text: later > 0 ? t('today.justThisOne') : t('today.cancelLesson'),
           style: 'destructive',
           onPress: () => {
             cancelAlertOpenRef.current = false;
@@ -92,20 +93,20 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
 
     if (!lesson.isPaid) {
       actions.push({
-        text: 'Mark as Paid',
+        text: t('payments.markAsPaid'),
         onPress: handleMarkPaidSwipe,
         style: 'default',
       });
     }
 
     actions.push({
-      text: 'Payment Request',
+      text: t('payments.paymentRequest'),
       onPress: () => setPaymentPanelVisible(true),
       style: 'default',
     });
 
     actions.push({
-      text: 'Cancel Lesson',
+      text: t('today.cancelLesson'),
       onPress: () => {
         if (lesson.seriesId) {
           handleCancelSwipe();
@@ -118,7 +119,7 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
     });
 
     actions.push({
-      text: 'Close',
+      text: t('common.close'),
       style: 'cancel',
     });
 
@@ -136,8 +137,8 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
         onSwipeLeft={handleCancelSwipe}
         onPress={showQuickActions}
         rightSwipeEnabled={!lesson.isPaid}
-        rightSwipeText="Swipe right to mark paid →"
-        leftSwipeText="← Swipe left to cancel"
+        rightSwipeText={t('today.swipeMarkPaid')}
+        leftSwipeText={t('today.swipeCancel')}
         hideSwipeHints={false}
       >
         <View className="flex-row items-center">
@@ -166,7 +167,7 @@ export const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSe
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {formatTime12Hour(lesson.startTime)} • {lesson.studentName}
+                {formatClockTime(lesson.startTime)} • {lesson.studentName}
               </Text>
               <Text
                 style={{

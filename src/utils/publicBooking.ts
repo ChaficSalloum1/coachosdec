@@ -8,6 +8,8 @@ import { addDays, format } from 'date-fns';
 import { PUBLIC_BOOKING } from '../config/appSettings';
 import { suggestFreeStartTimes } from './lessonScheduling';
 import type { AvailabilityRange, Lesson } from '../types/coach';
+import { t } from '../i18n';
+import { formatLocalized } from '../i18n/formatDate';
 
 export interface PublicAvailabilityRow {
   kind: 'availability' | 'lesson' | 'blackout' | string;
@@ -79,7 +81,7 @@ export function buildBookableDays(args: {
       limit: PUBLIC_BOOKING.maxSlotsShownPerDay,
     });
     if (times.length === 0) continue;
-    result.push({ date, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(day, 'EEE d MMM'), times });
+    result.push({ date, label: i === 0 ? t('common.today') : i === 1 ? t('common.tomorrow') : formatLocalized(day, 'EEE d MMM'), times });
   }
   return result;
 }

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LessonAvatar } from './LessonAvatar';
 import type { CancellationNotice } from '../utils/cancellationMessage';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface CancellationNoticesSheetProps {
   notices: CancellationNotice[] | null; // null = closed
@@ -17,7 +18,7 @@ interface CancellationNoticesSheetProps {
 // After cancelling a whole day: one tap per student opens their messaging app
 // with the message already written. Texts cannot be sent in bulk, so each
 // student is a row that turns to "Sent" once tapped.
-export function CancellationNoticesSheet({ notices, title = 'Lessons cancelled', onClose }: CancellationNoticesSheetProps) {
+export function CancellationNoticesSheet({ notices, title, onClose }: CancellationNoticesSheetProps) {
   const insets = useSafeAreaInsets();
   const [sent, setSent] = useState<string[]>([]);
 
@@ -49,18 +50,18 @@ export function CancellationNoticesSheet({ notices, title = 'Lessons cancelled',
         >
           <View style={{ flex: 1 }}>
             <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite }}>
-              {title}
+              {title ?? t('today.lessonsCancelled')}
             </Text>
             <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
-              Tap a name to message them.
+              {t('today.noticesHint')}
             </Text>
           </View>
           <Pressable
             onPress={onClose}
-            accessibilityLabel="Done"
+            accessibilityLabel={t('common.done')}
             style={{ minHeight: 44, paddingHorizontal: 12, justifyContent: 'center' }}
           >
-            <Text style={{ ...DesignTokens.typography.body, fontWeight: '600', color: DesignTokens.colors.accent }}>Done</Text>
+            <Text style={{ ...DesignTokens.typography.body, fontWeight: '600', color: DesignTokens.colors.accent }}>{t('common.done')}</Text>
           </Pressable>
         </View>
 
@@ -96,11 +97,11 @@ export function CancellationNoticesSheet({ notices, title = 'Lessons cancelled',
                       color={done ? DesignTokens.colors.success : DesignTokens.colors.accent}
                     />
                     <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: done ? DesignTokens.colors.success : DesignTokens.colors.accent }}>
-                      {done ? 'Sent' : 'Message'}
+                      {done ? t('common.sent') : t('common.message')}
                     </Text>
                   </View>
                 ) : (
-                  <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>No contact</Text>
+                  <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>{t('common.noContact')}</Text>
                 )}
               </Pressable>
             );

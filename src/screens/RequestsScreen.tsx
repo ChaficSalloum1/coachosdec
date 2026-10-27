@@ -15,7 +15,8 @@ import { BookingRequest } from '../types/coach';
 import { SwipeableCard } from '../components/SwipeableCard';
 import { SkeletonRow } from '../components/Skeleton';
 import { DesignTokens } from '../utils/designTokens';
-import { formatTime12Hour } from '../utils/timeFormat';
+import { formatClockTime } from '../utils/timeFormat';
+import { t } from '../i18n';
 
 export function RequestsScreen() {
   const insets = useSafeAreaInsets();
@@ -34,11 +35,11 @@ export function RequestsScreen() {
       const [startH] = range.startTime.split(':').map(Number);
       const [endH] = range.endTime.split(':').map(Number);
       for (let h = startH; h < endH; h++) {
-        const t = `${String(h).padStart(2, '0')}:00`;
+        const slot = `${String(h).padStart(2, '0')}:00`;
         const hasLesson = lessons.some(
-          l => l.date === request.requestedDate && l.startTime === t && l.status !== 'cancelled'
+          l => l.date === request.requestedDate && l.startTime === slot && l.status !== 'cancelled'
         );
-        if (!hasLesson) slots.push(t);
+        if (!hasLesson) slots.push(slot);
       }
     }
     return slots.slice(0, 3);
@@ -51,24 +52,22 @@ export function RequestsScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      const errorMessage = error instanceof Error ? error.message : 'Unable to approve this booking due to a scheduling conflict.';
+      const errorMessage = error instanceof Error ? error.message : t('requests.approveFallbackError');
       const request = bookingRequests.find(r => r.id === requestId);
       const openSlots = getOpenSlotsForRequest(requestId);
 
-      const formatSlot = (t: string) => {
-        const [h, m] = t.split(':').map(Number);
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${ampm}`;
-      };
-
       const slotsMessage = openSlots.length > 0
-        ? `\n\nOpen slots on ${request?.requestedDate ?? 'that day'}:\n${openSlots.map(formatSlot).join('  ·  ')}\n\nContact ${request?.studentName ?? 'the student'} to reschedule.`
+        ? t('requests.openSlotsOn', {
+            date: request?.requestedDate ?? t('requests.thatDay'),
+            slots: openSlots.map(formatClockTime).join('  ·  '),
+            name: request?.studentName ?? t('requests.theStudent'),
+          })
         : '';
 
       Alert.alert(
-        'Unable to Approve',
+        t('requests.unableToApprove'),
         errorMessage + slotsMessage,
-        [{ text: 'OK' }]
+        [{ text: t('common.ok') }]
       );
     } finally {
       setApprovingId(null);
@@ -80,7 +79,7 @@ export function RequestsScreen() {
       {/* Header */}
       <View className="px-4 py-3 border-b border-gray-200" style={{ paddingTop: insets.top + 12 }}>
         <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-          Requests
+          {t('requests.title')}
         </Text>
       </View>
 
@@ -134,7 +133,7 @@ function EmptyState() {
           marginBottom: DesignTokens.spacing.sm
         }}
       >
-        No pending requests
+        {t('requests.noneTitle')}
       </Text>
       <Text
         style={{
@@ -143,7 +142,7 @@ function EmptyState() {
           textAlign: 'center'
         }}
       >
-        All caught up! New booking requests{"\n"}will appear here.
+        {t('requests.noneBody')}
       </Text>
     </View>
   );
@@ -169,18 +168,18 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
     approvalAlertOpenRef.current = true;
 
     Alert.alert(
-      'Approve Booking',
-      `Approve lesson with ${request.studentName}?`,
+      t('requests.approveTitle'),
+      t('requests.approveBody', { name: request.studentName }),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => {
             approvalAlertOpenRef.current = false;
           },
         },
         {
-          text: 'Approve',
+          text: t('requests.approve'),
           style: 'default',
           onPress: () => {
             approvalAlertOpenRef.current = false;
@@ -205,18 +204,18 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
     declineAlertOpenRef.current = true;
 
     Alert.alert(
-      'Decline Booking',
-      `Decline lesson request from ${request.studentName}?`,
+      t('requests.declineTitle'),
+      t('requests.declineBody', { name: request.studentName }),
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
           onPress: () => {
             declineAlertOpenRef.current = false;
           },
         },
         {
-          text: 'Decline',
+          text: t('requests.decline'),
           style: 'destructive',
           onPress: () => {
             declineAlertOpenRef.current = false;
@@ -236,10 +235,16 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
   const showRequestDetails = () => {
     Alert.alert(
       request.studentName,
-      `${formatDate(request.requestedDate)} at ${formatTime12Hour(request.requestedTime)}\n${request.duration} minutes\n\nContact: ${request.studentContact}\n${request.note ? `\nNote: ${request.note}` : ''}`,
+      t('requests.detailsBody', {
+        date: formatDate(request.requestedDate),
+        time: formatClockTime(request.requestedTime),
+        duration: request.duration,
+        contact: request.studentContact,
+        note: request.note ? t('requests.detailsNote', { note: request.note }) : '',
+      }),
       [
         {
-          text: 'Approve',
+          text: t('requests.approve'),
           onPress: () => {
             onApprove();
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -247,7 +252,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
           style: 'default',
         },
         {
-          text: 'Decline',
+          text: t('requests.decline'),
           onPress: () => {
             onDecline();
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -255,7 +260,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
           style: 'destructive',
         },
         {
-          text: 'Close',
+          text: t('common.close'),
           style: 'cancel',
         },
       ]
@@ -272,14 +277,14 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
     const created = new Date(createdAt);
     const diffInMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
     
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1) return t('requests.justNow');
+    if (diffInMinutes < 60) return t('requests.minutesAgo', { count: diffInMinutes });
     
     const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 24) return t('requests.hoursAgo', { count: diffInHours });
     
     const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays}d ago`;
+    return t('requests.daysAgo', { count: diffInDays });
   };
 
   return (
@@ -287,8 +292,8 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
       onSwipeRight={handleApproveSwipe}
       onSwipeLeft={handleDeclineSwipe}
       onPress={showRequestDetails}
-      rightSwipeText="Swipe right to approve →"
-      leftSwipeText="← Swipe left to decline"
+      rightSwipeText={t('requests.swipeApprove')}
+      leftSwipeText={t('requests.swipeDecline')}
     >
       {isApproving && (
         <View
@@ -322,7 +327,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
               marginTop: DesignTokens.spacing.sm
             }}
           >
-            Approving...
+            {t('requests.approving')}
           </Text>
         </View>
       )}
@@ -363,7 +368,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
               marginTop: DesignTokens.spacing.xs
             }}
           >
-            {formatDate(request.requestedDate)} • {formatTime12Hour(request.requestedTime)}
+            {t('requests.dateAndTime', { date: formatDate(request.requestedDate), time: formatClockTime(request.requestedTime) })}
           </Text>
           <Text
             style={{
@@ -372,7 +377,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
               marginTop: DesignTokens.spacing.xs
             }}
           >
-            {request.duration} minutes • {request.studentContact}
+            {t('requests.durationAndContact', { duration: request.duration, contact: request.studentContact })}
           </Text>
         </View>
 
@@ -404,7 +409,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
               color: DesignTokens.colors.grey
             }}
           >
-            {`"${request.note}"`}
+            {t('common.quoted', { text: request.note })}
           </Text>
         </View>
       )}

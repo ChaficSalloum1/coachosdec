@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { CURRENCY_CODES, CURRENCY_LABELS, currencySymbol, type CurrencyCode } from '../modules/payments';
+import { CURRENCY_CODES, currencyLabel, currencySymbol, type CurrencyCode } from '../modules/payments';
 import { DesignTokens } from '../utils/designTokens';
 
 interface CurrencyPickerProps {
@@ -21,7 +21,7 @@ export function CurrencyPicker({ value, onChange }: CurrencyPickerProps) {
             key={code}
             onPress={() => onChange(code)}
             accessibilityRole="button"
-            accessibilityLabel={CURRENCY_LABELS[code]}
+            accessibilityLabel={currencyLabel(code)}
             accessibilityState={{ selected }}
             className="rounded-lg px-3 border"
             style={{

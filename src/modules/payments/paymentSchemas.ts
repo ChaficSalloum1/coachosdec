@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { CURRENCY_CODES } from './currency';
+import { t } from '../../i18n';
 
 export const paymentPreferenceSchema = z.enum([
   'REVOLUT',
@@ -37,11 +38,11 @@ export function getRevolutLinkError(value: string): string | null {
 
   const host = url.hostname.toLowerCase();
   if (host !== 'revolut.me' && host !== 'www.revolut.me') {
-    return 'This must be a revolut.me link';
+    return t('payments.notRevolutLink');
   }
 
   if (url.pathname.replace(/\//g, '') === '') {
-    return 'Add your Revolut username after revolut.me/';
+    return t('payments.addRevolutUsername');
   }
 
   return null;

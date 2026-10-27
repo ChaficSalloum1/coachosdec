@@ -1,6 +1,7 @@
 import { View, Text, Pressable, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SPORT_OPTIONS } from '../../constants/sports';
+import { SPORT_OPTIONS, sportLabel } from '../../constants/sports';
+import { t } from '../../i18n';
 import { DesignTokens } from '../../utils/designTokens';
 
 interface SportsTileSelectorProps {
@@ -41,11 +42,11 @@ export function SportsTileSelector({
     <View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {SPORT_OPTIONS.map(option => {
-          const selected = selectedSports.includes(option.label);
+          const selected = selectedSports.includes(option.value);
           return (
             <Pressable
-              key={option.label}
-              onPress={() => toggleSport(option.label)}
+              key={option.value}
+              onPress={() => toggleSport(option.value)}
               style={{
                 width: compact ? '31%' : '48%',
                 minHeight: compact ? 86 : 104,
@@ -73,7 +74,7 @@ export function SportsTileSelector({
                   marginTop: 10,
                 }}
               >
-                {option.label}
+                {sportLabel(option.value)}
               </Text>
             </Pressable>
           );
@@ -85,7 +86,7 @@ export function SportsTileSelector({
           value={otherSport}
           onChangeText={onOtherSportChange}
           className="bg-white rounded-default px-3 py-3 text-body text-ink-900 border border-gray-200 mt-3"
-          placeholder="Add your sport"
+          placeholder={t('settings.addYourSport')}
           autoCapitalize="words"
         />
       )}

@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
-import { addMinutesToTime, formatTime12Hour, normalizeClockTime } from './timeFormat';
+import { setLanguage } from '../i18n';
+import { addMinutesToTime, formatClockTime, normalizeClockTime } from './timeFormat';
 
 describe('addMinutesToTime', () => {
   it('adds minutes within the day', () => {
@@ -33,11 +34,19 @@ describe('normalizeClockTime', () => {
   });
 });
 
-describe('formatTime12Hour', () => {
-  it('formats 24-hour times for display', () => {
-    expect(formatTime12Hour('09:30')).toBe('9:30 AM');
-    expect(formatTime12Hour('18:00')).toBe('6:00 PM');
-    expect(formatTime12Hour('00:15')).toBe('12:15 AM');
-    expect(formatTime12Hour('12:00')).toBe('12:00 PM');
+describe('formatClockTime', () => {
+  afterEach(() => setLanguage('en'));
+
+  it('formats times on a 12-hour clock in English', () => {
+    expect(formatClockTime('09:30')).toBe('9:30 AM');
+    expect(formatClockTime('18:00')).toBe('6:00 PM');
+    expect(formatClockTime('00:15')).toBe('12:15 AM');
+    expect(formatClockTime('12:00')).toBe('12:00 PM');
+  });
+
+  it('uses the 24-hour clock in Greek', async () => {
+    await setLanguage('el');
+    expect(formatClockTime('09:30')).toBe('09:30');
+    expect(formatClockTime('18:00')).toBe('18:00');
   });
 });

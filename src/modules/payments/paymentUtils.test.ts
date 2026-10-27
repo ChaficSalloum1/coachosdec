@@ -17,7 +17,7 @@ import {
 
 describe('payment utilities', () => {
   it('generates a readable Coachiko reference', () => {
-    expect(generatePaymentReferenceCode('Nikos Coach!', '8f3a21abcdef')).toBe('COACHIKO-NIKOSCOA-8F3A21');
+    expect(generatePaymentReferenceCode('Nikos Coach!', '8f3a21abcdef')).toBe('COACHOS-NIKOSCOA-8F3A21');
   });
 
   it('formats EUR from cents', () => {
@@ -28,7 +28,7 @@ describe('payment utilities', () => {
     const instruction = createPaymentInstruction({
       method: 'REVOLUT',
       amountCents: 4500,
-      reference: 'COACHIKO-NIKOS-8F3A21',
+      reference: 'COACHOS-NIKOS-8F3A21',
       revolutLink: 'https://revolut.me/coachname',
     });
 
@@ -41,7 +41,7 @@ describe('payment utilities', () => {
     const instruction = createPaymentInstruction({
       method: 'IRIS',
       amountCents: 4500,
-      reference: 'COACHIKO-NIKOS-8F3A21',
+      reference: 'COACHOS-NIKOS-8F3A21',
       irisAlias: '@nikos',
     });
 
@@ -55,7 +55,7 @@ describe('payment utilities', () => {
       beneficiaryName: 'Nikos Coach',
       iban: 'GR16 0110 1250 0000 0001 2300 695',
       amountCents: 4500,
-      reference: 'COACHIKO-NIKOS-8F3A21',
+      reference: 'COACHOS-NIKOS-8F3A21',
     });
 
     expect(payload.split('\n')[0]).toBe('BCD');

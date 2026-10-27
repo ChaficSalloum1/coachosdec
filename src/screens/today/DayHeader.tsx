@@ -6,6 +6,7 @@ import { useCoachStore } from '../../state/coachStore';
 import { formatHeaderDate, isToday } from '../../utils/dayNav';
 import { DesignTokens } from '../../utils/designTokens';
 import { buildBookingUrl } from '../../utils/publicBooking';
+import { t } from '../../i18n';
 
 interface DayHeaderProps {
   dateISO: string;
@@ -33,8 +34,8 @@ export function DayHeader({ dateISO, topInset, onPreviousDay, onNextDay }: DayHe
         onPress={onPreviousDay}
         className="w-11 h-11 rounded-lg items-center justify-center active:opacity-60"
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityLabel="Previous day"
-        accessibilityHint="Double tap to jump to previous lesson day"
+        accessibilityLabel={t('today.previousDay')}
+        accessibilityHint={t('today.previousDayHint')}
       >
         <Ionicons name="chevron-back" size={24} color={DesignTokens.colors.graphite} />
       </Pressable>
@@ -50,7 +51,7 @@ export function DayHeader({ dateISO, topInset, onPreviousDay, onNextDay }: DayHe
               marginTop: 2,
             }}
           >
-            Today
+            {t('common.today')}
           </Text>
         )}
       </View>
@@ -58,10 +59,10 @@ export function DayHeader({ dateISO, topInset, onPreviousDay, onNextDay }: DayHe
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
         {isToday(dateISO) && bookingUrl && (
           <Pressable
-            onPress={() => Share.share({ message: `Book a lesson: ${bookingUrl}`, url: bookingUrl })}
+            onPress={() => Share.share({ message: t('today.shareMessage', { bookingUrl }), url: bookingUrl })}
             style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
             hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-            accessibilityLabel="Share booking link"
+            accessibilityLabel={t('today.shareBookingLink')}
           >
             <Ionicons name="share-outline" size={22} color={DesignTokens.colors.accent} />
           </Pressable>
@@ -70,8 +71,8 @@ export function DayHeader({ dateISO, topInset, onPreviousDay, onNextDay }: DayHe
           onPress={onNextDay}
           className="w-11 h-11 rounded-lg items-center justify-center active:opacity-60"
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          accessibilityLabel="Next day"
-          accessibilityHint="Double tap to jump to next lesson day"
+          accessibilityLabel={t('today.nextDay')}
+          accessibilityHint={t('today.nextDayHint')}
         >
           <Ionicons name="chevron-forward" size={24} color={DesignTokens.colors.graphite} />
         </Pressable>

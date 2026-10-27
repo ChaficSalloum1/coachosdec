@@ -14,9 +14,10 @@ import { DesignTokens } from '../utils/designTokens';
 import { summarizeGroup } from '../utils/groupLessons';
 import { laterSeriesCount } from '../utils/lessonSeries';
 import { useCurrency } from '../hooks/useCurrency';
-import { formatTime12Hour } from '../utils/timeFormat';
+import { formatClockTime } from '../utils/timeFormat';
+import { t } from '../i18n';
 
-const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong.');
+const errorMessage = (e: unknown) => (e instanceof Error ? e.message : t('common.somethingWentWrong'));
 
 interface GroupLessonSheetProps {
   groupId: string | null;
@@ -68,10 +69,10 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
   };
 
   const confirmRemove = (studentId: string, name: string) => {
-    Alert.alert('Remove player?', `Remove ${name} from this group? Their lesson is cancelled.`, [
-      { text: 'Keep', style: 'cancel' },
+    Alert.alert(t('groupLesson.removePlayerTitle'), t('groupLesson.removePlayerBody', { name }), [
+      { text: t('common.keep'), style: 'cancel' },
       {
-        text: 'Remove',
+        text: t('common.remove'),
         style: 'destructive',
         onPress: () => {
           removeFromGroupLesson(group.groupId, studentId).catch((e) =>
@@ -96,14 +97,14 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
     };
 
     Alert.alert(
-      'Cancel whole group?',
-      `This cancels the lessons of all ${group.lessons.length} players.`,
+      t('groupLesson.cancelWholeTitle'),
+      t('groupLesson.cancelWholeBody', { count: group.lessons.length }),
       [
-        { text: 'Keep group', style: 'cancel' },
+        { text: t('groupLesson.keepGroup'), style: 'cancel' },
         ...(later > 0
-          ? [{ text: `This and ${later} later`, style: 'destructive' as const, onPress: cancelAllLater }]
+          ? [{ text: t('today.cancelThisAndLater', { later }), style: 'destructive' as const, onPress: cancelAllLater }]
           : []),
-        { text: later > 0 ? 'Just this one' : 'Cancel group', style: 'destructive', onPress: cancelThisSession },
+        { text: later > 0 ? t('today.justThisOne') : t('groupLesson.cancelGroup'), style: 'destructive', onPress: cancelThisSession },
       ]
     );
   };
@@ -125,17 +126,17 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
         >
           <View style={{ flex: 1 }}>
             <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite }}>
-              Group lesson
+              {t('groupLesson.title')}
             </Text>
             <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
-              {group.date} • {formatTime12Hour(group.startTime)} – {formatTime12Hour(group.endTime)}
+              {group.date} • {formatClockTime(group.startTime)} – {formatClockTime(group.endTime)}
               {locationText ? ` • ${locationText}` : ''}
             </Text>
           </View>
           <Pressable
             onPress={onClose}
             style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-            accessibilityLabel="Close"
+            accessibilityLabel={t('common.close')}
           >
             <Ionicons name="close" size={24} color={DesignTokens.colors.graphite} />
           </Pressable>
@@ -143,7 +144,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
 
         <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40 }}>
           <Text style={{ ...DesignTokens.typography.subhead, color: DesignTokens.colors.grey, marginBottom: 12 }}>
-            {group.lessons.length}/{group.capacity} players • {formatMoney(group.pricePerPlayer)} each
+            {t('groupLesson.playersEach', { count: group.lessons.length, capacity: group.capacity, price: formatMoney(group.pricePerPlayer) })}
           </Text>
 
           {group.lessons.map((lesson) => (
@@ -180,24 +181,24 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
                     paddingHorizontal: 12,
                     justifyContent: 'center',
                   }}
-                  accessibilityLabel={`Mark ${lesson.studentName} as paid`}
+                  accessibilityLabel={t('groupLesson.markPlayerPaid', { name: lesson.studentName })}
                 >
                   <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.accent }}>
-                    Mark paid
+                    {t('groupLesson.markPaid')}
                   </Text>
                 </Pressable>
               )}
               <Pressable
                 onPress={() => setPaymentLessonId(lesson.id)}
                 style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-                accessibilityLabel={`Payment request for ${lesson.studentName}`}
+                accessibilityLabel={t('groupLesson.paymentRequestFor', { name: lesson.studentName })}
               >
                 <Ionicons name="card-outline" size={20} color={DesignTokens.colors.grey} />
               </Pressable>
               <Pressable
                 onPress={() => confirmRemove(lesson.studentId, lesson.studentName)}
                 style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
-                accessibilityLabel={`Remove ${lesson.studentName}`}
+                accessibilityLabel={t('groupLesson.removePlayer', { name: lesson.studentName })}
               >
                 <Ionicons name="person-remove-outline" size={20} color={DesignTokens.colors.grey} />
               </Pressable>
@@ -220,7 +221,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
               >
                 <Ionicons name="person-add-outline" size={18} color={DesignTokens.colors.graphite} />
                 <Text style={{ ...DesignTokens.typography.body, fontWeight: '600', color: DesignTokens.colors.graphite }}>
-                  Add player ({group.spotsLeft} {group.spotsLeft === 1 ? 'spot' : 'spots'} left)
+                  {t('groupLesson.addPlayer', { count: group.spotsLeft })}
                 </Text>
               </Pressable>
 
@@ -228,7 +229,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
                 <View style={{ marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {addable.length === 0 ? (
                     <Text style={{ ...DesignTokens.typography.subhead, color: DesignTokens.colors.grey }}>
-                      All your students are already in this group.
+                      {t('groupLesson.allAlreadyIn')}
                     </Text>
                   ) : (
                     addable.slice(0, 40).map((student) => (
@@ -260,7 +261,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
             style={{ marginTop: 32, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={{ ...DesignTokens.typography.body, fontWeight: '600', color: DesignTokens.colors.danger }}>
-              Cancel whole group
+              {t('groupLesson.cancelWhole')}
             </Text>
           </Pressable>
         </ScrollView>

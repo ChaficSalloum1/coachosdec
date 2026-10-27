@@ -11,13 +11,14 @@ import { useCoachStore } from '../../state/coachStore';
 import { showToast } from '../../state/toastStore';
 import { buildCancellationNotices, type CancellationNotice } from '../../utils/cancellationMessage';
 import { futureSeriesLessons } from '../../utils/lessonSeries';
+import { t } from '../../i18n';
 
 const firstName = (name: string) => name.split(' ')[0];
 
 function offerMessage(notice: CancellationNotice) {
-  Alert.alert('Lessons cancelled', `Let ${firstName(notice.studentName)} know?`, [
-    { text: 'Not now', style: 'cancel' },
-    { text: 'Message', onPress: () => Linking.openURL(notice.url as string).catch(() => {}) },
+  Alert.alert(t('today.lessonsCancelled'), t('today.letKnow', { name: firstName(notice.studentName) }), [
+    { text: t('common.notNow'), style: 'cancel' },
+    { text: t('common.message'), onPress: () => Linking.openURL(notice.url as string).catch(() => {}) },
   ]);
 }
 
@@ -45,7 +46,7 @@ export function useCancelFlows() {
     const affected = futureSeriesLessons(lessons, lesson);
     await cancelSeriesFrom(lessonId);
     const count = affected.length || 1;
-    showToast(`Cancelled ${count} ${count === 1 ? 'lesson' : 'lessons'}`, 'success');
+    showToast(t('today.cancelledCount', { count }), 'success');
 
     const notices = buildCancellationNotices({
       lessons: affected,

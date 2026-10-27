@@ -1,24 +1,23 @@
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
 import { useCoachStore } from '../../state/coachStore';
 import { Coach } from '../../types/coach';
 import { useNavigation } from '@react-navigation/native';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 interface AvailabilityCardProps {
   coach: Coach;
 }
 
 export function AvailabilityCard({ coach: _coach }: AvailabilityCardProps) {
-  const { t } = useTranslation();
   const navigation = useNavigation();
   const { availabilityRanges } = useCoachStore();
 
   const getAvailabilityText = () => {
     const uniqueDays = new Set(availabilityRanges.map(r => r.dayOfWeek));
-    if (uniqueDays.size === 0) return t('noAvailabilitySet');
-    return t('availableDays', { count: uniqueDays.size });
+    if (uniqueDays.size === 0) return t('settings.noAvailabilitySet');
+    return t('settings.availableDays', { count: uniqueDays.size });
   };
 
   return (
@@ -29,7 +28,7 @@ export function AvailabilityCard({ coach: _coach }: AvailabilityCardProps) {
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
           <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
-            {t('weeklySchedule')}
+            {t('settings.weeklySchedule')}
           </Text>
           <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
             {getAvailabilityText()}

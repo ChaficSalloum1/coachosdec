@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 type Props = {
   payload?: string;
@@ -13,7 +14,7 @@ export function PaymentQRCode({ payload, label }: Props) {
     return (
       <View style={{ padding: 16, borderRadius: 8, backgroundColor: DesignTokens.colors.surface.raised }}>
         <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 13 }}>
-          No QR is available for this payment method.
+          {t('payments.qrUnavailable')}
         </Text>
       </View>
     );

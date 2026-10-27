@@ -3,6 +3,7 @@ import { Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 export function UpgradeBanner() {
   const navigation = useNavigation();
@@ -21,7 +22,7 @@ export function UpgradeBanner() {
         marginBottom: 28,
       }}
     >
-      <Text style={{ fontSize: 16, fontWeight: '700', color: DesignTokens.colors.white }}>Upgrade to CoachOS Pro</Text>
+      <Text style={{ fontSize: 16, fontWeight: '700', color: DesignTokens.colors.white }}>{t('settings.upgradeToPro')}</Text>
       <Ionicons name="chevron-forward" size={18} color={DesignTokens.colors.overlay.whiteSoft} />
     </Pressable>
   );

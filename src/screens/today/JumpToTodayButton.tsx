@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 // Jump to Today Button Component
 interface JumpToTodayButtonProps {
@@ -74,7 +75,7 @@ export function JumpToTodayButton({ onPress, bottom }: JumpToTodayButtonProps) {
             marginLeft: DesignTokens.spacing.sm
           }}
         >
-          Jump to Today
+          {t('today.jumpToToday')}
         </Text>
       </Pressable>
     </Animated.View>

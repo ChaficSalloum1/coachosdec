@@ -4,7 +4,9 @@ import { NavigationContainer } from "@react-navigation/native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useEffect } from "react";
 import { View } from "react-native";
-import "./src/i18n/config";
+import { restoreLanguage } from "./src/i18n/persistence";
+import { useLanguage } from "./src/i18n/useLanguage";
+import { DesignTokens } from "./src/utils/designTokens";
 
 import { RootNavigator } from "./src/navigation/RootNavigator";
 import { useMockData } from "./src/hooks/useMockData";
@@ -36,7 +38,10 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 */
 
+void restoreLanguage();
+
 function AppContent() {
+  const language = useLanguage();
   const isDemoMode = useCoachStore(s => s.isDemoMode);
 
   useMockData(!isSupabaseConfigured() && !isDemoMode);
@@ -66,12 +71,13 @@ function AppContent() {
   }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-        <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
+        <View style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
           <NavigationContainer>
             <StatusBar style="dark" />
-            <RootNavigator />
+            {/* Remounted on a language change so every screen redraws in the new language; navigation state lives in the container and is kept. */}
+            <RootNavigator key={language} />
           </NavigationContainer>
           <ToastHost />
         </View>

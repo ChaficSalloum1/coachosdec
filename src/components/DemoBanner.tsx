@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export function DemoBanner() {
   return (
@@ -19,10 +20,10 @@ export function DemoBanner() {
     >
       <Ionicons name="sparkles-outline" size={16} color={DesignTokens.colors.amber.text} />
       <Text style={{ color: DesignTokens.colors.amber.text, fontSize: 13, fontWeight: '700' }}>
-        Demo workspace
+        {t('shell.demoTitle')}
       </Text>
       <Text style={{ color: DesignTokens.colors.amber.text, fontSize: 13, flex: 1 }}>
-        Sample data only. Nothing syncs.
+        {t('shell.demoBannerBody')}
       </Text>
     </View>
   );

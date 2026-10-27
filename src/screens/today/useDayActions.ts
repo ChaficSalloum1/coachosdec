@@ -15,6 +15,7 @@ import {
   type CancellationNotice,
 } from '../../utils/cancellationMessage';
 import { isToday } from '../../utils/dayNav';
+import { t } from '../../i18n';
 
 export function useDayActions(dateISO: string, lessons: Lesson[]) {
   const [cancelledNotices, setCancelledNotices] = useState<CancellationNotice[] | null>(null);
@@ -38,12 +39,12 @@ export function useDayActions(dateISO: string, lessons: Lesson[]) {
 
   const confirmCancelDay = () => {
     Alert.alert(
-      upcoming.length === 1 ? 'Cancel 1 lesson?' : `Cancel ${upcoming.length} lessons?`,
-      isToday(dateISO) ? 'This cancels everything still to come today.' : 'This cancels every lesson on this day.',
+      upcoming.length === 1 ? t('today.cancelOneLessonTitle') : t('today.cancelLessonsTitle', { count: upcoming.length }),
+      isToday(dateISO) ? t('today.cancelDayBodyToday') : t('today.cancelDayBodyOther'),
       [
-        { text: 'Keep lessons', style: 'cancel' },
+        { text: t('today.keepLessons'), style: 'cancel' },
         {
-          text: 'Cancel lessons',
+          text: t('today.cancelLessons'),
           style: 'destructive',
           onPress: async () => {
             const toCancel = upcoming;

@@ -4,13 +4,14 @@ import { Lesson } from '../../types/coach';
 import { useCurrency } from '../../hooks/useCurrency';
 import { summarizeIncome } from '../../utils/income';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 export function EarningsCard({ lessons }: { lessons: Lesson[] }) {
   const { formatMoney: money } = useCurrency();
   const income = React.useMemo(() => summarizeIncome(lessons), [lessons]);
   const rows: { label: string; value: typeof income.week }[] = [
-    { label: 'This week', value: income.week },
-    { label: 'This month', value: income.month },
+    { label: t('settings.thisWeek'), value: income.week },
+    { label: t('settings.thisMonth'), value: income.month },
   ];
 
   return (
@@ -22,8 +23,8 @@ export function EarningsCard({ lessons }: { lessons: Lesson[] }) {
             <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>{money(value.paid)}</Text>
           </View>
           <Text className="text-sm mt-1" style={{ color: DesignTokens.colors.text.muted }}>
-            {value.lessons} {value.lessons === 1 ? 'lesson' : 'lessons'}
-            {value.outstanding > 0 ? ` · ${money(value.outstanding)} still to be paid` : ''}
+            {t('settings.earningsLessons', { count: value.lessons })}
+            {value.outstanding > 0 ? t('settings.earningsOutstanding', { amount: money(value.outstanding) }) : ''}
           </Text>
         </View>
       ))}

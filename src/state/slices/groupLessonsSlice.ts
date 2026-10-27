@@ -6,6 +6,7 @@ import { addMinutesToTime } from '../../utils/timeFormat';
 import { futureSeriesLessons } from '../../utils/lessonSeries';
 import { withInitialPaymentFields, withNewLessonTotals } from '../../utils/lessonRecords';
 import type { SliceCreator } from './types';
+import { t } from '../../i18n';
 
 export interface NewGroupLessonParams {
   studentIds: string[];
@@ -35,11 +36,11 @@ export const createGroupLessonsSlice: SliceCreator<GroupLessonsSlice> = (set, ge
   createGroupLesson: (params) => {
     const state = get();
     const coach = state.coach;
-    if (!coach) throw new Error('Coach profile not available');
+    if (!coach) throw new Error(t('errors.coachUnavailable'));
 
     const players = params.studentIds.map((id) => {
       const student = state.students.find((s) => s.id === id);
-      if (!student) throw new Error('One of the selected students was not found.');
+      if (!student) throw new Error(t('errors.selectedStudentNotFound'));
       return { id: student.id, name: student.name };
     });
 
@@ -78,12 +79,12 @@ export const createGroupLessonsSlice: SliceCreator<GroupLessonsSlice> = (set, ge
   addToGroupLesson: (groupId, studentId) => {
     const state = get();
     const coach = state.coach;
-    if (!coach) throw new Error('Coach profile not available');
+    if (!coach) throw new Error(t('errors.coachUnavailable'));
 
     const group = summarizeGroup(state.lessons, groupId);
-    if (!group) throw new Error('This group no longer exists.');
+    if (!group) throw new Error(t('errors.groupGone'));
     const student = state.students.find((s) => s.id === studentId);
-    if (!student) throw new Error('Student not found.');
+    if (!student) throw new Error(t('errors.studentNotFound'));
 
     const lesson = withInitialPaymentFields(
       buildGroupMemberLesson({
@@ -109,7 +110,7 @@ export const createGroupLessonsSlice: SliceCreator<GroupLessonsSlice> = (set, ge
     const lesson = get().lessons.find(
       (l) => l.groupId === groupId && l.studentId === studentId && l.status !== 'cancelled'
     );
-    if (!lesson) throw new Error('That player is not in this group.');
+    if (!lesson) throw new Error(t('errors.notInGroup'));
     await get().cancelLesson(lesson.id);
   },
 

@@ -8,7 +8,8 @@ import { DesignTokens } from '../utils/designTokens';
 import { getTimeOfDayColor } from '../utils/dayNav';
 import { useCurrency } from '../hooks/useCurrency';
 import type { LessonGroup } from '../utils/groupLessons';
-import { formatTime12Hour } from '../utils/timeFormat';
+import { formatClockTime } from '../utils/timeFormat';
+import { t } from '../i18n';
 
 const MAX_AVATARS = 4;
 
@@ -72,7 +73,7 @@ export function GroupLessonCard({ group, onPress }: GroupLessonCardProps) {
               }}
               numberOfLines={1}
             >
-              {formatTime12Hour(group.startTime)} • Group {group.lessons.length}/{group.capacity}
+              {formatClockTime(group.startTime)} {t('groupLesson.groupLabel')} {group.lessons.length}/{group.capacity}
             </Text>
             <Text
               style={{
@@ -82,7 +83,7 @@ export function GroupLessonCard({ group, onPress }: GroupLessonCardProps) {
                 marginLeft: DesignTokens.spacing.lg,
               }}
             >
-              {formatMoney(group.pricePerPlayer)} each
+              {t('groupLesson.each', { price: formatMoney(group.pricePerPlayer) })}
             </Text>
           </View>
 
@@ -109,8 +110,8 @@ export function GroupLessonCard({ group, onPress }: GroupLessonCardProps) {
                 paidCount === group.lessons.length ? DesignTokens.colors.success : DesignTokens.colors.grey,
             }}
           >
-            {paidCount} of {group.lessons.length} paid
-            {group.isFull ? ' • Full' : ` • ${group.spotsLeft} ${group.spotsLeft === 1 ? 'spot' : 'spots'} left`}
+            {t('groupLesson.paidOf', { paid: paidCount, total: group.lessons.length })}
+            {group.isFull ? t('groupLesson.full') : t('groupLesson.spotsLeft', { count: group.spotsLeft })}
           </Text>
         </View>
       </View>

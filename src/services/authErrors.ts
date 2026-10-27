@@ -1,4 +1,5 @@
 import type { AuthError } from '@supabase/supabase-js';
+import { t } from '../i18n';
 
 export const makeAuthError = (message: string): AuthError => {
   return {
@@ -12,12 +13,12 @@ export const normalizeAuthError = (error: unknown): AuthError => {
     ? error.message
     : typeof error === 'string'
       ? error
-      : 'Authentication failed. Please try again.';
+      : t('auth.genericFailure');
 
   const lowerMessage = rawMessage.toLowerCase();
   const message = lowerMessage.includes('json parse')
     || lowerMessage.includes('unexpected character')
-    ? 'Authentication could not read the server response. Please restart the app and try again. If this continues, check that the Supabase URL is the project URL and the key is the anon/public key.'
+    ? t('auth.unreadableResponse')
     : rawMessage;
 
   return makeAuthError(message);

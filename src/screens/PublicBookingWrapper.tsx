@@ -8,6 +8,7 @@ import { saveBookingRequestToSupabase } from '../services/supabaseSync';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { v4 as uuidv4 } from 'uuid';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export function PublicBookingWrapper() {
   const insets = useSafeAreaInsets();
@@ -30,7 +31,7 @@ export function PublicBookingWrapper() {
       <View className="flex-1 bg-white items-center justify-center" style={{ paddingTop: insets.top }}>
         <ActivityIndicator size="large" color={DesignTokens.colors.brand.default} />
         <Text className="text-lg mt-4" style={{ color: DesignTokens.colors.text.strong }}>
-          Loading coach information...
+          {t('booking.loadingCoach')}
         </Text>
       </View>
     );
@@ -49,7 +50,7 @@ export function PublicBookingWrapper() {
         // Public booking links must reach Supabase so the coach can receive them.
         const result = await saveBookingRequestToSupabase(fullRequest);
         if (!result.success) {
-          throw new Error(result.error || 'Unable to submit booking request.');
+          throw new Error(result.error || t('errors.bookingSubmitFailed'));
         }
       }
 

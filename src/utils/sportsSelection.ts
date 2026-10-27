@@ -8,7 +8,7 @@ export function buildSportsSelection(selectedSports: string[], otherSport: strin
 }
 
 export function splitSportsForSelection(sports: string[]): { selectedSports: string[]; otherSport: string } {
-  const optionLabels = SPORT_OPTIONS.map(option => option.label);
+  const optionLabels = SPORT_OPTIONS.map(option => option.value);
   const selectedKnownSports = sports.filter(sport => optionLabels.includes(sport));
   const customSports = sports.filter(sport => !optionLabels.includes(sport));
   return {

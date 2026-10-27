@@ -4,9 +4,13 @@ in their messaging app. Pure so it can be tested without React Native.
 */
 import { format } from 'date-fns';
 
+import { t } from '../i18n';
+import { formatLocalized } from '../i18n/formatDate';
 import type { Lesson, Student } from '../types/coach';
 
 const PHONE_PATTERN = /^[\d\s+\-()]{7,}$/;
+
+const shortDate = (date: string) => formatLocalized(new Date(`${date}T12:00:00`), 'EEE d MMM');
 
 export function buildCancellationMessage(params: {
   studentName: string;
@@ -15,11 +19,10 @@ export function buildCancellationMessage(params: {
   startTime: string; // HH:mm
   weekly?: boolean; // cancelling a whole run of weekly lessons from this date
 }): string {
-  const firstName = params.studentName.trim().split(/\s+/)[0] || 'there';
-  const when = `${format(new Date(`${params.date}T12:00:00`), 'EEE d MMM')} at ${params.startTime}`;
+  const name = params.studentName.trim().split(/\s+/)[0] || t('messages.fallbackName');
+  const when = t('messages.when', { date: shortDate(params.date), time: params.startTime });
   const signOff = params.coachName?.trim() ? `\n${params.coachName.trim()}` : '';
-  const what = params.weekly ? `our weekly lessons from ${when}` : `our lesson on ${when}`;
-  return `Hi ${firstName}, I'm sorry, I have to cancel ${what}. Let me know when suits you and we'll find a new time.${signOff}`;
+  return t(params.weekly ? 'messages.cancelWeekly' : 'messages.cancelOne', { name, when, signOff });
 }
 
 // sms: for phone numbers (iOS separates the body with "&", Android with "?"),
@@ -38,7 +41,7 @@ export function buildContactUrl(
     return `sms:${number}${separator}body=${encodeURIComponent(message)}`;
   }
 
-  const subject = encodeURIComponent(options.subject ?? 'Lesson cancelled');
+  const subject = encodeURIComponent(options.subject ?? t('messages.cancelSubject'));
   return `mailto:${value}?subject=${subject}&body=${encodeURIComponent(message)}`;
 }
 
@@ -96,7 +99,7 @@ export function buildCancellationNotices(args: {
     lessons: args.lessons,
     students: args.students,
     platform: args.platform,
-    subject: 'Lesson cancelled',
+    subject: t('messages.cancelSubject'),
     messageFor: (lesson) =>
       buildCancellationMessage({
         studentName: lesson.studentName,
@@ -112,9 +115,9 @@ export function buildCancellationNotices(args: {
 function dayPhrase(date: string, now: Date): string {
   const today = format(now, 'yyyy-MM-dd');
   const tomorrow = format(new Date(now.getTime() + 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
-  if (date === today) return 'today';
-  if (date === tomorrow) return 'tomorrow';
-  return `on ${format(new Date(`${date}T12:00:00`), 'EEE d MMM')}`;
+  if (date === today) return t('messages.dayToday');
+  if (date === tomorrow) return t('messages.dayTomorrow');
+  return t('messages.dayOn', { date: shortDate(date) });
 }
 
 export function buildReminderMessage(params: {
@@ -125,10 +128,16 @@ export function buildReminderMessage(params: {
   location?: string;
   now?: Date;
 }): string {
-  const firstName = params.studentName.trim().split(/\s+/)[0] || 'there';
-  const where = params.location?.trim() ? ` at ${params.location.trim()}` : '';
+  const name = params.studentName.trim().split(/\s+/)[0] || t('messages.fallbackName');
+  const where = params.location?.trim() ? t('messages.where', { place: params.location.trim() }) : '';
   const signOff = params.coachName?.trim() ? `\n${params.coachName.trim()}` : '';
-  return `Hi ${firstName}, a quick reminder about our lesson ${dayPhrase(params.date, params.now ?? new Date())} at ${params.startTime}${where}. See you then!${signOff}`;
+  return t('messages.reminder', {
+    name,
+    day: dayPhrase(params.date, params.now ?? new Date()),
+    time: params.startTime,
+    where,
+    signOff,
+  });
 }
 
 export function buildReminderNotices(args: {
@@ -143,7 +152,7 @@ export function buildReminderNotices(args: {
     lessons: args.lessons,
     students: args.students,
     platform: args.platform,
-    subject: 'Lesson reminder',
+    subject: t('messages.reminderSubject'),
     messageFor: (lesson) =>
       buildReminderMessage({
         studentName: lesson.studentName,

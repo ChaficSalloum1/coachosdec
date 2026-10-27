@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useOfflineQueueStore } from '../state/offlineQueueStore';
 import { summarizeSyncQueue } from '../state/offlineQueueLogic';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 // Shown only while changes are saved on this phone but not yet in the cloud,
 // as a small pill beside the add button. Offline is normal for a coach on
@@ -20,17 +21,17 @@ export function SyncStatusBanner() {
 
   const stuck = status.stuck > 0;
   const label = stuck
-    ? `${status.stuck} ${status.stuck === 1 ? 'change' : 'changes'} could not sync. Tap for details`
-    : `${status.pending} ${status.pending === 1 ? 'change' : 'changes'} waiting to sync`;
+    ? t('sync.couldNotSync', { count: status.stuck })
+    : t('sync.waiting', { count: status.pending });
 
   return (
     <Pressable
       onPress={() =>
         Alert.alert(
-          stuck ? 'Sync problem' : 'Waiting to sync',
+          stuck ? t('sync.problemTitle') : t('sync.waitingTitle'),
           stuck
-            ? `Your changes are saved on this phone and will keep retrying.\n\nLast error: ${status.lastError ?? 'unknown'}`
-            : 'Your changes are saved on this phone and will upload automatically when you are back online.'
+            ? t('sync.problemBody', { error: status.lastError ?? 'unknown' })
+            : t('sync.waitingBody')
         )
       }
       accessibilityRole="button"

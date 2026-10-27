@@ -15,6 +15,10 @@ import { addDays, format } from 'date-fns';
 import { PUBLIC_BOOKING } from '../config/appSettings';
 import { Coach, BookingRequest, TimeSlot, AvailabilityRange, Lesson } from '../types/coach';
 import { DesignTokens } from '../utils/designTokens';
+import { sportsLabel } from '../constants/sports';
+import { formatLocalized } from '../i18n/formatDate';
+import { formatMoney, resolveCurrency } from '../modules/payments';
+import { t } from '../i18n';
 
 
 interface PublicBookingScreenProps {
@@ -56,34 +60,34 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
 
   const handleBookingSubmit = async () => {
     if (!studentName.trim() || !studentContact.trim() || !selectedDate || !selectedTime) {
-      Alert.alert('Missing Information', 'Please fill in all required fields.');
+      Alert.alert(t('booking.missingInfoTitle'), t('booking.missingInfoBody'));
       return;
     }
 
     // Validate contact format
     if (!validateContact(studentContact)) {
-      Alert.alert('Invalid Contact', 'Please enter a valid email address or phone number.');
+      Alert.alert(t('booking.invalidContactTitle'), t('booking.invalidContactBody'));
       return;
     }
 
     // Validate name length
     if (studentName.trim().length < 2) {
-      Alert.alert('Invalid Name', 'Please enter a valid name (at least 2 characters).');
+      Alert.alert(t('booking.invalidNameTitle'), t('booking.nameTooShort'));
       return;
     }
 
     if (studentName.trim().length > PUBLIC_BOOKING.maxNameLength) {
-      Alert.alert('Invalid Name', 'Please keep the name under 80 characters.');
+      Alert.alert(t('booking.invalidNameTitle'), t('booking.nameTooLong'));
       return;
     }
 
     if (studentContact.trim().length > PUBLIC_BOOKING.maxContactLength) {
-      Alert.alert('Invalid Contact', 'Please keep the contact under 120 characters.');
+      Alert.alert(t('booking.invalidContactTitle'), t('booking.contactTooLong'));
       return;
     }
 
     if (note.trim().length > PUBLIC_BOOKING.maxNoteLength) {
-      Alert.alert('Note Too Long', 'Please keep the note under 500 characters.');
+      Alert.alert(t('booking.noteTooLongTitle'), t('booking.noteTooLong'));
       return;
     }
 
@@ -107,11 +111,11 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
       await onBookingRequest(request);
 
       Alert.alert(
-        'Request Sent!',
-        `Your booking request has been sent to ${coach.name}. They will review and confirm your lesson.`,
+        t('booking.requestSentTitle'),
+        t('booking.requestSentBody', { name: coach.name }),
         [
           {
-            text: 'OK',
+            text: t('common.ok'),
             onPress: () => {
               setShowBookingForm(false);
               setStudentName('');
@@ -130,9 +134,9 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
         console.error('Booking request failed:', error);
       }
       Alert.alert(
-        'Booking Failed',
-        error instanceof Error ? error.message : 'Unable to submit your booking request. Please try again.',
-        [{ text: 'OK' }]
+        t('booking.failedTitle'),
+        error instanceof Error ? error.message : t('booking.failedBody'),
+        [{ text: t('common.ok') }]
       );
       setIsSubmitting(false);
     }
@@ -152,7 +156,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
   };
 
   const formatDate = (date: Date) => {
-    return format(date, 'EEE, MMM d');
+    return formatLocalized(date, 'EEE, MMM d');
   };
 
   const getAvailableTimeSlots = (date: Date) => {
@@ -208,7 +212,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
             <Ionicons name="arrow-back" size={24} color={DesignTokens.colors.text.strong} />
           </Pressable>
           <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-            Book Lesson
+            {t('booking.bookLesson')}
           </Text>
           <View style={{ width: 24 }} />
         </View>
@@ -217,13 +221,13 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
           <View className="space-y-4">
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Your Name *
+                {t('booking.yourName')}
               </Text>
               <TextInput
                 value={studentName}
                 onChangeText={setStudentName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="John Smith"
+                placeholder={t('booking.namePlaceholder')}
                 maxLength={PUBLIC_BOOKING.maxNameLength}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
@@ -231,13 +235,13 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Contact (Email or Phone) *
+                {t('booking.contactLabel')}
               </Text>
               <TextInput
                 value={studentContact}
                 onChangeText={setStudentContact}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="john@email.com or (555) 123-4567"
+                placeholder={t('booking.contactPlaceholder')}
                 maxLength={PUBLIC_BOOKING.maxContactLength}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
@@ -245,10 +249,10 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Selected Time
+                {t('booking.selectedTime')}
               </Text>
               <Text className="text-base" style={{ color: DesignTokens.colors.text.muted }}>
-                {formatDate(new Date(selectedDate))} at {selectedTime}
+                {t('booking.slotAt', { date: formatDate(new Date(selectedDate)), time: selectedTime })}
                 {selectedSlot && (selectedSlot.areaId || selectedSlot.facilityId || selectedSlot.courtId) && (
                   <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                     {'\n'}{formatLocationText(selectedSlot.areaId, selectedSlot.facilityId, selectedSlot.courtId)}
@@ -259,13 +263,13 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Note (Optional)
+                {t('booking.noteOptional')}
               </Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="Any specific requests or goals..."
+                placeholder={t('booking.notePlaceholder')}
                 multiline
                 numberOfLines={3}
                 maxLength={PUBLIC_BOOKING.maxNoteLength}
@@ -287,12 +291,12 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
               <View className="flex-row items-center justify-center">
                 <ActivityIndicator color={DesignTokens.colors.white} size="small" />
                 <Text className="text-base font-medium text-white ml-2">
-                  Sending...
+                  {t('booking.sending')}
                 </Text>
               </View>
             ) : (
               <Text className="text-base font-medium text-white text-center">
-                Send Booking Request
+                {t('booking.sendRequest')}
               </Text>
             )}
           </Pressable>
@@ -312,10 +316,10 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
           {coach.name}
         </Text>
         <Text className="text-base mb-1" style={{ color: DesignTokens.colors.text.muted }}>
-          {coach.sports.join(' • ')}
+          {sportsLabel(coach.sports, ' • ')}
         </Text>
         <Text className="text-lg font-medium" style={{ color: DesignTokens.colors.brand.default }}>
-          ${coach.pricePerHour}/hour
+          {t('booking.perHour', { price: formatMoney(coach.pricePerHour, resolveCurrency(coach.paymentSettings?.currency)) })}
         </Text>
       </View>
 
@@ -323,7 +327,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
       <ScrollView className="flex-1">
         <View className="px-4 py-6">
           <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
-            Available Times
+            {t('booking.availableTimes')}
           </Text>
           
           {getNextWeekDates().map(date => {

@@ -1,22 +1,21 @@
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
 import { useCoachStore } from '../../state/coachStore';
 import { useNavigation } from '@react-navigation/native';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 export function LocationsCard() {
-  const { t } = useTranslation();
   const navigation = useNavigation();
   const { areas, facilities, courts } = useCoachStore();
 
   const getLocationsText = () => {
     const counts = [];
-    if (areas.length > 0) counts.push(t('areas', { count: areas.length }));
-    if (facilities.length > 0) counts.push(t('facilities', { count: facilities.length }));
-    if (courts.length > 0) counts.push(t('courts', { count: courts.length }));
+    if (areas.length > 0) counts.push(t('settings.areas', { count: areas.length }));
+    if (facilities.length > 0) counts.push(t('settings.facilities', { count: facilities.length }));
+    if (courts.length > 0) counts.push(t('settings.courts', { count: courts.length }));
 
-    if (counts.length === 0) return t('noLocationsSetUp');
+    if (counts.length === 0) return t('settings.noLocationsSetUp');
     return counts.join(', ');
   };
 
@@ -28,7 +27,7 @@ export function LocationsCard() {
       <View className="flex-row items-center justify-between">
         <View className="flex-1">
           <Text className="text-base font-medium mb-1" style={{ color: DesignTokens.colors.text.strong }}>
-            {t('manageLocations')}
+            {t('settings.manageLocations')}
           </Text>
           <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
             {getLocationsText()}

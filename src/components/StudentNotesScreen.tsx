@@ -16,6 +16,7 @@ import { showToast } from '../state/toastStore';
 import { StudentNote } from '../types/coach';
 import { formatDateRelative, getTimeAgo } from '../utils/dateFormat';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface StudentNotesScreenProps {
   studentId: string;
@@ -51,7 +52,7 @@ export function StudentNotesScreen({
 
   const handleAddNote = () => {
     if (!newNoteContent.trim()) {
-      showToast('Please enter some content for the note.', 'error');
+      showToast(t('notes.enterContent'), 'error');
       return;
     }
 
@@ -72,12 +73,12 @@ export function StudentNotesScreen({
 
   const handleDeleteNote = (noteId: string) => {
     Alert.alert(
-      'Delete Note',
-      'Are you sure you want to delete this note? This cannot be undone.',
+      t('notes.deleteTitle'),
+      t('notes.deleteBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             onDeleteNote(noteId);
@@ -134,10 +135,10 @@ export function StudentNotesScreen({
 
             <View className="flex-1 items-center px-4">
               <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-                {`${studentName}'s Notes`}
+                {t('notes.titleFor', { studentName })}
               </Text>
               <Text className="text-sm mt-1" style={{ color: DesignTokens.colors.text.subtle }}>
-                {notes.length} {notes.length === 1 ? 'note' : 'notes'}
+                {t('notes.count', { count: notes.length })}
               </Text>
             </View>
 
@@ -157,7 +158,7 @@ export function StudentNotesScreen({
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                placeholder="Search notes..."
+                placeholder={t('notes.search')}
                 placeholderTextColor={DesignTokens.colors.text.faint}
                 className="flex-1 ml-2 text-base"
                 style={{ color: DesignTokens.colors.graphite }}
@@ -177,12 +178,12 @@ export function StudentNotesScreen({
             <View className="flex-1 items-center justify-center py-20">
               <Ionicons name="document-text-outline" size={64} color={DesignTokens.colors.text.ghost} />
               <Text className="text-lg font-medium mt-4" style={{ color: DesignTokens.colors.text.subtle }}>
-                {searchQuery ? 'No notes found' : 'No notes yet'}
+                {searchQuery ? t('notes.noneFound') : t('notes.noneYet')}
               </Text>
               <Text className="text-base mt-2 text-center px-8" style={{ color: DesignTokens.colors.text.faint }}>
                 {searchQuery
-                  ? 'Try a different search term'
-                  : 'Add notes to track progress, observations, and goals'}
+                  ? t('notes.tryDifferentSearch')
+                  : t('notes.addToTrack')}
               </Text>
             </View>
           ) : (
@@ -256,7 +257,7 @@ export function StudentNotesScreen({
                             <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-gray-200">
                               <Text className="text-xs" style={{ color: DesignTokens.colors.text.faint }}>
                                 {getTimeAgo(note.createdAt)}
-                                {note.updatedAt && ' • edited'}
+                                {note.updatedAt && t('notes.edited')}
                               </Text>
 
                               <View className="flex-row gap-2">
@@ -309,29 +310,29 @@ export function StudentNotesScreen({
                 }}
               >
                 <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>
-                  Cancel
+                  {t('common.cancel')}
                 </Text>
               </Pressable>
 
               <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-                {editingNote ? 'Edit Note' : 'Add Note'}
+                {editingNote ? t('notes.editNote') : t('notes.addNote')}
               </Text>
 
               <Pressable onPress={editingNote ? handleUpdateNote : handleAddNote}>
                 <Text className="text-base font-semibold" style={{ color: DesignTokens.colors.brand.default }}>
-                  {editingNote ? 'Save' : 'Add'}
+                  {editingNote ? t('common.save') : t('common.add')}
                 </Text>
               </Pressable>
             </View>
 
             <ScrollView className="flex-1 p-4">
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.subtle }}>
-                Note Content
+                {t('notes.noteContent')}
               </Text>
               <TextInput
                 value={newNoteContent}
                 onChangeText={setNewNoteContent}
-                placeholder="Enter your observation, progress note, or goal..."
+                placeholder={t('notes.contentPlaceholder')}
                 placeholderTextColor={DesignTokens.colors.text.faint}
                 multiline
                 numberOfLines={8}
@@ -345,7 +346,7 @@ export function StudentNotesScreen({
               />
 
               <Text className="text-xs mt-3" style={{ color: DesignTokens.colors.text.faint }}>
-                Long press any note in the timeline to edit it
+                {t('notes.longPressHint')}
               </Text>
             </ScrollView>
           </View>

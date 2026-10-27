@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSequence, withRepeat, withDelay, Easing } from 'react-native-reanimated';
 import { useNavigation } from '@react-navigation/native';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 // Empty State with Animation
 export function DayEmptyState({ dateISO }: { dateISO: string }) {
@@ -55,7 +56,7 @@ export function DayEmptyState({ dateISO }: { dateISO: string }) {
           marginBottom: DesignTokens.spacing.sm
         }}
       >
-        No lessons today
+        {t('today.noLessonsToday')}
       </Text>
       <Text
         style={{
@@ -65,7 +66,7 @@ export function DayEmptyState({ dateISO }: { dateISO: string }) {
           marginBottom: DesignTokens.spacing['2xl']
         }}
       >
-        You have a free day! Check your requests or{"\n"}update your availability.
+        {t('today.freeDay')}
       </Text>
       <Pressable
         onPress={() => navigation.navigate('Settings', { screen: 'Availability' })}
@@ -84,7 +85,7 @@ export function DayEmptyState({ dateISO }: { dateISO: string }) {
             color: DesignTokens.colors.white
           }}
         >
-          Add Availability
+          {t('today.addAvailability')}
         </Text>
       </Pressable>
     </Animated.View>

@@ -6,6 +6,7 @@ orchestrates.
 import { findConflicts } from './lessonScheduling';
 import { normalizeClockTime } from './timeFormat';
 import type { BookingRequest, Lesson, Student } from '../types/coach';
+import { t } from '../i18n';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^\d{2}:\d{2}$/;
@@ -20,7 +21,7 @@ export function getApprovalBlocker(args: {
   const time = String(normalizeClockTime(request.requestedTime));
 
   if (!DATE_PATTERN.test(request.requestedDate) || !TIME_PATTERN.test(time)) {
-    return `Invalid date or time format: ${request.requestedDate} ${request.requestedTime}`;
+    return t('errors.invalidDateTime', { date: request.requestedDate, time: request.requestedTime });
   }
 
   // Two pending requests for the same slot: the coach must settle it first.
@@ -32,7 +33,7 @@ export function getApprovalBlocker(args: {
       normalizeClockTime(r.requestedTime) === time
   );
   if (samePending) {
-    return 'Another booking request exists for this time slot. Please refresh and try again.';
+    return t('errors.slotHasPendingRequest');
   }
 
   const clash = findConflicts({
@@ -42,7 +43,7 @@ export function getApprovalBlocker(args: {
     lessons,
   })[0];
   if (clash) {
-    return `Time conflict: You already have a lesson with ${clash.studentName} scheduled at this time.`;
+    return t('errors.timeConflict', { name: clash.studentName });
   }
 
   return null;

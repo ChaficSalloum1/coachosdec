@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { PaymentInstruction } from '../../modules/payments';
 import { PaymentQRCode } from './PaymentQRCode';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 type Props = {
   instruction: PaymentInstruction;
@@ -71,9 +72,9 @@ export function PaymentRequestPanel({
   canSendReminder,
 }: Props) {
   const qrLabel = instruction.method === 'IBAN'
-    ? 'SEPA-compatible QR where supported by the client bank.'
+    ? t('payments.sepaQr')
     : instruction.method === 'IRIS'
-      ? 'Instruction QR only. Clients complete payment in their own bank app.'
+      ? t('payments.instructionQr')
       : undefined;
 
   const shareMessage = async () => {
@@ -100,7 +101,7 @@ export function PaymentRequestPanel({
 
       <View style={{ padding: 12, backgroundColor: DesignTokens.colors.surface.raised, borderRadius: 8 }}>
         <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 12, fontWeight: '700', marginBottom: 6 }}>
-          Message preview
+          {t('payments.messagePreview')}
         </Text>
         <Text style={{ color: DesignTokens.colors.text.strong, fontSize: 13, lineHeight: 18 }}>
           {message}
@@ -108,20 +109,20 @@ export function PaymentRequestPanel({
       </View>
 
       <View style={{ gap: 10 }}>
-        <ActionButton label="Request Payment" icon="paper-plane-outline" onPress={onRequestPayment} />
-        <ActionButton label="Share Message" icon="share-outline" onPress={shareMessage} variant="secondary" />
+        <ActionButton label={t('payments.requestPayment')} icon="paper-plane-outline" onPress={onRequestPayment} />
+        <ActionButton label={t('payments.shareMessage')} icon="share-outline" onPress={shareMessage} variant="secondary" />
         {instruction.externalUrl ? (
-          <ActionButton label="Open Revolut Link" icon="open-outline" onPress={openExternal} variant="secondary" />
+          <ActionButton label={t('payments.openRevolut')} icon="open-outline" onPress={openExternal} variant="secondary" />
         ) : null}
         <ActionButton
-          label="Send Reminder"
+          label={t('payments.sendReminder')}
           icon="notifications-outline"
           onPress={onSendReminder}
           variant="secondary"
           disabled={!canSendReminder}
         />
-        <ActionButton label="Mark as Paid" icon="checkmark-circle-outline" onPress={onMarkPaid} variant="secondary" />
-        <ActionButton label="Mark as Cancelled" icon="close-circle-outline" onPress={onCancelPayment} variant="danger" />
+        <ActionButton label={t('payments.markAsPaid')} icon="checkmark-circle-outline" onPress={onMarkPaid} variant="secondary" />
+        <ActionButton label={t('payments.markAsCancelled')} icon="close-circle-outline" onPress={onCancelPayment} variant="danger" />
       </View>
     </View>
   );

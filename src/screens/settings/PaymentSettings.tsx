@@ -5,6 +5,7 @@ import type { PaymentPreference } from '../../modules/payments';
 import { getRevolutLinkError, normalizePaymentSettings } from '../../modules/payments';
 import { CurrencyPicker } from '../../components/CurrencyPicker';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 interface PaymentSettingsProps {
   coach: Coach;
@@ -23,11 +24,11 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
   };
 
   const methods: { value: PaymentPreference; label: string }[] = [
-    { value: 'REVOLUT', label: 'Revolut' },
-    { value: 'IRIS', label: 'IRIS' },
-    { value: 'IBAN', label: 'IBAN' },
-    { value: 'CASH', label: 'Cash' },
-    { value: 'MULTIPLE', label: 'Multiple' },
+    { value: 'REVOLUT', label: t('settings.methodRevolut') },
+    { value: 'IRIS', label: t('settings.methodIris') },
+    { value: 'IBAN', label: t('settings.iban') },
+    { value: 'CASH', label: t('settings.methodCash') },
+    { value: 'MULTIPLE', label: t('settings.methodMultiple') },
   ];
 
   const showRevolut = settings.paymentPreference === 'REVOLUT' || settings.paymentPreference === 'MULTIPLE';
@@ -60,15 +61,15 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
     <View className="bg-gray-50 rounded-card p-4">
       <View className="mb-5">
         <Text className="text-base font-semibold mb-1" style={{ color: DesignTokens.colors.text.strong }}>
-          How do you want clients to pay you?
+          {t('settings.payHow')}
         </Text>
         <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted, lineHeight: 19 }}>
-          Coachiko does not process payments directly yet. We help you send clear payment requests and track who has paid.
+          {t('settings.payDisclaimer')}
         </Text>
       </View>
 
       <View className="mb-4">
-        <Text className="text-small font-medium text-ink-900 mb-2">Currency</Text>
+        <Text className="text-small font-medium text-ink-900 mb-2">{t('settings.currency')}</Text>
         <CurrencyPicker
           value={settings.currency ?? 'EUR'}
           onChange={(currency) => updatePaymentSettings({ currency })}
@@ -76,7 +77,7 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
       </View>
 
       <View className="mb-4">
-        <Text className="text-small font-medium text-ink-900 mb-2">Preferred method</Text>
+        <Text className="text-small font-medium text-ink-900 mb-2">{t('settings.preferredMethod')}</Text>
         <View className="flex-row flex-wrap" style={{ gap: 8 }}>
           {methods.map(method => {
             const selected = settings.paymentPreference === method.value;
@@ -104,12 +105,12 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
 
       {showRevolut && (
         <View className="mb-4">
-          <Text className="text-small font-medium text-ink-900 mb-2">Revolut payment link</Text>
+          <Text className="text-small font-medium text-ink-900 mb-2">{t('settings.revolutLink')}</Text>
           <TextInput
             value={revolutDraft}
             onChangeText={handleRevolutChange}
             className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
-            placeholder="https://revolut.me/coachname"
+            placeholder={t('settings.revolutLinkPlaceholder')}
             autoCapitalize="none"
             keyboardType="url"
           />
@@ -119,7 +120,7 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
             </Text>
           ) : (
             <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.text.muted }}>
-              Clients can open this directly from their session reminder.
+              {t('settings.revolutLinkHint')}
             </Text>
           )}
         </View>
@@ -127,31 +128,31 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
 
       {showIris && (
         <View className="mb-4">
-          <Text className="text-small font-medium text-ink-900 mb-2">IRIS alias</Text>
+          <Text className="text-small font-medium text-ink-900 mb-2">{t('settings.irisAlias')}</Text>
           <TextInput
             value={settings.irisAlias || ''}
             onChangeText={(text) => updatePaymentSettings({ irisAlias: text.trim() })}
             className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
-            placeholder="@coachalias or phone"
+            placeholder={t('settings.irisAliasPlaceholder')}
             autoCapitalize="none"
           />
           <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.text.muted }}>
-            Clients will use this alias inside their own banking app.
+            {t('settings.irisAliasHint')}
           </Text>
         </View>
       )}
 
       {showIban && (
         <View className="mb-4">
-          <Text className="text-small font-medium text-ink-900 mb-2">IBAN</Text>
+          <Text className="text-small font-medium text-ink-900 mb-2">{t('settings.iban')}</Text>
           <TextInput
             value={settings.iban || ''}
             onChangeText={(text) => updatePaymentSettings({ iban: text.toUpperCase() })}
             className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
-            placeholder="GR..."
+            placeholder={t('settings.ibanPlaceholder')}
             autoCapitalize="characters"
           />
-          <Text className="text-small font-medium text-ink-900 mt-3 mb-2">Beneficiary name</Text>
+          <Text className="text-small font-medium text-ink-900 mt-3 mb-2">{t('settings.beneficiary')}</Text>
           <TextInput
             value={settings.ibanBeneficiaryName || ''}
             onChangeText={(text) => updatePaymentSettings({ ibanBeneficiaryName: text })}
@@ -159,13 +160,13 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
             placeholder={coach.name}
           />
           <Text className="text-xs mt-2" style={{ color: DesignTokens.colors.text.muted }}>
-            Used for bank transfer instructions and SEPA-compatible QR codes where supported.
+            {t('settings.ibanHint')}
           </Text>
         </View>
       )}
 
       <View className="flex-row items-center justify-between mb-4">
-        <Text className="text-body font-medium text-ink-900">Accept cash/manual payment</Text>
+        <Text className="text-body font-medium text-ink-900">{t('settings.acceptCash')}</Text>
         <Switch
           value={settings.cashEnabled}
           onValueChange={(value) => updatePaymentSettings({ cashEnabled: value })}
@@ -175,12 +176,12 @@ export function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
       </View>
 
       <View>
-        <Text className="text-small font-medium text-ink-900 mb-2">Cancellation policy</Text>
+        <Text className="text-small font-medium text-ink-900 mb-2">{t('settings.cancellationPolicy')}</Text>
         <TextInput
           value={settings.cancellationPolicy || ''}
           onChangeText={(text) => updatePaymentSettings({ cancellationPolicy: text })}
           className="bg-white rounded-default px-3 py-2 text-body text-ink-900 border border-gray-200"
-          placeholder="Example: Cancel at least 24 hours before the lesson."
+          placeholder={t('settings.cancellationPolicyPlaceholder')}
           multiline
           numberOfLines={3}
           maxLength={600}

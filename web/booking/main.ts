@@ -9,7 +9,9 @@ import {
   type BookableDay,
   type PublicAvailabilityRow,
 } from '../../src/utils/publicBooking';
-import { formatTime12Hour } from '../../src/utils/timeFormat';
+import { formatClockTime } from '../../src/utils/timeFormat';
+import { setLanguage, t } from '../../src/i18n';
+import { sportsLabel } from '../../src/constants/sports';
 
 declare const __SUPABASE_URL__: string;
 declare const __SUPABASE_KEY__: string;
@@ -65,7 +67,12 @@ function showMessage(title: string, detail: string) {
 }
 
 // "today", "tomorrow", or "on Wed 4 Nov".
-const whenPhrase = (label: string) => (label === 'Today' || label === 'Tomorrow' ? label.toLowerCase() : `on ${label}`);
+const whenPhrase = (label: string) =>
+  label === t('common.today')
+    ? t('messages.dayToday')
+    : label === t('common.tomorrow')
+      ? t('messages.dayTomorrow')
+      : t('messages.dayOn', { date: label });
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE = /^[\d\s\-+()]{7,}$/;
@@ -80,18 +87,18 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
   const form = el('div', {});
   form.hidden = true;
 
-  const name = el('input', { type: 'text', placeholder: 'Your name', autocomplete: 'name', maxLength: PUBLIC_BOOKING.maxNameLength });
+  const name = el('input', { type: 'text', placeholder: t('webBooking.namePlaceholder'), autocomplete: 'name', maxLength: PUBLIC_BOOKING.maxNameLength });
   const contact = el('input', {
     type: 'text',
-    placeholder: 'Phone or email',
+    placeholder: t('webBooking.contactPlaceholder'),
     autocomplete: 'email',
     inputMode: 'email',
     maxLength: PUBLIC_BOOKING.maxContactLength,
   });
-  const note = el('textarea', { placeholder: 'Anything your coach should know? (optional)', maxLength: PUBLIC_BOOKING.maxNoteLength });
+  const note = el('textarea', { placeholder: t('webBooking.notePlaceholder'), maxLength: PUBLIC_BOOKING.maxNoteLength });
   const error = el('p', { class: 'error' });
   error.hidden = true;
-  const submit = el('button', { class: 'primary', type: 'button' }, 'Request lesson');
+  const submit = el('button', { class: 'primary', type: 'button' }, t('webBooking.requestLesson'));
 
   function renderDays() {
     dayRow.replaceChildren(
@@ -114,7 +121,7 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
     const day = days.find((d) => d.date === selectedDate) as BookableDay;
     timeGrid.replaceChildren(
       ...day.times.map((time) => {
-        const chip = el('button', { class: 'chip', type: 'button' }, formatTime12Hour(time));
+        const chip = el('button', { class: 'chip', type: 'button' }, formatClockTime(time));
         chip.setAttribute('aria-pressed', String(time === selectedTime));
         chip.onclick = () => {
           selectedTime = time;
@@ -138,14 +145,14 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
     error.hidden = true;
     const studentName = name.value.trim();
     const studentContact = contact.value.trim();
-    if (studentName.length < 2) return fail('Please enter your name.');
+    if (studentName.length < 2) return fail(t('webBooking.enterName'));
     if (!EMAIL.test(studentContact) && !PHONE.test(studentContact)) {
-      return fail('Please enter a valid phone number or email so your coach can reply.');
+      return fail(t('webBooking.enterContact'));
     }
 
     sending = true;
     submit.disabled = true;
-    submit.textContent = 'Sending…';
+    submit.textContent = t('webBooking.sending');
     try {
       await rpc('submit_public_booking_request', {
         p_request: {
@@ -165,36 +172,33 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
           'div',
           { class: 'done' },
           el('div', { class: 'tick' }, '✓'),
-          el('h1', {}, 'Request sent'),
+          el('h1', {}, t('webBooking.requestSent')),
           el(
             'p',
             { class: 'muted' },
-            `${coach.name} will confirm your lesson ${whenPhrase(day.label)} at ${formatTime12Hour(selectedTime)} by message.`
+            t('webBooking.willConfirm', { coach: coach.name, when: whenPhrase(day.label), time: formatClockTime(selectedTime) })
           )
         )
       );
     } catch (e) {
       const message = e instanceof Error ? e.message : '';
-      fail(
-        message.startsWith('Too many')
-          ? message
-          : 'Sorry, that did not go through. Please check your connection and try again.'
-      );
+      // The server's rate-limit message is English; show it in the page language.
+      fail(message.startsWith('Too many') ? t('webBooking.tooMany') : t('webBooking.failed'));
       sending = false;
       submit.disabled = false;
-      submit.textContent = 'Request lesson';
+      submit.textContent = t('webBooking.requestLesson');
     }
   };
 
-  form.append(el('h2', {}, 'Your details'), name, contact, note, error, submit);
+  form.append(el('h2', {}, t('webBooking.yourDetails')), name, contact, note, error, submit);
 
-  const sports = (coach.sports ?? []).join(' · ');
+  const sports = sportsLabel(coach.sports ?? [], ' · ');
   show(
-    el('h1', {}, `Book with ${coach.name}`),
-    el('p', { class: 'muted' }, sports || 'Pick a time and send a request.'),
-    el('h2', {}, 'Day'),
+    el('h1', {}, t('webBooking.bookWith', { name: coach.name })),
+    el('p', { class: 'muted' }, sports || t('webBooking.pickTime')),
+    el('h2', {}, t('webBooking.day')),
     dayRow,
-    el('h2', {}, `Time (${PUBLIC_BOOKING.lessonMinutes} min)`),
+    el('h2', {}, t('webBooking.time', { minutes: PUBLIC_BOOKING.lessonMinutes })),
     timeGrid,
     form
   );
@@ -202,24 +206,34 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
   renderTimes();
 }
 
+// The page follows the visitor's browser language (?lang=el forces Greek, ?lang=en English).
+async function pickLanguage() {
+  const forced = new URLSearchParams(location.search).get('lang');
+  const language = (forced ?? navigator.language).toLowerCase().startsWith('el') ? 'el' : 'en';
+  await setLanguage(language);
+  document.documentElement.lang = language;
+  document.title = t('webBooking.pageTitle');
+}
+
 async function start() {
+  await pickLanguage();
   const link = readBookingLink();
-  if (!link) return showMessage('Booking link not found', 'Please check the link you were sent.');
+  if (!link) return showMessage(t('webBooking.linkNotFound'), t('webBooking.checkLink'));
 
   try {
     const profiles = await rpc<CoachProfile[]>('get_public_booking_profile', { p_booking_link: link });
     const coach = profiles[0];
-    if (!coach) return showMessage('Booking link not found', 'This link is not active. Please ask your coach for a new one.');
-    document.title = `Book with ${coach.name}`;
+    if (!coach) return showMessage(t('webBooking.linkNotFound'), t('webBooking.linkInactive'));
+    document.title = t('webBooking.bookWith', { name: coach.name });
 
     const rows = await rpc<PublicAvailabilityRow[]>('get_public_booking_availability', { p_coach_id: coach.id });
     const days = buildBookableDays({ rows });
     if (days.length === 0) {
-      return showMessage(coach.name, 'No open times in the next two weeks. Please message your coach directly.');
+      return showMessage(coach.name, t('webBooking.noOpenTimes'));
     }
     renderBooking(coach, days);
   } catch {
-    showMessage('Could not load', 'Please check your connection and reload the page.');
+    showMessage(t('webBooking.couldNotLoad'), t('webBooking.checkConnection'));
   }
 }
 

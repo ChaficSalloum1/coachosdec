@@ -15,6 +15,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { useCoachStore } from '../state/coachStore';
 import { BookingRequest } from '../types/coach';
 import { DesignTokens } from '../utils/designTokens';
+import { sportsLabel } from '../constants/sports';
+import { formatLocalized } from '../i18n/formatDate';
+import { formatMoney, resolveCurrency } from '../modules/payments';
+import { t } from '../i18n';
 
 interface RouteParams {
   slug?: string;
@@ -43,7 +47,7 @@ export function PublicBookingPreview() {
     return (
       <View className="flex-1 bg-white items-center justify-center">
         <Text className="text-lg" style={{ color: DesignTokens.colors.text.muted }}>
-          No coach profile found
+          {t('booking.noCoachProfile')}
         </Text>
       </View>
     );
@@ -88,11 +92,7 @@ export function PublicBookingPreview() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
-    });
+    return formatLocalized(date, 'EEE, MMM d');
   };
 
   const groupSlotsByDate = () => {
@@ -117,7 +117,7 @@ export function PublicBookingPreview() {
             <Ionicons name="arrow-back" size={24} color={DesignTokens.colors.text.strong} />
           </Pressable>
           <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-            Book Lesson
+            {t('booking.bookLesson')}
           </Text>
           <View style={{ width: 24 }} />
         </View>
@@ -126,26 +126,26 @@ export function PublicBookingPreview() {
           <View className="space-y-4">
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Your Name *
+                {t('booking.yourName')}
               </Text>
               <TextInput
                 value={studentName}
                 onChangeText={setStudentName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="John Smith"
+                placeholder={t('booking.namePlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Contact (Email or Phone) *
+                {t('booking.contactLabel')}
               </Text>
               <TextInput
                 value={studentContact}
                 onChangeText={setStudentContact}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="john@email.com or (555) 123-4567"
+                placeholder={t('booking.contactPlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong }}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -154,10 +154,10 @@ export function PublicBookingPreview() {
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Selected Time
+                {t('booking.selectedTime')}
               </Text>
               <Text className="text-base" style={{ color: DesignTokens.colors.text.muted }}>
-                {formatDate(selectedSlot.date)} at {selectedSlot.time}
+                {t('booking.slotAt', { date: formatDate(selectedSlot.date), time: selectedSlot.time })}
                 {(selectedSlot.range.areaId || selectedSlot.range.facilityId || selectedSlot.range.courtId) && (
                   <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
                     {'\n'}{formatLocationText(selectedSlot.range.areaId, selectedSlot.range.facilityId, selectedSlot.range.courtId)}
@@ -168,13 +168,13 @@ export function PublicBookingPreview() {
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Note (Optional)
+                {t('booking.noteOptional')}
               </Text>
               <TextInput
                 value={note}
                 onChangeText={setNote}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="Any specific requests or goals..."
+                placeholder={t('booking.notePlaceholder')}
                 multiline
                 numberOfLines={3}
                 style={{ color: DesignTokens.colors.text.strong, textAlignVertical: 'top' }}
@@ -188,7 +188,7 @@ export function PublicBookingPreview() {
             style={{ backgroundColor: DesignTokens.colors.brand.default }}
           >
             <Text className="text-base font-medium text-white text-center">
-              Send Booking Request
+              {t('booking.sendRequest')}
             </Text>
           </Pressable>
         </ScrollView>
@@ -207,7 +207,7 @@ export function PublicBookingPreview() {
           <Ionicons name="close" size={24} color={DesignTokens.colors.text.strong} />
         </Pressable>
         <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-          Public Booking
+          {t('booking.publicBooking')}
         </Text>
         <View style={{ width: 24 }} />
       </View>
@@ -221,10 +221,10 @@ export function PublicBookingPreview() {
           {coach.name}
         </Text>
         <Text className="text-base mb-1" style={{ color: DesignTokens.colors.text.muted }}>
-          {coach.sports.join(' • ')}
+          {sportsLabel(coach.sports, ' • ')}
         </Text>
         <Text className="text-lg font-medium" style={{ color: DesignTokens.colors.brand.default }}>
-          ${coach.pricePerHour}/hour
+          {t('booking.perHour', { price: formatMoney(coach.pricePerHour, resolveCurrency(coach.paymentSettings?.currency)) })}
         </Text>
       </View>
 
@@ -232,14 +232,14 @@ export function PublicBookingPreview() {
       <ScrollView className="flex-1">
         <View className="px-4 py-6">
           <Text className="text-lg font-semibold mb-4" style={{ color: DesignTokens.colors.text.strong }}>
-            Available Times
+            {t('booking.availableTimes')}
           </Text>
           
           {sortedDates.length === 0 ? (
             <View className="items-center py-8">
               <Ionicons name="calendar-outline" size={48} color={DesignTokens.colors.text.muted} />
               <Text className="text-base mt-4" style={{ color: DesignTokens.colors.text.muted }}>
-                No available slots in the next 14 days
+                {t('booking.noSlots')}
               </Text>
             </View>
           ) : (

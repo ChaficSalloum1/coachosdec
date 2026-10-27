@@ -6,6 +6,7 @@ groups and building/validating the lessons. The store wires it to state.
 */
 import { GROUPS } from '../config/appSettings';
 import type { Lesson } from '../types/coach';
+import { t } from '../i18n';
 
 export interface LessonGroup {
   groupId: string;
@@ -113,7 +114,7 @@ export function checkCanAddToGroup(group: LessonGroup, studentId: string): AddTo
 export function validateGroupCapacity(capacity: number): void {
   if (!Number.isInteger(capacity) || capacity < GROUPS.minCapacity || capacity > GROUPS.maxCapacity) {
     throw new Error(
-      `A group needs between ${GROUPS.minCapacity} and ${GROUPS.maxCapacity} players.`
+      t('errors.groupCapacityRange', { min: GROUPS.minCapacity, max: GROUPS.maxCapacity })
     );
   }
 }
@@ -178,16 +179,16 @@ export function buildGroupLessons(args: {
 
   validateGroupCapacity(template.capacity);
   if (players.length === 0) {
-    throw new Error('Add at least one player to the group.');
+    throw new Error(t('errors.groupNeedsPlayer'));
   }
   if (players.length > template.capacity) {
-    throw new Error(`This group holds ${template.capacity} players, but ${players.length} were added.`);
+    throw new Error(t('errors.groupOverCapacity', { capacity: template.capacity, count: players.length }));
   }
   if (new Set(players.map((p) => p.id)).size !== players.length) {
-    throw new Error('The same player was added twice.');
+    throw new Error(t('errors.playerAddedTwice'));
   }
   if (!(template.pricePerPlayer >= 0)) {
-    throw new Error('Enter a valid price per player.');
+    throw new Error(t('errors.invalidGroupPrice'));
   }
 
   return players.map((player, i) =>
@@ -211,8 +212,8 @@ export function buildGroupMemberLesson(args: {
   if (!check.ok) {
     throw new Error(
       check.reason === 'full'
-        ? 'This group is full.'
-        : `${player.name} is already in this group.`
+        ? t('errors.groupFull')
+        : t('errors.alreadyInGroup', { name: player.name })
     );
   }
 

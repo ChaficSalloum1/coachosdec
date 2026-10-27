@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { Lesson } from '../types/coach';
 import { formatMoney, resolveCurrency, type CurrencyCode } from '../modules/payments/currency';
 import { DesignTokens } from './designTokens';
+import { t } from '../i18n';
 
 /**
  * CalendarService - Device calendar integration for lesson management
@@ -49,7 +50,7 @@ export class CalendarService {
         } else {
           // Create new calendar for CoachOS
           this.defaultCalendarId = await Calendar.createCalendarAsync({
-            title: 'CoachOS Lessons',
+            title: t('calendar.calendarName'),
             color: DesignTokens.colors.brand.default,
             entityType: Calendar.EntityTypes.EVENT,
             source: { 
@@ -99,7 +100,7 @@ export class CalendarService {
       const endDate = new Date(`${lesson.date}T${lesson.endTime}`);
 
       const eventId = await Calendar.createEventAsync(this.defaultCalendarId, {
-        title: `Lesson: ${lesson.studentName}`,
+        title: t('calendar.eventTitle', { name: lesson.studentName }),
         startDate,
         endDate,
         location: this.formatLessonLocation(lesson),
@@ -134,7 +135,7 @@ export class CalendarService {
       const endDate = new Date(`${lesson.date}T${lesson.endTime}`);
 
       await Calendar.updateEventAsync(eventId, {
-        title: `Lesson: ${lesson.studentName}`,
+        title: t('calendar.eventTitle', { name: lesson.studentName }),
         startDate,
         endDate,
         location: this.formatLessonLocation(lesson),
@@ -234,11 +235,11 @@ export class CalendarService {
   private static formatLessonLocation(lesson: Lesson): string {
     const parts: string[] = [];
     
-    if (lesson.courtId) parts.push(`Court ${lesson.courtId}`);
+    if (lesson.courtId) parts.push(t('calendar.court', { id: lesson.courtId }));
     if (lesson.facilityId) parts.push(lesson.facilityId);
     if (lesson.areaId) parts.push(lesson.areaId);
     
-    return parts.length > 0 ? parts.join(' • ') : 'Tennis Lesson';
+    return parts.length > 0 ? parts.join(' • ') : t('calendar.lessonFallback');
   }
 
   /**
@@ -248,18 +249,18 @@ export class CalendarService {
   private static formatLessonNotes(lesson: Lesson, currency?: CurrencyCode): string {
     const notes: string[] = [];
     
-    notes.push(`Student: ${lesson.studentName}`);
-    notes.push(`Duration: ${lesson.duration} minutes`);
-    notes.push(`Price: ${formatMoney(lesson.price, resolveCurrency(currency))}`);
-    notes.push(`Payment Status: ${lesson.isPaid ? '✓ Paid' : '⏳ Unpaid'}`);
+    notes.push(t('calendar.student', { name: lesson.studentName }));
+    notes.push(t('calendar.duration', { minutes: lesson.duration }));
+    notes.push(t('calendar.price', { amount: formatMoney(lesson.price, resolveCurrency(currency)) }));
+    notes.push(t('calendar.paymentStatus', { status: lesson.isPaid ? t('calendar.paid') : t('calendar.unpaid') }));
     
     if (lesson.notes) {
       notes.push('');
-      notes.push(`Notes: ${lesson.notes}`);
+      notes.push(t('calendar.notes', { notes: lesson.notes }));
     }
     
     notes.push('');
-    notes.push('Managed by CoachOS');
+    notes.push(t('calendar.managedBy'));
     
     return notes.join('\n');
   }

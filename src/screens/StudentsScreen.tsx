@@ -22,6 +22,7 @@ import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
 import { summarizeUnpaid } from '../utils/unpaid';
 import { todayISO } from '../utils/dayNav';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export function StudentsScreen() {
   const insets = useSafeAreaInsets();
@@ -62,7 +63,7 @@ export function StudentsScreen() {
         style={{ paddingTop: insets.top + 12, paddingBottom: 12 }}
       >
         <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-          Students
+          {t('students.title')}
         </Text>
       </View>
 
@@ -76,7 +77,7 @@ export function StudentsScreen() {
           {showOwing ? (
             <View>
               <Text className="text-sm mb-3" style={{ color: DesignTokens.colors.text.muted }}>
-                {formatMoney(unpaid.total)} owed by {unpaid.students.length} {unpaid.students.length === 1 ? 'student' : 'students'}
+                {t('students.owedBy', { amount: formatMoney(unpaid.total), count: unpaid.students.length })}
               </Text>
               {unpaid.students.map((row) => (
                 <View
@@ -89,7 +90,7 @@ export function StudentsScreen() {
                       {row.student.name}
                     </Text>
                     <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
-                      {row.lessonCount} {row.lessonCount === 1 ? 'lesson' : 'lessons'} · since {row.oldestDate}
+                      {t('students.lessonsSince', { count: row.lessonCount, date: row.oldestDate })}
                     </Text>
                   </View>
                   <Text className="text-base font-semibold mr-3" style={{ color: DesignTokens.colors.red['700'] }}>
@@ -98,11 +99,11 @@ export function StudentsScreen() {
                   <Pressable
                     onPress={() => setPaymentLessonId(row.oldestLessonId)}
                     accessibilityRole="button"
-                    accessibilityLabel={`Request payment from ${row.student.name}`}
+                    accessibilityLabel={t('students.requestPaymentFrom', { name: row.student.name })}
                     className="rounded-full px-4 justify-center"
                     style={{ minHeight: 44, backgroundColor: DesignTokens.colors.brand.default }}
                   >
-                    <Text className="font-semibold" style={{ color: DesignTokens.colors.white }}>Request</Text>
+                    <Text className="font-semibold" style={{ color: DesignTokens.colors.white }}>{t('students.request')}</Text>
                   </Pressable>
                 </View>
               ))}
@@ -136,7 +137,7 @@ export function StudentsScreen() {
           <Ionicons name="search" size={20} color={DesignTokens.colors.text.muted} />
           <TextInput
             className="flex-1 ml-2 text-base text-ink-900"
-            placeholder="Search students..."
+            placeholder={t('students.search')}
             placeholderTextColor={DesignTokens.colors.text.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -153,7 +154,7 @@ export function StudentsScreen() {
             style={{ minHeight: 44, backgroundColor: showOwing ? DesignTokens.colors.red['700'] : DesignTokens.colors.red.tint }}
           >
             <Text className="font-semibold" style={{ color: showOwing ? DesignTokens.colors.white : DesignTokens.colors.red['700'] }}>
-              Owing {formatMoney(unpaid.total)}
+              {t('students.owing', { amount: formatMoney(unpaid.total) })}
             </Text>
           </Pressable>
         )}
@@ -200,12 +201,12 @@ function EmptyState({ hasSearch }: EmptyStateProps) {
         color={DesignTokens.colors.text.muted}
       />
       <Text className="text-xl font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-        {hasSearch ? 'No students found' : 'No students yet'}
+        {hasSearch ? t('students.noneFound') : t('students.noneYet')}
       </Text>
       <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
         {hasSearch
-          ? 'Try adjusting your search terms'
-          : "Students will appear here after their\nfirst approved booking."
+          ? t('students.tryAdjusting')
+          : t('students.appearAfterBooking')
         }
       </Text>
     </View>
@@ -234,7 +235,7 @@ function BalancePill({ amount }: BalancePillProps) {
   return (
     <View style={{ backgroundColor: DesignTokens.colors.amber.glow, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
       <Text style={{ fontSize: 14, fontWeight: '700', color: DesignTokens.colors.amber.strong }}>
-        {formatMoney(amount)} due
+        {t('students.due', { amount: formatMoney(amount) })}
       </Text>
     </View>
   );
@@ -252,7 +253,7 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
   if (due === 0) {
     return (
       <Text className="text-small text-ink-600">
-        {formatMoney(total)} total
+        {t('students.total', { amount: formatMoney(total) })}
       </Text>
     );
   }
@@ -262,7 +263,7 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
     return (
       <View className="items-end">
         <Text className="text-small text-ink-600">
-          {formatMoney(total)} total
+          {t('students.total', { amount: formatMoney(total) })}
         </Text>
       </View>
     );
@@ -272,10 +273,10 @@ function PaymentSummary({ total, paid, due }: PaymentSummaryProps) {
   return (
     <View className="items-end">
       <Text className="text-xs text-ink-500">
-        {formatMoney(total)} total
+        {t('students.total', { amount: formatMoney(total) })}
       </Text>
       <Text className="text-xs text-success">
-        {formatMoney(paid)} paid
+        {t('students.paid', { amount: formatMoney(paid) })}
       </Text>
     </View>
   );
@@ -309,21 +310,21 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
     const upcomingRevenue = scheduledLessons.reduce((sum, l) => sum + l.price, 0);
 
     const detailsText = [
-      `Contact: ${student.contact}`,
+      t('students.detailsContact', { contact: student.contact }),
       '',
-      '📊 Lesson Summary:',
-      `Total Lessons: ${student.totalLessons}`,
-      `  • Scheduled: ${scheduledLessons.length}`,
-      `  • Completed: ${completedLessons.length}`,
-      `  • Cancelled: ${cancelledLessons.length}`,
+      t('students.detailsLessonSummary'),
+      t('students.detailsTotalLessons', { count: student.totalLessons }),
+      t('students.detailsScheduled', { count: scheduledLessons.length }),
+      t('students.detailsCompleted', { count: completedLessons.length }),
+      t('students.detailsCancelled', { count: cancelledLessons.length }),
       '',
-      '💰 Financial Summary:',
-      `Total Spent: ${formatMoney(student.totalSpent)}`,
-      `  • Earned: ${formatMoney(totalEarned)}`,
-      `  • Upcoming: ${formatMoney(upcomingRevenue)}`,
-      `Balance Due: ${formatMoney(student.balance)}`,
-      unpaidLessons.length > 0 ? `  • ${unpaidLessons.length} unpaid lesson${unpaidLessons.length > 1 ? 's' : ''}` : '',
-      student.notes ? `\nNotes: ${student.notes}` : ''
+      t('students.detailsFinancialSummary'),
+      t('students.detailsTotalSpent', { amount: formatMoney(student.totalSpent) }),
+      t('students.detailsEarned', { amount: formatMoney(totalEarned) }),
+      t('students.detailsUpcoming', { amount: formatMoney(upcomingRevenue) }),
+      t('students.detailsBalanceDue', { amount: formatMoney(student.balance) }),
+      unpaidLessons.length > 0 ? t('students.detailsUnpaid', { count: unpaidLessons.length }) : '',
+      student.notes ? `\n${t('students.detailsNotes', { notes: student.notes })}` : ''
     ].filter(line => line !== '').join('\n');
 
     Alert.alert(
@@ -331,16 +332,16 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
       detailsText,
       [
         {
-          text: 'Remove Student',
+          text: t('students.removeStudent'),
           style: 'destructive',
           onPress: () => confirmRemoveStudent(student),
         },
         {
-          text: 'Add Note',
+          text: t('notes.addNote'),
           onPress: () => showAddNote(student),
         },
         {
-          text: 'OK',
+          text: t('common.ok'),
           style: 'cancel',
         },
       ]
@@ -351,19 +352,19 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
     const scheduledLessons = studentLessons.filter(l => l.status === 'scheduled');
     
     const message = scheduledLessons.length > 0
-      ? `This will remove ${student.name} and cancel ${scheduledLessons.length} scheduled lesson${scheduledLessons.length > 1 ? 's' : ''}. This action cannot be undone.`
-      : `This will permanently remove ${student.name} from your student list. This action cannot be undone.`;
+      ? t('students.removeWithLessons', { name: student.name, count: scheduledLessons.length })
+      : t('students.removeNoLessons', { name: student.name });
 
     Alert.alert(
-      'Remove Student?',
+      t('students.removeTitle'),
       message,
       [
         {
-          text: 'Cancel',
+          text: t('common.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Remove',
+          text: t('common.remove'),
           style: 'destructive',
           onPress: () => removeStudent(student.id),
         },
@@ -373,8 +374,8 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
 
   const showAddNote = (student: Student) => {
     Alert.prompt(
-      'Add Note',
-      `Add a note for ${student.name}:`,
+      t('notes.addNote'),
+      t('students.addNoteFor', { name: student.name }),
       (text) => {
         if (text !== null) {
           updateStudent(student.id, { notes: text.trim() || undefined });
@@ -386,17 +387,17 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
   };
 
   const getLastLessonText = () => {
-    if (!student.lastLessonDate) return 'No lessons yet';
+    if (!student.lastLessonDate) return t('students.noLessonsYet');
     
     const lastLesson = new Date(student.lastLessonDate);
     const today = new Date();
     const diffInDays = Math.floor((today.getTime() - lastLesson.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    if (diffInDays < 30) return `${Math.floor(diffInDays / 7)} weeks ago`;
-    return `${Math.floor(diffInDays / 30)} months ago`;
+    if (diffInDays === 0) return t('common.today');
+    if (diffInDays === 1) return t('students.yesterday');
+    if (diffInDays < 7) return t('students.daysAgo', { count: diffInDays });
+    if (diffInDays < 30) return t('students.weeksAgo', { count: Math.floor(diffInDays / 7) });
+    return t('students.monthsAgo', { count: Math.floor(diffInDays / 30) });
   };
 
   const handleContactPress = () => {
@@ -444,11 +445,11 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             </Text>
           </Pressable>
           <Text className="text-small text-ink-600">
-            Last lesson: {getLastLessonText()}
+            {t('students.lastLesson', { when: getLastLessonText() })}
           </Text>
           {student.notes && (
             <Text className="text-small text-ink-600 mt-2 italic">
-              {`"${student.notes}"`}
+              {t('common.quoted', { text: student.notes })}
             </Text>
           )}
         </View>
@@ -458,7 +459,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             <BalancePill amount={unpaidAmount} />
           )}
           <Text className="text-small text-ink-600 mt-2">
-            {actualTotalLessons} {actualTotalLessons === 1 ? 'lesson' : 'lessons'}
+            {t('students.lessonCount', { count: actualTotalLessons })}
           </Text>
           {actualTotalSpent > 0 ? (
             <PaymentSummary
@@ -468,7 +469,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
             />
           ) : (
             <Text className="text-small text-ink-600">
-              $0 total
+              {t('students.total', { amount: formatMoney(0) })}
             </Text>
           )}
 
@@ -482,7 +483,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
           >
             <Ionicons name="document-text" size={14} color={DesignTokens.colors.brand.default} />
             <Text className="text-xs font-medium" style={{ color: DesignTokens.colors.brand.default }}>
-              {notesCount > 0 ? `${notesCount}` : 'Notes'}
+              {notesCount > 0 ? `${notesCount}` : t('students.notesButton')}
             </Text>
           </Pressable>
         </View>

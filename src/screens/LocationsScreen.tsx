@@ -17,6 +17,7 @@ import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { Area, Facility, Court } from '../types/coach';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 type TabType = 'areas' | 'facilities' | 'courts';
 
@@ -29,7 +30,7 @@ export function LocationsScreen() {
       {/* Header */}
       <View className="px-4 py-3 border-b border-gray-200">
         <Text className="text-xl font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-          Locations
+          {t('settings.locations')}
         </Text>
       </View>
 
@@ -87,12 +88,12 @@ function AreasTab() {
 
   const handleDelete = (area: Area) => {
     Alert.alert(
-      'Delete Area',
-      `Are you sure you want to delete "${area.name}"? This will also delete all facilities and courts in this area.`,
+      t('locations.deleteAreaTitle'),
+      t('locations.deleteAreaBody', { name: area.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             deleteArea(area.id);
@@ -110,10 +111,10 @@ function AreasTab() {
           <View className="items-center justify-center py-12">
             <Ionicons name="location-outline" size={64} color={DesignTokens.colors.text.muted} />
             <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-              No areas yet
+              {t('locations.noAreasYet')}
             </Text>
             <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
-              Create areas to organize your{"\n"}coaching locations
+              {t('locations.createAreasHint')}
             </Text>
           </View>
         ) : (
@@ -152,7 +153,7 @@ function AreasTab() {
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
             <Text className="text-base font-medium text-white ml-2">
-              Add Area
+              {t('locations.addArea')}
             </Text>
           </View>
         </Pressable>
@@ -188,7 +189,7 @@ function FacilitiesTab() {
 
   const handleAdd = () => {
     if (areas.length === 0) {
-      showToast('Please create an area first before adding facilities.', 'error');
+      showToast(t('locations.createAreaBeforeFacilities'), 'error');
       return;
     }
     setEditingFacility(null);
@@ -202,12 +203,12 @@ function FacilitiesTab() {
 
   const handleDelete = (facility: Facility) => {
     Alert.alert(
-      'Delete Facility',
-      `Are you sure you want to delete "${facility.name}"? This will also delete all courts in this facility.`,
+      t('locations.deleteFacilityTitle'),
+      t('locations.deleteFacilityBody', { name: facility.name }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             deleteFacility(facility.id);
@@ -225,10 +226,10 @@ function FacilitiesTab() {
           <View className="items-center justify-center py-12">
             <Ionicons name="business-outline" size={64} color={DesignTokens.colors.text.muted} />
             <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-              No facilities yet
+              {t('locations.noFacilitiesYet')}
             </Text>
             <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
-              Add facilities within your areas{"\n"}like clubs or venues
+              {t('locations.addFacilitiesHint')}
             </Text>
           </View>
         ) : (
@@ -280,7 +281,7 @@ function FacilitiesTab() {
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
             <Text className="text-base font-medium text-white ml-2">
-              Add Facility
+              {t('locations.addFacility')}
             </Text>
           </View>
         </Pressable>
@@ -317,7 +318,7 @@ function CourtsTab() {
 
   const handleAdd = () => {
     if (facilities.length === 0) {
-      showToast('Please create a facility first before adding courts.', 'error');
+      showToast(t('locations.createFacilityBeforeCourts'), 'error');
       return;
     }
     setEditingCourt(null);
@@ -331,12 +332,12 @@ function CourtsTab() {
 
   const handleDelete = (court: Court) => {
     Alert.alert(
-      'Delete Court',
-      `Are you sure you want to delete "${court.label}"?`,
+      t('locations.deleteCourtTitle'),
+      t('locations.deleteCourtBody', { name: court.label }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: () => {
             deleteCourt(court.id);
@@ -354,10 +355,10 @@ function CourtsTab() {
           <View className="items-center justify-center py-12">
             <Ionicons name="tennisball-outline" size={64} color={DesignTokens.colors.text.muted} />
             <Text className="text-lg font-semibold mt-4 mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-              No courts yet
+              {t('locations.noCourtsYet')}
             </Text>
             <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
-              Add specific courts within{"\n"}your facilities
+              {t('locations.addCourtsHint')}
             </Text>
           </View>
         ) : (
@@ -410,7 +411,7 @@ function CourtsTab() {
           <View className="flex-row items-center justify-center">
             <Ionicons name="add" size={20} color="white" />
             <Text className="text-base font-medium text-white ml-2">
-              Add Court
+              {t('locations.addCourt')}
             </Text>
           </View>
         </Pressable>
@@ -458,7 +459,7 @@ function AreaFormModal({ visible, onClose, area, onSave }: AreaFormModalProps) {
 
   const handleSave = () => {
     if (!name.trim()) {
-      showToast('Please enter an area name.', 'error');
+      showToast(t('locations.enterAreaName'), 'error');
       return;
     }
     onSave(name.trim());
@@ -470,25 +471,25 @@ function AreaFormModal({ visible, onClose, area, onSave }: AreaFormModalProps) {
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>{t('common.cancel')}</Text>
           </Pressable>
           <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-            {area ? 'Edit Area' : 'Add Area'}
+            {area ? t('locations.editArea') : t('locations.addArea')}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>{t('common.save')}</Text>
           </Pressable>
         </View>
 
         <View className="p-4">
           <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-            Area Name *
+            {t('locations.areaNameRequired')}
           </Text>
           <TextInput
             value={name}
             onChangeText={setName}
             className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-            placeholder="Downtown, Northside, etc."
+            placeholder={t('locations.areaNamePlaceholder')}
             style={{ color: DesignTokens.colors.text.strong }}
             autoFocus
           />
@@ -521,7 +522,7 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
 
   const handleSave = () => {
     if (!name.trim() || !areaId) {
-      showToast('Please enter a facility name and select an area.', 'error');
+      showToast(t('locations.enterFacilityName'), 'error');
       return;
     }
     onSave({
@@ -540,13 +541,13 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>{t('common.cancel')}</Text>
           </Pressable>
           <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-            {facility ? 'Edit Facility' : 'Add Facility'}
+            {facility ? t('locations.editFacility') : t('locations.addFacility')}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>{t('common.save')}</Text>
           </Pressable>
         </View>
 
@@ -554,7 +555,7 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
           <View className="space-y-4">
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Area *
+                {t('locations.areaRequired')}
               </Text>
               <View className="bg-gray-50 rounded-lg border border-gray-200">
                 {areas.map((area) => (
@@ -582,39 +583,39 @@ function FacilityFormModal({ visible, onClose, facility, areas, onSave }: Facili
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Facility Name *
+                {t('locations.facilityNameRequired')}
               </Text>
               <TextInput
                 value={name}
                 onChangeText={setName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="Pro Club, Tennis Center, etc."
+                placeholder={t('locations.facilityNamePlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Address (Optional)
+                {t('locations.addressOptional')}
               </Text>
               <TextInput
                 value={address}
                 onChangeText={setAddress}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="123 Main St, City, State"
+                placeholder={t('locations.addressPlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Notes (Optional)
+                {t('locations.notesOptional')}
               </Text>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="Parking info, special instructions, etc."
+                placeholder={t('locations.notesPlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong, textAlignVertical: 'top' }}
                 multiline
                 numberOfLines={3}
@@ -649,7 +650,7 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
 
   const handleSave = () => {
     if (!label.trim() || !facilityId) {
-      showToast('Please enter a court label and select a facility.', 'error');
+      showToast(t('locations.enterCourtLabel'), 'error');
       return;
     }
     onSave({
@@ -666,13 +667,13 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
       <View className="flex-1 bg-white">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
           <Pressable onPress={onClose}>
-            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>Cancel</Text>
+            <Text className="text-base" style={{ color: DesignTokens.colors.brand.default }}>{t('common.cancel')}</Text>
           </Pressable>
           <Text className="text-lg font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-            {court ? 'Edit Court' : 'Add Court'}
+            {court ? t('locations.editCourt') : t('locations.addCourt')}
           </Text>
           <Pressable onPress={handleSave}>
-            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>Save</Text>
+            <Text className="text-base font-medium" style={{ color: DesignTokens.colors.brand.default }}>{t('common.save')}</Text>
           </Pressable>
         </View>
 
@@ -680,7 +681,7 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
           <View className="space-y-4">
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Facility *
+                {t('locations.facilityRequired')}
               </Text>
               <View className="bg-gray-50 rounded-lg border border-gray-200">
                 {facilities.map((facility) => {
@@ -716,26 +717,26 @@ function CourtFormModal({ visible, onClose, court, facilities, areas, onSave }: 
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Court Label *
+                {t('locations.courtLabelRequired')}
               </Text>
               <TextInput
                 value={label}
                 onChangeText={setLabel}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="Court 1, Center Court, etc."
+                placeholder={t('locations.courtLabelPlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>
 
             <View>
               <Text className="text-sm font-medium mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-                Sport (Optional)
+                {t('locations.sportOptional')}
               </Text>
               <TextInput
                 value={sport}
                 onChangeText={setSport}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
-                placeholder="Tennis, Pickleball, etc."
+                placeholder={t('locations.sportPlaceholder')}
                 style={{ color: DesignTokens.colors.text.strong }}
               />
             </View>

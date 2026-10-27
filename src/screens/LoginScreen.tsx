@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { signIn, signUp, resetPassword } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 type Mode = 'login' | 'signup';
 type Feedback = { type: 'error' | 'success' | 'info'; title: string; message: string };
@@ -71,12 +72,12 @@ export function LoginScreen() {
     setFeedback(null);
 
     if (!trimmedEmail || !password) {
-      showFeedback('error', 'Missing fields', 'Please enter your email and password.');
+      showFeedback('error', t('auth.missingFields'), t('auth.enterEmailAndPassword'));
       return;
     }
 
     if (mode === 'signup' && password.length < 6) {
-      showFeedback('error', 'Password too short', 'Password must be at least 6 characters.');
+      showFeedback('error', t('auth.passwordTooShort'), t('auth.passwordMinLength'));
       return;
     }
 
@@ -85,8 +86,8 @@ export function LoginScreen() {
       void triggerAuthFeedback('info');
       setFeedback({
         type: 'info',
-        title: 'Creating account',
-        message: 'Securely creating your coach workspace...',
+        title: t('auth.creatingAccount'),
+        message: t('auth.creatingWorkspace'),
       });
     }
 
@@ -98,29 +99,29 @@ export function LoginScreen() {
       if (result.error) {
         showFeedback(
           'error',
-          mode === 'login' ? 'Sign in failed' : 'Sign up failed',
+          mode === 'login' ? t('auth.signInFailed') : t('auth.signUpFailed'),
           result.error.message
         );
       } else if (mode === 'signup' && !result.session) {
         showFeedback(
           'success',
-          'Check your email',
-          'We sent you a confirmation link. Please verify your email before signing in.'
+          t('auth.checkEmail'),
+          t('auth.confirmationSent')
         );
       } else if (mode === 'signup') {
         void triggerAuthFeedback('success');
         setFeedback({
           type: 'success',
-          title: 'Account created',
-          message: 'Opening your coach workspace...',
+          title: t('auth.accountCreatedTitle'),
+          message: t('auth.openingWorkspace'),
         });
       }
       // On success with session, RootNavigator's onAuthStateChange handles navigation
     } catch (error) {
       showFeedback(
         'error',
-        mode === 'login' ? 'Sign in failed' : 'Sign up failed',
-        error instanceof Error ? error.message : 'Authentication failed. Please try again.'
+        mode === 'login' ? t('auth.signInFailed') : t('auth.signUpFailed'),
+        error instanceof Error ? error.message : t('auth.genericFailure')
       );
     } finally {
       setIsLoading(false);
@@ -130,14 +131,14 @@ export function LoginScreen() {
   const handleForgotPassword = async () => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      showFeedback('error', 'Enter your email', 'Please enter your email address above first.');
+      showFeedback('error', t('auth.enterEmailFirst'), t('auth.enterEmailFirstBody'));
       return;
     }
     const { error } = await resetPassword(trimmedEmail);
     if (error) {
-      showFeedback('error', 'Error', error.message);
+      showFeedback('error', t('auth.errorTitle'), error.message);
     } else {
-      showFeedback('success', 'Email sent', 'Check your inbox for a password reset link.');
+      showFeedback('success', t('auth.emailSent'), t('auth.resetLinkSent'));
     }
   };
 
@@ -177,7 +178,7 @@ export function LoginScreen() {
               CoachOS
             </Text>
             <Text style={{ fontSize: 15, color: DesignTokens.colors.text.muted, textAlign: 'center' }}>
-              {mode === 'login' ? 'Sign in to your account' : 'Create your coach account'}
+              {mode === 'login' ? t('auth.signInSubtitle') : t('auth.signUpSubtitle')}
             </Text>
           </View>
 
@@ -185,7 +186,7 @@ export function LoginScreen() {
           <View style={{ gap: 16, marginBottom: 8 }}>
             <View>
               <Text style={{ fontSize: 14, fontWeight: '500', color: DesignTokens.colors.text.strong, marginBottom: 8 }}>
-                Email
+                {t('auth.email')}
               </Text>
               <TextInput
                 value={email}
@@ -200,7 +201,7 @@ export function LoginScreen() {
                   fontSize: 16,
                   color: DesignTokens.colors.text.strong,
                 }}
-                placeholder="your@email.com"
+                placeholder={t('auth.emailPlaceholder')}
                 placeholderTextColor={DesignTokens.colors.text.faint}
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -213,7 +214,7 @@ export function LoginScreen() {
 
             <View>
               <Text style={{ fontSize: 14, fontWeight: '500', color: DesignTokens.colors.text.strong, marginBottom: 8 }}>
-                Password
+                {t('auth.password')}
               </Text>
               <TextInput
                 value={password}
@@ -228,7 +229,7 @@ export function LoginScreen() {
                   fontSize: 16,
                   color: DesignTokens.colors.text.strong,
                 }}
-                placeholder={mode === 'signup' ? 'Minimum 6 characters' : '••••••••'}
+                placeholder={mode === 'signup' ? t('auth.passwordPlaceholder') : '••••••••'}
                 placeholderTextColor={DesignTokens.colors.text.faint}
                 secureTextEntry
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
@@ -242,7 +243,7 @@ export function LoginScreen() {
           {/* Forgot password */}
           {mode === 'login' && (
             <Pressable onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginBottom: 24, paddingVertical: 8 }}>
-              <Text style={{ fontSize: 14, color: DesignTokens.colors.brand.default }}>Forgot password?</Text>
+              <Text style={{ fontSize: 14, color: DesignTokens.colors.brand.default }}>{t('auth.forgotPassword')}</Text>
             </Pressable>
           )}
           {mode === 'signup' && <View style={{ height: 24 }} />}
@@ -310,12 +311,12 @@ export function LoginScreen() {
               <>
                 <Ionicons name="checkmark-circle" size={20} color={DesignTokens.colors.white} />
                 <Text style={{ fontSize: 16, fontWeight: '700', color: DesignTokens.colors.white }}>
-                  {mode === 'signup' ? 'Account Created' : 'Success'}
+                  {mode === 'signup' ? t('auth.accountCreated') : t('auth.success')}
                 </Text>
               </>
             ) : (
               <Text style={{ fontSize: 16, fontWeight: '600', color: DesignTokens.colors.white }}>
-                {mode === 'login' ? 'Sign In' : 'Create Account'}
+                {mode === 'login' ? t('auth.signInButton') : t('auth.createAccount')}
               </Text>
             )}
           </Pressable>
@@ -338,20 +339,20 @@ export function LoginScreen() {
           >
             <Ionicons name="sparkles-outline" size={18} color={DesignTokens.colors.brand.default} />
             <Text style={{ fontSize: 16, fontWeight: '700', color: DesignTokens.colors.brand.default }}>
-              Explore a demo workspace
+              {t('auth.exploreDemo')}
             </Text>
           </Pressable>
 
           <Text style={{ textAlign: 'center', fontSize: 13, color: DesignTokens.colors.text.muted, lineHeight: 18, marginBottom: 20 }}>
-            No account needed. Sample bookings, payments, and students are preloaded.
+            {t('auth.demoHint')}
           </Text>
 
           {/* Toggle */}
           <Pressable onPress={switchMode}>
             <Text style={{ textAlign: 'center', fontSize: 15, color: DesignTokens.colors.text.muted }}>
-              {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
+              {mode === 'login' ? t('auth.noAccount') : t('auth.haveAccount')}
               <Text style={{ color: DesignTokens.colors.brand.default, fontWeight: '600' }}>
-                {mode === 'login' ? 'Sign up' : 'Sign in'}
+                {mode === 'login' ? t('auth.signUp') : t('auth.signIn')}
               </Text>
             </Text>
           </Pressable>

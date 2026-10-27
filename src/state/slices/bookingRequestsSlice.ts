@@ -6,6 +6,7 @@ import { buildScheduledLesson, withNewLessonTotals } from '../../utils/lessonRec
 import { normalizeClockTime } from '../../utils/timeFormat';
 import { getCalendarService } from '../calendarBridge';
 import type { SliceCreator } from './types';
+import { t } from '../../i18n';
 
 export interface BookingRequestsSlice {
   bookingRequests: BookingRequest[];
@@ -22,7 +23,7 @@ export const createBookingRequestsSlice: SliceCreator<BookingRequestsSlice> = (s
   addBookingRequest: (request) =>
     set((state) => {
       if (!request.coachId || !request.studentName || !request.studentContact || !request.requestedDate || !request.requestedTime) {
-        throw new Error('Missing required booking information');
+        throw new Error(t('errors.missingBookingInfo'));
       }
       if (!request.id) {
         throw new Error('Booking request must have an ID');
@@ -33,10 +34,10 @@ export const createBookingRequestsSlice: SliceCreator<BookingRequestsSlice> = (s
   approveBookingRequest: async (requestId) => {
     const state = get();
     const request = state.bookingRequests.find((r) => r.id === requestId);
-    if (!request) throw new Error('Booking request not found');
+    if (!request) throw new Error(t('errors.requestNotFound'));
     const coach = state.coach;
-    if (!coach) throw new Error('Coach profile not available');
-    if (request.status !== 'pending') throw new Error('Request has already been processed');
+    if (!coach) throw new Error(t('errors.coachUnavailable'));
+    if (request.status !== 'pending') throw new Error(t('errors.requestAlreadyProcessed'));
 
     const blocker = getApprovalBlocker({ request, lessons: state.lessons, requests: state.bookingRequests });
     if (blocker) throw new Error(blocker);

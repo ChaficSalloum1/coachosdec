@@ -2,6 +2,7 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
 import type { Coach, BookingRequest, Lesson, Student } from '../types/coach';
+import { t } from '../i18n';
 
 export interface ExportData {
   coach: Coach;
@@ -31,34 +32,15 @@ export async function exportData(data: Omit<ExportData, 'exportDate' | 'version'
     if (await Sharing.isAvailableAsync()) {
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/json',
-        dialogTitle: 'Export CoachOS Data',
+        dialogTitle: t('calendar.exportDialogTitle'),
       });
     } else {
-      Alert.alert('Export Complete', `Data exported to: ${fileName}`);
+      Alert.alert(t('calendar.exportComplete'), t('calendar.exportedTo', { fileName }));
     }
   } catch (error) {
     if (__DEV__) {
       console.error('Export error:', error);
     }
-    Alert.alert('Export Failed', 'Unable to export data. Please try again.');
-  }
-}
-
-export async function importData(): Promise<ExportData | null> {
-  try {
-    // This would typically use DocumentPicker or similar
-    // For now, we'll just show instructions
-    Alert.alert(
-      'Import Data',
-      'To import data, paste your backup JSON in the app settings or contact support.',
-      [{ text: 'OK' }]
-    );
-    return null;
-  } catch (error) {
-    if (__DEV__) {
-      console.error('Import error:', error);
-    }
-    Alert.alert('Import Failed', 'Unable to import data. Please check the file format.');
-    return null;
+    Alert.alert(t('calendar.exportFailed'), t('calendar.exportFailedBody'));
   }
 }

@@ -11,6 +11,7 @@ import { Coach } from '../types/coach';
 import { UI_TIMING } from '../config/appSettings';
 import { buildBookingUrl } from '../utils/publicBooking';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface BookingLinkCardProps {
   coach: Coach;
@@ -28,7 +29,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
     if (!bookingUrl) return;
     try {
       await Share.share({
-        message: `Book a lesson with ${coach.name}: ${bookingUrl}`,
+        message: t('booking.shareMessage', { name: coach.name, url: bookingUrl }),
         url: bookingUrl,
       });
     } catch {
@@ -49,7 +50,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
     return (
       <View className="bg-gray-50 rounded-xl p-4">
         <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
-          Your student booking page is not switched on yet. Once it is, your link and QR code will appear here.
+          {t('booking.notLive')}
         </Text>
       </View>
     );
@@ -59,7 +60,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
     <>
       <View className="bg-gray-50 rounded-xl p-4">
         <Text className="text-sm mb-1" style={{ color: DesignTokens.colors.text.muted }}>
-          Share this link with students so they can book lessons with you:
+          {t('booking.shareThisLink')}
         </Text>
         <Text className="text-sm font-medium mb-4" numberOfLines={1} style={{ color: DesignTokens.colors.brand.default }}>
           {bookingUrl}
@@ -90,7 +91,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
               style={{ backgroundColor: DesignTokens.colors.brand.default }}
             >
               <Ionicons name="share-outline" size={16} color="white" />
-              <Text className="text-sm font-semibold text-white ml-2">Share Link</Text>
+              <Text className="text-sm font-semibold text-white ml-2">{t('booking.shareLink')}</Text>
             </Pressable>
 
             <Pressable
@@ -104,7 +105,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
                 color={copied ? DesignTokens.colors.green.strong : DesignTokens.colors.text.strong}
               />
               <Text className="text-sm font-medium ml-2" style={{ color: copied ? DesignTokens.colors.green.strong : DesignTokens.colors.text.strong }}>
-                {copied ? 'Copied!' : 'Copy Link'}
+                {copied ? t('booking.copied') : t('booking.copyLink')}
               </Text>
             </Pressable>
           </View>
@@ -118,7 +119,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
         >
           <Ionicons name="eye-outline" size={16} color={DesignTokens.colors.brand.default} />
           <Text className="text-sm font-medium ml-2" style={{ color: DesignTokens.colors.brand.default }}>
-            Preview student booking page
+            {t('booking.previewPage')}
           </Text>
         </Pressable>
       </View>
@@ -141,11 +142,11 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
               {coach.name}
             </Text>
             <Text style={{ fontSize: 13, color: DesignTokens.colors.text.muted, marginBottom: 24, textAlign: 'center' }}>
-              Students scan this to book a lesson
+              {t('booking.scanToBook')}
             </Text>
             <QRCode value={bookingUrl} size={220} />
             <Text style={{ fontSize: 12, color: DesignTokens.colors.text.faint, marginTop: 20, textAlign: 'center' }}>
-              Tap anywhere to close
+              {t('booking.tapToClose')}
             </Text>
           </View>
         </Pressable>

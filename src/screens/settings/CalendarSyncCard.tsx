@@ -1,10 +1,10 @@
 import React from 'react';
 import { View, Text, Alert, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
 import { showToast } from '../../state/toastStore';
 import { Coach } from '../../types/coach';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 interface CalendarSyncCardProps {
   coach: Coach;
@@ -12,7 +12,6 @@ interface CalendarSyncCardProps {
 }
 
 export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
-  const { t } = useTranslation();
   const [isInitializing, setIsInitializing] = React.useState(false);
 
   const handleToggle = async (value: boolean) => {
@@ -27,18 +26,18 @@ export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
           const initialized = await CalendarService.initialize();
           if (!initialized) {
             Alert.alert(
-              t('calendarAccessRequired'),
-              t('calendarAccessMessage'),
-              [{ text: t('ok') }]
+              t('settings.calendarAccessRequired'),
+              t('settings.calendarAccessMessage'),
+              [{ text: t('common.ok') }]
             );
             return;
           }
         }
 
         onUpdate({ calendarSyncEnabled: true });
-        showToast(t('calendarSyncEnabledMessage'), 'success');
+        showToast(t('settings.calendarSyncEnabled'), 'success');
       } catch {
-        showToast(t('calendarSyncFailedMessage'), 'error');
+        showToast(t('settings.calendarSyncFailed'), 'error');
       } finally {
         setIsInitializing(false);
       }
@@ -54,11 +53,11 @@ export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
           <View className="flex-row items-center mb-2">
             <Ionicons name="calendar-outline" size={20} color={DesignTokens.colors.brand.default} style={{ marginRight: 8 }} />
             <Text className="text-base font-semibold" style={{ color: DesignTokens.colors.text.strong }}>
-              {t('syncToCalendar')}
+              {t('settings.syncToCalendar')}
             </Text>
           </View>
           <Text className="text-sm" style={{ color: DesignTokens.colors.text.muted }}>
-            {t('syncToCalendarDesc')}
+            {t('settings.syncToCalendarDesc')}
           </Text>
         </View>
         <Switch
@@ -75,7 +74,7 @@ export function CalendarSyncCard({ coach, onUpdate }: CalendarSyncCardProps) {
           <View className="flex-row items-start">
             <Ionicons name="checkmark-circle" size={16} color={DesignTokens.colors.brand.default} style={{ marginRight: 6, marginTop: 2 }} />
             <Text className="text-xs flex-1" style={{ color: DesignTokens.colors.brand.default }}>
-              {t('calendarSyncActive')}
+              {t('settings.calendarSyncActive')}
             </Text>
           </View>
         </View>

@@ -21,7 +21,7 @@ import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { DesignTokens } from '../utils/designTokens';
 import { useCurrency } from '../hooks/useCurrency';
-import { formatTime12Hour } from '../utils/timeFormat';
+import { formatClockTime } from '../utils/timeFormat';
 import { GROUPS, SCHEDULING } from '../config/appSettings';
 import {
   buildWeeklyDates,
@@ -33,6 +33,8 @@ import {
   suggestFreeStartTimes,
   suggestPrice,
 } from '../utils/lessonScheduling';
+import { t } from '../i18n';
+import { formatLocalized } from '../i18n/formatDate';
 
 interface AddLessonSheetProps {
   visible: boolean;
@@ -46,7 +48,7 @@ function buildDatePills() {
   const today = new Date();
   return Array.from({ length: SCHEDULING.datePillDays }, (_, i) => {
     const d = addDays(today, i);
-    return { iso: format(d, 'yyyy-MM-dd'), label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(d, 'EEE d') };
+    return { iso: format(d, 'yyyy-MM-dd'), label: i === 0 ? t('common.today') : i === 1 ? t('common.tomorrow') : formatLocalized(d, 'EEE d') };
   });
 }
 
@@ -123,7 +125,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     const base = buildDatePills();
     return base.some((p) => p.iso === date)
       ? base
-      : [{ iso: date, label: format(new Date(`${date}T12:00:00`), 'EEE d MMM') }, ...base];
+      : [{ iso: date, label: formatLocalized(new Date(`${date}T12:00:00`), 'EEE d MMM') }, ...base];
   }, [date, visible]);
 
   const freeTimes = useMemo(
@@ -172,7 +174,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     setSelectedIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
       if (prev.length >= capacity) {
-        setError(`This group holds ${capacity} players.`);
+        setError(t('addLesson.groupHolds', { capacity }));
         return prev;
       }
       return [...prev, id];
@@ -218,8 +220,8 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   const saveNewStudent = () => {
     const name = newName.trim();
     const contact = newContact.trim();
-    if (name.length < 2) return setError("Enter the student's name.");
-    if (contact.length < 3) return setError('Enter a phone number or email.');
+    if (name.length < 2) return setError(t('addLesson.enterStudentName'));
+    if (contact.length < 3) return setError(t('addLesson.enterContact'));
     if (!coach) return;
     const id = uuidv4();
     addStudent({
@@ -248,7 +250,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
   const courtName = (id: string | null) => {
     const court = courts.find((c) => c.id === id);
-    if (!court) return 'No court';
+    if (!court) return t('addLesson.noCourt');
     const facility = facilities.find((f) => f.id === court.facilityId);
     return facilities.length > 1 && facility ? `${court.label} · ${facility.name}` : court.label;
   };
@@ -260,7 +262,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     setError('');
     if (!canSave || !startTime) return;
     if (!endsBeforeMidnight(startTime, duration)) {
-      setError('That lesson would run past midnight. Pick an earlier time or a shorter length.');
+      setError(t('addLesson.pastMidnight'));
       return;
     }
     const location = courtLocation(courtId);
@@ -312,18 +314,26 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
       // Lessons already created stay; tell the coach exactly where it stopped.
       setError(
         created > 0
-          ? `Added ${created} of ${plan.book.length} lessons, then: ${e instanceof Error ? e.message : 'something went wrong.'}`
+          ? t('addLesson.partlyAdded', {
+              done: created,
+              total: plan.book.length,
+              reason: e instanceof Error ? e.message : t('addLesson.somethingWentWrong'),
+            })
           : e instanceof Error
             ? e.message
-            : 'Could not create the lesson.'
+            : t('addLesson.couldNotCreate')
       );
       return;
     }
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const noun = isGroup ? 'group lesson' : 'lesson';
-    const skippedNote = plan.skipped.length > 0 ? ` Skipped ${plan.skipped.length} clash${plan.skipped.length > 1 ? 'es' : ''}.` : '';
-    showToast(created > 1 ? `Added ${created} weekly ${noun}s.${skippedNote}` : `${isGroup ? 'Group lesson' : 'Lesson'} added`, 'success');
+    const skippedNote = plan.skipped.length > 0 ? t('addLesson.skipped', { count: plan.skipped.length }) : '';
+    showToast(
+      created > 1
+        ? t(isGroup ? 'addLesson.addedWeeklyGroup' : 'addLesson.addedWeekly', { count: created }) + skippedNote
+        : t(isGroup ? 'addLesson.groupLessonAdded' : 'addLesson.lessonAdded'),
+      'success'
+    );
     onClose();
   };
 
@@ -342,10 +352,10 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
       : isGroup
         ? `${selectedIds.length} player${selectedIds.length > 1 ? 's' : ''}`
         : students.find((s) => s.id === selectedIds[0])?.name,
-    startTime ? formatTime12Hour(startTime) : null,
+    startTime ? formatClockTime(startTime) : null,
     durationLabel(duration),
-    isNaN(priceNumber) ? null : `${formatMoney(priceNumber)}${isGroup ? ' each' : ''}`,
-    repeat ? `weekly x${repeatCount}` : null,
+    isNaN(priceNumber) ? null : isGroup ? t('addLesson.summaryEach', { price: formatMoney(priceNumber) }) : formatMoney(priceNumber),
+    repeat ? t('addLesson.summaryWeekly', { count: repeatCount }) : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -353,7 +363,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: DesignTokens.colors.overlay.scrimLight, justifyContent: 'flex-end' }}>
-        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel="Close" />
+        <Pressable style={{ flex: 1 }} onPress={onClose} accessibilityLabel={t('common.close')} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View
             style={{
@@ -379,10 +389,10 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
               }}
             >
               <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite }}>
-                {isGroup ? 'Add group lesson' : 'Add lesson'}
+                {isGroup ? t('addLesson.addGroupLesson') : t('addLesson.addLesson')}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ ...DesignTokens.typography.subhead, color: DesignTokens.colors.grey }}>Group</Text>
+                <Text style={{ ...DesignTokens.typography.subhead, color: DesignTokens.colors.grey }}>{t('addLesson.group')}</Text>
                 <Switch
                   value={isGroup}
                   onValueChange={changeGroupMode}
@@ -401,26 +411,26 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
               {isGroup && (
                 <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>Max players</Text>
+                  <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>{t('addLesson.maxPlayers')}</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                    <RoundButton icon="remove" label="Fewer players" disabled={capacity <= GROUPS.minCapacity} onPress={() => changeCapacity(capacity - 1)} />
+                    <RoundButton icon="remove" label={t('addLesson.fewerPlayers')} disabled={capacity <= GROUPS.minCapacity} onPress={() => changeCapacity(capacity - 1)} />
                     <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite, minWidth: 24, textAlign: 'center' }}>
                       {capacity}
                     </Text>
-                    <RoundButton icon="add" label="More players" disabled={capacity >= GROUPS.maxCapacity} onPress={() => changeCapacity(capacity + 1)} />
+                    <RoundButton icon="add" label={t('addLesson.morePlayers')} disabled={capacity >= GROUPS.maxCapacity} onPress={() => changeCapacity(capacity + 1)} />
                   </View>
                 </View>
               )}
 
-              <Label>{isGroup ? `Players (${selectedIds.length}/${capacity})` : 'Who'}</Label>
+              <Label>{isGroup ? t('addLesson.playersCount', { selected: selectedIds.length, capacity }) : t('addLesson.who')}</Label>
               <View style={{ paddingHorizontal: 20 }}>
                 {showNewStudent ? (
                   <View style={{ gap: 8 }}>
-                    <Field value={newName} onChangeText={setNewName} placeholder="Name" autoFocus />
-                    <Field value={newContact} onChangeText={setNewContact} placeholder="Phone or email" keyboardType="email-address" autoCapitalize="none" />
+                    <Field value={newName} onChangeText={setNewName} placeholder={t('common.name')} autoFocus />
+                    <Field value={newContact} onChangeText={setNewContact} placeholder={t('addLesson.phoneOrEmail')} keyboardType="email-address" autoCapitalize="none" />
                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <Chip label="Cancel" onPress={() => setShowNewStudent(false)} />
-                      <Chip label="Save student" selected onPress={saveNewStudent} />
+                      <Chip label={t('common.cancel')} onPress={() => setShowNewStudent(false)} />
+                      <Chip label={t('addLesson.saveStudent')} selected onPress={saveNewStudent} />
                     </View>
                   </View>
                 ) : (
@@ -429,23 +439,23 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                       {shownStudents.map((s) => (
                         <Chip key={s.id} label={s.name} selected={selectedIds.includes(s.id)} onPress={() => toggleStudent(s.id)} />
                       ))}
-                      <Chip label="+ New" onPress={() => { setShowNewStudent(true); setError(''); }} />
+                      <Chip label={t('addLesson.newStudent')} onPress={() => { setShowNewStudent(true); setError(''); }} />
                     </View>
                     {students.length > SCHEDULING.searchStudentsAfter && (
                       <View style={{ marginTop: 10 }}>
-                        <Field value={search} onChangeText={setSearch} placeholder="Search all students" />
+                        <Field value={search} onChangeText={setSearch} placeholder={t('addLesson.searchStudents')} />
                       </View>
                     )}
                   </>
                 )}
               </View>
 
-              <Label>When</Label>
+              <Label>{t('addLesson.when')}</Label>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
                 {datePills.map((p) => (
                   <Chip key={p.iso} label={p.label} selected={date === p.iso} onPress={() => setDate(p.iso)} />
                 ))}
-                <Chip label="Other date" onPress={() => setShowDatePicker((v) => !v)} />
+                <Chip label={t('addLesson.otherDate')} onPress={() => setShowDatePicker((v) => !v)} />
               </ScrollView>
               {showDatePicker && (
                 <DateTimePicker
@@ -463,13 +473,13 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
               <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {timeOptions.map((t) => (
-                    <Chip key={t} label={formatTime12Hour(t)} selected={startTime === t} onPress={() => { setStartTime(t); setError(''); }} />
+                    <Chip key={t} label={formatClockTime(t)} selected={startTime === t} onPress={() => { setStartTime(t); setError(''); }} />
                   ))}
-                  <Chip label="Other time" onPress={() => setShowTimeWheel((v) => !v)} />
+                  <Chip label={t('addLesson.otherTime')} onPress={() => setShowTimeWheel((v) => !v)} />
                 </View>
                 {timeOptions.length === 0 && (
                   <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 8 }}>
-                    No free times set for this day. Pick another time.
+                    {t('addLesson.noFreeTimes')}
                   </Text>
                 )}
               </View>
@@ -487,7 +497,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                   />
                   {Platform.OS === 'ios' && (
                     <View style={{ paddingHorizontal: 20 }}>
-                      <Chip label="Done" selected onPress={() => setShowTimeWheel(false)} />
+                      <Chip label={t('common.done')} selected onPress={() => setShowTimeWheel(false)} />
                     </View>
                   )}
                 </View>
@@ -495,7 +505,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
               <View style={{ paddingHorizontal: 20, paddingTop: 14 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>Repeat weekly</Text>
+                  <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>{t('addLesson.repeatWeekly')}</Text>
                   <Switch
                     value={repeat}
                     onValueChange={setRepeat}
@@ -507,7 +517,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
                     {SCHEDULING.repeatWeeklyOptions.map((n) => (
                       <View key={n} style={{ flex: 1 }}>
-                        <Chip label={`${n} weeks`} selected={repeatCount === n} onPress={() => setRepeatCount(n)} fill />
+                        <Chip label={t('addLesson.weeksOption', { n })} selected={repeatCount === n} onPress={() => setRepeatCount(n)} fill />
                       </View>
                     ))}
                   </View>
@@ -516,12 +526,15 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
               {conflicts.length > 0 && (
                 <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.warning, paddingHorizontal: 20, paddingTop: 10 }}>
-                  Overlaps with {conflicts[0].groupId ? 'a group lesson' : conflicts[0].studentName} at {formatTime12Hour(conflicts[0].startTime)}
-                  {conflicts.length > 1 ? ` and ${conflicts.length - 1} more` : ''}.
+                  {t('addLesson.overlaps', {
+                    what: conflicts[0].groupId ? t('addLesson.overlapsGroup') : conflicts[0].studentName,
+                    time: formatClockTime(conflicts[0].startTime),
+                    more: conflicts.length > 1 ? t('addLesson.andMore', { count: conflicts.length - 1 }) : '',
+                  })}
                 </Text>
               )}
 
-              <Label>Length</Label>
+              <Label>{t('addLesson.length')}</Label>
               <View style={{ paddingHorizontal: 20, flexDirection: 'row', gap: 8 }}>
                 {SCHEDULING.lessonLengthOptions.map((m) => (
                   <View key={m} style={{ flex: 1 }}>
@@ -530,7 +543,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 ))}
               </View>
 
-              <Label>{isGroup ? 'Price per player' : 'Price'}</Label>
+              <Label>{isGroup ? t('addLesson.pricePerPlayer') : t('addLesson.price')}</Label>
               <View style={{ paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={{ ...DesignTokens.typography.title2, color: DesignTokens.colors.grey }}>{symbol}</Text>
                 <TextInput
@@ -538,7 +551,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                   onChangeText={(text) => { setPrice(text); setPriceEdited(true); }}
                   keyboardType="decimal-pad"
                   returnKeyType="done"
-                  accessibilityLabel="Price"
+                  accessibilityLabel={t('addLesson.price')}
                   style={{
                     flex: 1,
                     minHeight: 48,
@@ -553,11 +566,11 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
               {courts.length > 0 && (
                 <>
-                  <Label>Court</Label>
+                  <Label>{t('addLesson.court')}</Label>
                   <View style={{ paddingHorizontal: 20 }}>
                     {showCourts ? (
                       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                        <Chip label="No court" selected={courtId === null} onPress={() => { setCourtId(null); setShowCourts(false); }} />
+                        <Chip label={t('addLesson.noCourt')} selected={courtId === null} onPress={() => { setCourtId(null); setShowCourts(false); }} />
                         {courts.map((c) => (
                           <Chip key={c.id} label={courtName(c.id)} selected={courtId === c.id} onPress={() => { setCourtId(c.id); setShowCourts(false); }} />
                         ))}
@@ -591,7 +604,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 }}
               >
                 <Text style={{ ...DesignTokens.typography.headline, color: canSave ? 'white' : DesignTokens.colors.grey }}>
-                  {repeat ? `Add ${repeatCount} weekly lessons` : isGroup ? 'Add group lesson' : 'Add lesson'}
+                  {repeat ? t('addLesson.addWeeklyLessons', { count: repeatCount }) : isGroup ? t('addLesson.addGroupLesson') : t('addLesson.addLesson')}
                 </Text>
               </Pressable>
             </View>

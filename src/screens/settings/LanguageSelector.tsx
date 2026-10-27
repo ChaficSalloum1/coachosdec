@@ -1,15 +1,16 @@
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import { saveLanguage } from '../../i18n/config';
+import { setLanguage, type Language } from '../../i18n';
+import { saveLanguage } from '../../i18n/persistence';
+import { useLanguage } from '../../i18n/useLanguage';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 export function LanguageSelector() {
-  const { t, i18n } = useTranslation();
-  const currentLanguage = i18n.language;
+  const currentLanguage = useLanguage();
 
-  const handleLanguageChange = async (lang: string) => {
-    await i18n.changeLanguage(lang);
+  const handleLanguageChange = async (lang: Language) => {
+    await setLanguage(lang);
     await saveLanguage(lang);
   };
 
@@ -30,7 +31,7 @@ export function LanguageSelector() {
               className="text-base font-medium"
               style={{ color: currentLanguage === 'en' ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong }}
             >
-              {t('english')}
+              {t('settings.english')}
             </Text>
           </View>
           {currentLanguage === 'en' && (
@@ -52,7 +53,7 @@ export function LanguageSelector() {
               className="text-base font-medium"
               style={{ color: currentLanguage === 'el' ? DesignTokens.colors.brand.default : DesignTokens.colors.text.strong }}
             >
-              {t('greek')}
+              {t('settings.greek')}
             </Text>
           </View>
           {currentLanguage === 'el' && (

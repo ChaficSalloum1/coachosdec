@@ -10,6 +10,7 @@ import { useCoachStore } from '../state/coachStore';
 import { UI_TIMING } from '../config/appSettings';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -136,7 +137,7 @@ export function RootNavigator() {
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: DesignTokens.colors.white }}>
         <ActivityIndicator color={DesignTokens.colors.brand.default} size="large" />
         <Text style={{ color: DesignTokens.colors.text.muted, fontSize: 14, marginTop: 12 }}>
-          CoachOS is opening...
+          {t('shell.opening')}
         </Text>
       </View>
     );

@@ -2,22 +2,15 @@
 // they are shown and what the payment messages say. Stored inside the coach's
 // payment settings, so no database change is needed.
 
+import { t } from '../../i18n';
+
 export const CURRENCY_CODES = ['EUR', 'USD', 'GBP', 'AUD', 'CAD', 'CHF', 'SEK', 'NZD'] as const;
 
 export type CurrencyCode = (typeof CURRENCY_CODES)[number];
 
 export const DEFAULT_CURRENCY: CurrencyCode = 'EUR';
 
-export const CURRENCY_LABELS: Record<CurrencyCode, string> = {
-  EUR: 'Euro',
-  USD: 'US dollar',
-  GBP: 'British pound',
-  AUD: 'Australian dollar',
-  CAD: 'Canadian dollar',
-  CHF: 'Swiss franc',
-  SEK: 'Swedish krona',
-  NZD: 'New Zealand dollar',
-};
+export const currencyLabel = (code: CurrencyCode): string => t(`currencies.${code}`);
 
 export function isCurrencyCode(value: unknown): value is CurrencyCode {
   return typeof value === 'string' && (CURRENCY_CODES as readonly string[]).includes(value);

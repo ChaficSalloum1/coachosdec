@@ -12,6 +12,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface SwipeableCardProps {
   children: React.ReactNode;
@@ -32,8 +33,8 @@ export function SwipeableCard({
   onPress,
   rightSwipeEnabled = true,
   leftSwipeEnabled = true,
-  rightSwipeText = "Swipe right →",
-  leftSwipeText = "← Swipe left",
+  rightSwipeText = t('common.swipeRight'),
+  leftSwipeText = t('common.swipeLeft'),
   hideSwipeHints = false,
 }: SwipeableCardProps) {
   const translateX = useSharedValue(0);

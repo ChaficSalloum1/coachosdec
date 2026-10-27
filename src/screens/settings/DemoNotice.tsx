@@ -1,6 +1,7 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { DesignTokens } from '../../utils/designTokens';
+import { t } from '../../i18n';
 
 export function DemoNotice() {
   return (
@@ -14,9 +15,9 @@ export function DemoNotice() {
         marginBottom: 20,
       }}
     >
-      <Text style={{ color: DesignTokens.colors.amber.text, fontSize: 15, fontWeight: '700', marginBottom: 4 }}>Demo workspace</Text>
+      <Text style={{ color: DesignTokens.colors.amber.text, fontSize: 15, fontWeight: '700', marginBottom: 4 }}>{t('shell.demoTitle')}</Text>
       <Text style={{ color: DesignTokens.colors.amber.text, fontSize: 13, lineHeight: 18 }}>
-        You are exploring sample data locally. Nothing is synced to Supabase.
+        {t('settings.demoNotice')}
       </Text>
     </View>
   );

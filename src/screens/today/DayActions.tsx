@@ -6,6 +6,7 @@ import type { Lesson } from '../../types/coach';
 import { isToday } from '../../utils/dayNav';
 import { DesignTokens } from '../../utils/designTokens';
 import { useDayActions } from './useDayActions';
+import { t } from '../../i18n';
 
 interface DayActionsProps {
   dateISO: string;
@@ -26,7 +27,7 @@ export function DayActions({ dateISO, lessons }: DayActionsProps) {
             style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.accent }}>
-              Remind students
+              {t('today.remindStudents')}
             </Text>
           </Pressable>
           <Pressable
@@ -35,14 +36,14 @@ export function DayActions({ dateISO, lessons }: DayActionsProps) {
             style={{ minHeight: 48, alignItems: 'center', justifyContent: 'center' }}
           >
             <Text style={{ ...DesignTokens.typography.subhead, fontWeight: '600', color: DesignTokens.colors.danger }}>
-              {isToday(dateISO) ? 'Cancel the rest of today' : 'Cancel this day'}
+              {isToday(dateISO) ? t('today.cancelRestOfToday') : t('today.cancelThisDay')}
             </Text>
           </Pressable>
         </View>
       )}
 
       <CancellationNoticesSheet notices={actions.cancelledNotices} onClose={actions.closeCancelledNotices} />
-      <CancellationNoticesSheet notices={actions.reminderNotices} title="Remind students" onClose={actions.closeReminderNotices} />
+      <CancellationNoticesSheet notices={actions.reminderNotices} title={t('today.remindStudents')} onClose={actions.closeReminderNotices} />
     </>
   );
 }

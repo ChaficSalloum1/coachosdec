@@ -3,8 +3,9 @@ import { View, Text } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
 import { Lesson } from '../../types/coach';
 import { DesignTokens } from '../../utils/designTokens';
-import { formatTime12Hour } from '../../utils/timeFormat';
+import { formatClockTime } from '../../utils/timeFormat';
 import { LessonAvatar } from '../../components/LessonAvatar';
+import { t } from '../../i18n';
 
 // Next Lesson Hero — shows the upcoming lesson for today
 export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
@@ -30,7 +31,7 @@ export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
   const groupPlayers = nextLesson.groupId
     ? lessons.filter((l) => l.groupId === nextLesson.groupId && l.status === 'scheduled').length
     : 0;
-  const heroTitle = groupPlayers > 0 ? `Group · ${groupPlayers} player${groupPlayers === 1 ? '' : 's'}` : nextLesson.studentName;
+  const heroTitle = groupPlayers > 0 ? t('today.groupHero', { count: groupPlayers }) : nextLesson.studentName;
 
   const minutesUntil = () => {
     const [nh, nm] = nowTime.split(':').map(Number);
@@ -40,7 +41,7 @@ export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
 
   const mins = minutesUntil();
   const isImminent = mins <= 5;
-  const timeLabel = mins <= 0 ? 'Now' : mins === 1 ? 'in 1 min' : `in ${mins} min`;
+  const timeLabel = mins <= 0 ? t('today.now') : mins === 1 ? t('today.inOneMinute') : t('today.inMinutes', { count: mins });
   const timeLabelColor = isImminent ? DesignTokens.colors.warning : DesignTokens.colors.success;
 
   return (
@@ -63,7 +64,7 @@ export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
       ]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-        <LessonAvatar name={groupPlayers > 0 ? 'Group' : nextLesson.studentName} size={36} />
+        <LessonAvatar name={groupPlayers > 0 ? t('addLesson.group') : nextLesson.studentName} size={36} />
         <View style={{ marginLeft: 12, flex: 1 }}>
           <Text
             style={{
@@ -74,7 +75,7 @@ export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
               textTransform: 'uppercase',
             }}
           >
-            NEXT UP
+            {t('today.nextUp')}
           </Text>
           <Text
             style={{
@@ -87,7 +88,7 @@ export function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
             {heroTitle}
           </Text>
           <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>
-            {formatTime12Hour(nextLesson.startTime)} – {formatTime12Hour(nextLesson.endTime)}
+            {formatClockTime(nextLesson.startTime)} – {formatClockTime(nextLesson.endTime)}
           </Text>
         </View>
       </View>

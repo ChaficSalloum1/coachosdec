@@ -1,0 +1,27 @@
+import type { Translation } from '../en';
+
+export const common: Translation['common'] = {
+  cancel: 'Ακύρωση',
+  ok: 'Εντάξει',
+  close: 'Κλείσιμο',
+  save: 'Αποθήκευση',
+  delete: 'Διαγραφή',
+  edit: 'Επεξεργασία',
+  add: 'Προσθήκη',
+  remove: 'Αφαίρεση',
+  undo: 'Αναίρεση',
+  done: 'Τέλος',
+  gotIt: 'Κατάλαβα',
+  keep: 'Διατήρηση',
+  today: 'Σήμερα',
+  tomorrow: 'Αύριο',
+  message: 'Μήνυμα',
+  sent: 'Στάλθηκε',
+  notNow: 'Όχι τώρα',
+  noContact: 'Χωρίς στοιχεία επικοινωνίας',
+  name: 'Όνομα',
+  swipeRight: 'Σύρετε δεξιά →',
+  swipeLeft: '← Σύρετε αριστερά',
+  somethingWentWrong: 'Κάτι πήγε στραβά.',
+  quoted: '«{{text}}»',
+};

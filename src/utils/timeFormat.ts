@@ -1,62 +1,18 @@
-/**
- * Centralized time formatting utilities
- * Replaces 8+ duplicate implementations across the codebase
- */
+/*
+Clock-time helpers. Times inside the app are always "HH:mm" (24-hour); only
+what is shown on screen changes with the language.
+*/
+import { currentLanguage } from '../i18n';
 
-/**
- * Convert 24-hour time format (HH:mm) to 12-hour format with AM/PM
- * @param time - Time string in HH:mm format (e.g., "14:30")
- * @returns Formatted time string (e.g., "2:30 PM")
- */
-export const formatTime12Hour = (time: string): string => {
+const TIME_PATTERN = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+const LAST_MINUTE_OF_DAY = 24 * 60 - 1;
+
+/** "14:30" for display: "2:30 PM" in English, "14:30" in Greek (24-hour clock). */
+export const formatClockTime = (time: string): string => {
   const [hours, minutes] = time.split(':');
+  if (currentLanguage() === 'el') return `${hours.padStart(2, '0')}:${minutes}`;
   const hour = parseInt(hours, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minutes} ${ampm}`;
-};
-
-/**
- * Convert 24-hour time format to 12-hour format without AM/PM
- * @param time - Time string in HH:mm format
- * @returns Formatted time string (e.g., "2:30")
- */
-export const formatTime12HourShort = (time: string): string => {
-  const [hours, minutes] = time.split(':');
-  const hour = parseInt(hours, 10);
-  const displayHour = hour % 12 || 12;
-  return `${displayHour}:${minutes}`;
-};
-
-/**
- * Get AM/PM indicator for a time string
- * @param time - Time string in HH:mm format
- * @returns "AM" or "PM"
- */
-export const getAmPm = (time: string): 'AM' | 'PM' => {
-  const [hours] = time.split(':');
-  const hour = parseInt(hours, 10);
-  return hour >= 12 ? 'PM' : 'AM';
-};
-
-/**
- * Format a time range in 12-hour format
- * @param startTime - Start time in HH:mm format
- * @param endTime - End time in HH:mm format
- * @returns Formatted range (e.g., "2:30 PM - 3:30 PM")
- */
-export const formatTimeRange = (startTime: string, endTime: string): string => {
-  return `${formatTime12Hour(startTime)} - ${formatTime12Hour(endTime)}`;
-};
-
-/**
- * Validate time format (HH:mm)
- * @param time - Time string to validate
- * @returns true if valid format
- */
-export const isValidTimeFormat = (time: string): boolean => {
-  const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
-  return timeRegex.test(time);
+  return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
 };
 
 /**
@@ -70,14 +26,9 @@ export const normalizeClockTime = <T>(time: T): T | string => {
   return match ? match[1] : time;
 };
 
-/**
- * Parse time string to hours and minutes
- * @param time - Time string in HH:mm format
- * @returns Object with hours and minutes as numbers
- * @throws Error if invalid format
- */
+/** Hours and minutes of an "HH:mm" time. Throws on anything else. */
 export const parseTime = (time: string): { hours: number; minutes: number } => {
-  if (!isValidTimeFormat(time)) {
+  if (!TIME_PATTERN.test(time)) {
     throw new Error(`Invalid time format: ${time}. Expected HH:mm format.`);
   }
 
@@ -90,39 +41,11 @@ export const parseTime = (time: string): { hours: number; minutes: number } => {
  * Lessons are stored with same-day start and end times, so a result past
  * midnight is clamped to 23:59 ("24:30" is not a valid time and the database
  * rejects it); the Add Lesson sheet stops people creating such lessons.
- * @param time - Start time in HH:mm format
- * @param minutesToAdd - Minutes to add
- * @returns New time in HH:mm format
  */
 export const addMinutesToTime = (time: string, minutesToAdd: number): string => {
   const { hours, minutes } = parseTime(time);
-  const total = Math.min(hours * 60 + minutes + minutesToAdd, 24 * 60 - 1);
+  const total = Math.min(hours * 60 + minutes + minutesToAdd, LAST_MINUTE_OF_DAY);
   const newHours = Math.floor(total / 60).toString().padStart(2, '0');
   const newMinutes = (total % 60).toString().padStart(2, '0');
   return `${newHours}:${newMinutes}`;
-};
-
-/**
- * Compare two time strings
- * @param time1 - First time in HH:mm format
- * @param time2 - Second time in HH:mm format
- * @returns -1 if time1 < time2, 0 if equal, 1 if time1 > time2
- */
-export const compareTime = (time1: string, time2: string): number => {
-  return time1.localeCompare(time2);
-};
-
-/**
- * Check if a time falls within a time range
- * @param time - Time to check in HH:mm format
- * @param startTime - Range start in HH:mm format
- * @param endTime - Range end in HH:mm format
- * @returns true if time is within range
- */
-export const isTimeInRange = (
-  time: string,
-  startTime: string,
-  endTime: string
-): boolean => {
-  return compareTime(time, startTime) >= 0 && compareTime(time, endTime) <= 0;
 };

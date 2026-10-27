@@ -2,6 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DesignTokens } from '../utils/designTokens';
+import { t } from '../i18n';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -72,10 +73,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               <Ionicons name="warning-outline" size={48} color={DesignTokens.colors.red['600']} />
             </View>
             <Text className="text-2xl font-bold text-center mb-2" style={{ color: DesignTokens.colors.text.strong }}>
-              Something Went Wrong
+              {t('shell.errorTitle')}
             </Text>
             <Text className="text-base text-center" style={{ color: DesignTokens.colors.text.muted }}>
-              {"We encountered an unexpected error. Don't worry, your data is safe."}
+              {t('shell.errorBody')}
             </Text>
           </View>
 
@@ -100,13 +101,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             className="bg-blue-500 rounded-xl py-4 px-6 active:bg-blue-600"
           >
             <Text className="text-white text-center font-semibold text-base">
-              Try Again
+              {t('shell.tryAgain')}
             </Text>
           </Pressable>
 
           {__DEV__ && (
             <Text className="text-xs text-center mt-4" style={{ color: DesignTokens.colors.text.muted }}>
-              This detailed error view is only shown in development mode
+              {t('shell.errorDevOnly')}
             </Text>
           )}
         </View>
