@@ -5,6 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LessonAvatar } from './LessonAvatar';
+import { LessonPaymentSheet } from './payments/LessonPaymentSheet';
 import { PaymentStatusBadge } from './payments/PaymentStatusBadge';
 import { normalizePaymentStatus } from '../modules/payments';
 import { useCoachStore } from '../state/coachStore';
@@ -32,18 +33,20 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
     lessons,
     students,
     formatLocationText,
-    markLessonPaid,
     addToGroupLesson,
     removeFromGroupLesson,
     cancelGroupLesson,
+    markLessonPaid,
   } = useCoachStore();
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [paymentLessonId, setPaymentLessonId] = useState<string | null>(null);
   const { formatMoney } = useCurrency();
 
   const group = groupId ? summarizeGroup(lessons, groupId) : null;
 
   useEffect(() => {
     setShowAddPlayer(false);
+    setPaymentLessonId(null);
   }, [groupId]);
 
   // Everyone cancelled (or the group vanished): nothing left to show.
@@ -181,6 +184,13 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
                 </Pressable>
               )}
               <Pressable
+                onPress={() => setPaymentLessonId(lesson.id)}
+                style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+                accessibilityLabel={`Payment request for ${lesson.studentName}`}
+              >
+                <Ionicons name="card-outline" size={20} color={DesignTokens.colors.grey} />
+              </Pressable>
+              <Pressable
                 onPress={() => confirmRemove(lesson.studentId, lesson.studentName)}
                 style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
                 accessibilityLabel={`Remove ${lesson.studentName}`}
@@ -251,6 +261,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
           </Pressable>
         </ScrollView>
       </View>
+      <LessonPaymentSheet lessonId={paymentLessonId} onClose={() => setPaymentLessonId(null)} />
     </Modal>
   );
 }

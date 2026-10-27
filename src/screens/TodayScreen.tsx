@@ -55,18 +55,9 @@ import {
   getTimeOfDayColor,
 } from '../utils/dayNav';
 import { DesignTokens } from '../utils/designTokens';
-import { PaymentRequestPanel } from '../components/payments/PaymentRequestPanel';
+import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
 import { PaymentStatusBadge } from '../components/payments/PaymentStatusBadge';
-import {
-  buildPaymentReminderMessage,
-  buildPaymentRequestMessage,
-  canSendPaymentReminder,
-  createInstructionFromSettings,
-  eurosToCents,
-  generatePaymentReferenceCode,
-  normalizePaymentSettings,
-  normalizePaymentStatus,
-} from '../modules/payments';
+import { normalizePaymentStatus } from '../modules/payments';
 
 const PAGE_WINDOW_SIZE = 61; // ±30 days from today
 const CENTER_PAGE_INDEX = 30; // Today's index
@@ -585,6 +576,12 @@ function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
 
   if (!nextLesson) return null;
 
+  // A group is one session: say so once instead of naming whichever player sorts first.
+  const groupPlayers = nextLesson.groupId
+    ? lessons.filter((l) => l.groupId === nextLesson.groupId && l.status === 'scheduled').length
+    : 0;
+  const heroTitle = groupPlayers > 0 ? `Group · ${groupPlayers} player${groupPlayers === 1 ? '' : 's'}` : nextLesson.studentName;
+
   const formatTime = (time: string) => {
     const [hours, minutes] = time.split(':');
     const hour = parseInt(hours);
@@ -623,7 +620,7 @@ function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
       ]}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-        <LessonAvatar name={nextLesson.studentName} size={36} />
+        <LessonAvatar name={groupPlayers > 0 ? 'Group' : nextLesson.studentName} size={36} />
         <View style={{ marginLeft: 12, flex: 1 }}>
           <Text
             style={{
@@ -644,7 +641,7 @@ function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
             }}
             numberOfLines={1}
           >
-            {nextLesson.studentName}
+            {heroTitle}
           </Text>
           <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>
             {formatTime(nextLesson.startTime)} – {formatTime(nextLesson.endTime)}
@@ -792,13 +789,7 @@ interface LessonCardProps {
 }
 
 const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: LessonCardProps) => {
-  const {
-    coach,
-    formatLocationText,
-    requestLessonPayment,
-    sendLessonPaymentReminder,
-    cancelLessonPayment,
-  } = useCoachStore();
+  const { formatLocationText } = useCoachStore();
   const { formatMoney } = useCurrency();
   const cancelAlertOpenRef = useRef(false);
   const [paymentPanelVisible, setPaymentPanelVisible] = useState(false);
@@ -888,33 +879,7 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
 
   const locationText = formatLocationText(lesson.areaId, lesson.facilityId, lesson.courtId);
   const timeColor = getTimeOfDayColor(lesson.startTime);
-  const paymentSettings = normalizePaymentSettings(coach?.paymentSettings);
   const paymentStatus = normalizePaymentStatus(lesson.paymentStatus, lesson.isPaid);
-  const reference = lesson.paymentReferenceCode
-    ?? (coach ? generatePaymentReferenceCode(coach.name, lesson.id) : lesson.id);
-  const instruction = createInstructionFromSettings({
-    settings: paymentSettings,
-    method: lesson.paymentMethodRequested ?? paymentSettings.paymentPreference,
-    amountCents: eurosToCents(lesson.price),
-    reference,
-  });
-  const requestMessage = buildPaymentRequestMessage({
-    coachName: coach?.name ?? 'your coach',
-    clientName: lesson.studentName,
-    sessionTitle: 'lesson',
-    startsAt: `${lesson.date} at ${formatTime(lesson.startTime)}`,
-    amountCents: eurosToCents(lesson.price),
-    currency: paymentSettings.currency,
-    paymentInstructions: instruction.displayText,
-    cancellationPolicy: paymentSettings.cancellationPolicy,
-  });
-  const reminderMessage = buildPaymentReminderMessage({
-    clientName: lesson.studentName,
-    sessionTitle: 'lesson',
-    amountCents: eurosToCents(lesson.price),
-    currency: paymentSettings.currency,
-    paymentInstructions: instruction.displayText,
-  });
 
   return (
     <>
@@ -1013,57 +978,10 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onNotePress }: Le
         </View>
       </SwipeableCard>
 
-      <Modal
-        visible={paymentPanelVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setPaymentPanelVisible(false)}
-      >
-        <ScrollView style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
-          <View style={{ padding: 20, paddingTop: 24, gap: 18 }}>
-            <View className="flex-row items-center justify-between">
-              <View>
-                <Text style={{ ...DesignTokens.typography.title2, color: DesignTokens.colors.graphite }}>
-                  Payment
-                </Text>
-                <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
-                  {lesson.studentName} • {formatTime(lesson.startTime)}
-                </Text>
-              </View>
-              <Pressable
-                onPress={() => setPaymentPanelVisible(false)}
-                style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Ionicons name="close" size={24} color={DesignTokens.colors.graphite} />
-              </Pressable>
-            </View>
-
-            <PaymentRequestPanel
-              instruction={instruction}
-              message={paymentStatus === 'REMINDER_SENT' ? reminderMessage : requestMessage}
-              canSendReminder={canSendPaymentReminder(paymentStatus)}
-              onRequestPayment={() => {
-                requestLessonPayment(lesson.id);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              }}
-              onSendReminder={() => {
-                sendLessonPaymentReminder(lesson.id);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              }}
-              onMarkPaid={() => {
-                onMarkPaid();
-                setPaymentPanelVisible(false);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              }}
-              onCancelPayment={() => {
-                cancelLessonPayment(lesson.id);
-                setPaymentPanelVisible(false);
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              }}
-            />
-          </View>
-        </ScrollView>
-      </Modal>
+      <LessonPaymentSheet
+        lessonId={paymentPanelVisible ? lesson.id : null}
+        onClose={() => setPaymentPanelVisible(false)}
+      />
     </>
   );
 });
