@@ -149,6 +149,11 @@ export function suggestPrice(args: {
   return Math.round((durationMinutes / 60) * pricePerHour);
 }
 
+// Lessons are stored as same-day start and end times, so one that would run past midnight is not allowed.
+export function endsBeforeMidnight(startTime: string, durationMinutes: number): boolean {
+  return toMinutes(startTime) + durationMinutes <= 24 * 60 - 1;
+}
+
 // The same weekday and time for `occurrences` weeks in a row, starting on `date`.
 export function buildWeeklyDates(date: string, occurrences: number): string[] {
   const start = new Date(`${date}T12:00:00`); // midday so daylight-saving shifts never change the day

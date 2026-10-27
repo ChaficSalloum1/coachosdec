@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   buildWeeklyDates,
+  endsBeforeMidnight,
   findConflicts,
   formatTime12,
   getRecentStudents,
@@ -189,6 +190,17 @@ describe('formatTime12', () => {
     expect(formatTime12('18:00')).toBe('6:00 PM');
     expect(formatTime12('00:15')).toBe('12:15 AM');
     expect(formatTime12('12:00')).toBe('12:00 PM');
+  });
+});
+
+describe('endsBeforeMidnight', () => {
+  it('rejects lessons that would run past midnight', () => {
+    expect(endsBeforeMidnight('22:00', 60)).toBe(true);
+    expect(endsBeforeMidnight('22:59', 60)).toBe(true);
+    expect(endsBeforeMidnight('23:00', 60)).toBe(false);
+    expect(endsBeforeMidnight('23:29', 30)).toBe(true);
+    expect(endsBeforeMidnight('23:30', 30)).toBe(false); // ends exactly at midnight
+    expect(endsBeforeMidnight('23:30', 45)).toBe(false);
   });
 });
 

@@ -1468,7 +1468,8 @@ export const useCoachStore = create<CoachState>()(
 // Utility function
 function addMinutesToTime(time: string, minutes: number): string {
   const [hours, mins] = time.split(':').map(Number);
-  const totalMinutes = hours * 60 + mins + minutes;
+  // Never run past 23:59: "24:30" is not a valid time and the database rejects it.
+  const totalMinutes = Math.min(hours * 60 + mins + minutes, 24 * 60 - 1);
   const newHours = Math.floor(totalMinutes / 60);
   const newMins = totalMinutes % 60;
   return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;

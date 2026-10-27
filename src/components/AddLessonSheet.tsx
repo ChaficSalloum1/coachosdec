@@ -24,6 +24,7 @@ import { useCurrency } from '../hooks/useCurrency';
 import { DEFAULT_GROUP_CAPACITY, MAX_GROUP_CAPACITY, MIN_GROUP_CAPACITY } from '../utils/groupLessons';
 import {
   buildWeeklyDates,
+  endsBeforeMidnight,
   findConflicts,
   formatTime12,
   getRecentStudents,
@@ -260,6 +261,10 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   const handleSave = () => {
     setError('');
     if (!canSave || !startTime) return;
+    if (!endsBeforeMidnight(startTime, duration)) {
+      setError('That lesson would run past midnight. Pick an earlier time or a shorter length.');
+      return;
+    }
     const location = courtLocation(courtId);
     const student = students.find((s) => s.id === selectedIds[0]);
     if (!isGroup && !student) return;
