@@ -15,7 +15,9 @@ import { useTranslation } from 'react-i18next';
 
 import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
-import { Coach } from '../types/coach';
+import { Coach, Lesson } from '../types/coach';
+import { useCurrency } from '../hooks/useCurrency';
+import { summarizeIncome } from '../utils/income';
 import { exportData } from '../utils/dataExport';
 import { useNavigation } from '@react-navigation/native';
 import { BookingLinkCard } from '../components/BookingLinkCard';
@@ -190,6 +192,11 @@ export function SettingsScreen() {
               <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.6)" />
             </Pressable>
           )}
+
+          {/* Earnings */}
+          <Section title="Earnings">
+            <EarningsCard lessons={lessons} />
+          </Section>
 
           {/* Quick Access — on-court essentials first */}
           <Section title={t('availability')}>
@@ -756,6 +763,32 @@ function PaymentSettings({ coach, onUpdate }: PaymentSettingsProps) {
 
 interface AvailabilityCardProps {
   coach: Coach;
+}
+
+function EarningsCard({ lessons }: { lessons: Lesson[] }) {
+  const { formatMoney: money } = useCurrency();
+  const income = React.useMemo(() => summarizeIncome(lessons), [lessons]);
+  const rows: { label: string; value: typeof income.week }[] = [
+    { label: 'This week', value: income.week },
+    { label: 'This month', value: income.month },
+  ];
+
+  return (
+    <View className="bg-gray-50 rounded-xl p-4" style={{ gap: 14 }}>
+      {rows.map(({ label, value }) => (
+        <View key={label}>
+          <View className="flex-row items-baseline justify-between">
+            <Text className="text-sm" style={{ color: '#42526E' }}>{label}</Text>
+            <Text className="text-xl font-semibold" style={{ color: '#0B1220' }}>{money(value.paid)}</Text>
+          </View>
+          <Text className="text-sm mt-1" style={{ color: '#42526E' }}>
+            {value.lessons} {value.lessons === 1 ? 'lesson' : 'lessons'}
+            {value.outstanding > 0 ? ` · ${money(value.outstanding)} still to be paid` : ''}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
 }
 
 function AvailabilityCard({ coach: _coach }: AvailabilityCardProps) {
