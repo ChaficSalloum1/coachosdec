@@ -5,6 +5,7 @@ import {
   applyRecordAttemptFailure,
   applyRemove,
   applyRemoveForEntity,
+  overlayPendingMutations,
   summarizeSyncQueue,
   type PendingMutation,
 } from './offlineQueueLogic';
@@ -132,5 +133,59 @@ describe('summarizeSyncQueue', () => {
     expect(status.pending).toBe(3);
     expect(status.stuck).toBe(1);
     expect(status.lastError).toBe('column "series_id" does not exist');
+  });
+});
+
+describe('overlayPendingMutations', () => {
+  const mutation = (over: Partial<PendingMutation>): PendingMutation =>
+    ({ id: Math.random().toString(), kind: 'lesson', operation: 'upsert', entityId: 'x', createdAt: '', attempts: 0, ...over }) as PendingMutation;
+
+  const loaded = [
+    { id: 'a', note: 'server a' },
+    { id: 'b', note: 'server b' },
+  ];
+
+  it('adds queued new rows and replaces rows that were edited offline', () => {
+    const result = overlayPendingMutations(
+      loaded,
+      [
+        mutation({ entityId: 'c', payload: { id: 'c', note: 'new offline' } }),
+        mutation({ entityId: 'a', payload: { id: 'a', note: 'edited offline' } }),
+      ],
+      'lesson'
+    );
+    expect(result).toEqual([
+      { id: 'c', note: 'new offline' },
+      { id: 'a', note: 'edited offline' },
+      { id: 'b', note: 'server b' },
+    ]);
+  });
+
+  it('removes rows that were deleted offline and ignores other kinds', () => {
+    const result = overlayPendingMutations(
+      loaded,
+      [
+        mutation({ entityId: 'b', operation: 'delete' }),
+        mutation({ kind: 'student', entityId: 'a', operation: 'delete' }),
+      ],
+      'lesson'
+    );
+    expect(result).toEqual([{ id: 'a', note: 'server a' }]);
+  });
+
+  it('leaves the loaded rows untouched when nothing is queued', () => {
+    expect(overlayPendingMutations(loaded, [], 'lesson')).toBe(loaded);
+  });
+
+  it('applies several queued changes to one row in order (latest wins)', () => {
+    const result = overlayPendingMutations(
+      loaded,
+      [
+        mutation({ entityId: 'a', payload: { id: 'a', note: 'first' } }),
+        mutation({ entityId: 'a', payload: { id: 'a', note: 'second' } }),
+      ],
+      'lesson'
+    );
+    expect(result.find((r) => r.id === 'a')?.note).toBe('second');
   });
 });

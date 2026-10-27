@@ -94,3 +94,28 @@ export function summarizeSyncQueue(queue: PendingMutation[]): SyncStatus {
     lastError: stuck.length > 0 ? stuck[stuck.length - 1].lastError : undefined,
   };
 }
+
+// After loading a fresh copy from the server, put back changes that are still
+// waiting in the outbox: queued upserts replace/add the row, queued deletes
+// remove it. Without this a launch would make unsynced work vanish from the
+// screen until the queue next drains.
+export function overlayPendingMutations<T extends { id: string }>(
+  loaded: T[],
+  queue: PendingMutation[],
+  kind: MutationKind
+): T[] {
+  let result = loaded;
+  for (const mutation of queue) {
+    if (mutation.kind !== kind) continue;
+    if (mutation.operation === 'delete') {
+      result = result.filter((row) => row.id !== mutation.entityId);
+    } else if (mutation.payload) {
+      const payload = mutation.payload as T;
+      const exists = result.some((row) => row.id === mutation.entityId);
+      result = exists
+        ? result.map((row) => (row.id === mutation.entityId ? payload : row))
+        : [payload, ...result];
+    }
+  }
+  return result;
+}

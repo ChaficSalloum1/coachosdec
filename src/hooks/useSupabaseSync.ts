@@ -4,6 +4,7 @@ This runs in the background and keeps your data synced
 */
 import { useEffect, useRef, useState } from "react";
 import { useCoachStore } from "../state/coachStore";
+import { overlayPendingMutations } from "../state/offlineQueueLogic";
 import { useOfflineQueueStore, type MutationKind } from "../state/offlineQueueStore";
 import { isSupabaseConfigured } from "../utils/supabaseConfig";
 import { getSupabaseClient } from "../api/supabase";
@@ -47,6 +48,30 @@ interface SyncState {
 }
 
 type SaveResult = { success: boolean; error?: string; conflict?: boolean };
+
+const EMPTY_SYNC_STATE: SyncState = {
+  students: [],
+  lessons: [],
+  bookingRequests: [],
+  studentNotes: [],
+  areas: [],
+  facilities: [],
+  courts: [],
+  availabilityRanges: [],
+  blackoutDates: [],
+};
+
+const snapshotSyncState = (state: SyncState): SyncState => ({
+  students: state.students,
+  lessons: state.lessons,
+  bookingRequests: state.bookingRequests,
+  studentNotes: state.studentNotes,
+  areas: state.areas,
+  facilities: state.facilities,
+  courts: state.courts,
+  availabilityRanges: state.availabilityRanges,
+  blackoutDates: state.blackoutDates,
+});
 
 // Saves a single entity live; on failure (network down, request error, or a
 // thrown exception) it queues the write in the offline outbox instead of
@@ -113,6 +138,10 @@ export const useSupabaseSync = () => {
   const isDemoMode = useCoachStore((state) => state.isDemoMode);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const loadedCoachIdRef = useRef<string | null>(null);
+  // What the server is known to hold. Change detection compares against this,
+  // so data just loaded from the server is never mistaken for new local work
+  // and re-uploaded.
+  const syncedStateRef = useRef<SyncState | null>(null);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
 
   const supabaseReady = isSupabaseConfigured();
@@ -170,18 +199,22 @@ export const useSupabaseSync = () => {
         console.log("🔄 Loading data from Supabase...");
         const data = await loadCoachDataFromSupabase(coachId);
 
-        // Update store with loaded data
+        // Update store with loaded data, keeping changes still waiting in the
+        // offline outbox (they upload on the next retry, so must stay visible).
+        const pending = useOfflineQueueStore.getState().queue;
         useCoachStore.setState({
-          students: data.students,
-          lessons: data.lessons,
-          bookingRequests: data.bookingRequests,
-          studentNotes: data.studentNotes,
-          areas: data.areas,
-          facilities: data.facilities,
-          courts: data.courts,
-          availabilityRanges: data.availabilityRanges,
-          blackoutDates: data.blackoutDates,
+          students: overlayPendingMutations(data.students, pending, "student"),
+          lessons: overlayPendingMutations(data.lessons, pending, "lesson"),
+          bookingRequests: overlayPendingMutations(data.bookingRequests, pending, "bookingRequest"),
+          studentNotes: overlayPendingMutations(data.studentNotes, pending, "studentNote"),
+          areas: overlayPendingMutations(data.areas, pending, "area"),
+          facilities: overlayPendingMutations(data.facilities, pending, "facility"),
+          courts: overlayPendingMutations(data.courts, pending, "court"),
+          availabilityRanges: overlayPendingMutations(data.availabilityRanges, pending, "availabilityRange"),
+          blackoutDates: overlayPendingMutations(data.blackoutDates, pending, "blackoutDate"),
         });
+        // From here on only changes made after this point are uploaded.
+        syncedStateRef.current = snapshotSyncState(useCoachStore.getState());
 
         // Update coach if it exists in database
         if (data.coach) {
@@ -281,39 +314,26 @@ export const useSupabaseSync = () => {
 
     if (!isSupabaseConfigured()) return;
 
-    // Keep track of previous state for comparison
-    let prevState: SyncState = {
-      students: [],
-      lessons: [],
-      bookingRequests: [],
-      studentNotes: [],
-      areas: [],
-      facilities: [],
-      courts: [],
-      availabilityRanges: [],
-      blackoutDates: [],
-    };
+    // Compare against what the server is known to hold: whatever was last
+    // loaded or uploaded. If nothing has been loaded yet the baseline is empty,
+    // so everything local is uploaded (safe: writes are upserts). It must never
+    // start from the current local state, or rows created locally before sync
+    // starts (a new coach's default court, say) would never reach the server.
+    let prevState: SyncState = syncedStateRef.current ?? EMPTY_SYNC_STATE;
 
     const unsubscribe = useCoachStore.subscribe(
-      (state) => {
-        const newState: SyncState = {
-          students: state.students,
-          lessons: state.lessons,
-          bookingRequests: state.bookingRequests,
-          studentNotes: state.studentNotes,
-          areas: state.areas,
-          facilities: state.facilities,
-          courts: state.courts,
-          availabilityRanges: state.availabilityRanges,
-          blackoutDates: state.blackoutDates,
-        };
-
+      () => {
         // Debounce sync operations
         if (syncTimeoutRef.current) {
           clearTimeout(syncTimeoutRef.current);
         }
 
         syncTimeoutRef.current = setTimeout(async () => {
+          // Read the live state when the timer fires (not when it was set) and
+          // re-read the baseline, which a server load may have just replaced.
+          const newState = snapshotSyncState(useCoachStore.getState());
+          prevState = syncedStateRef.current ?? prevState;
+
           // Each entity type is synced independently - syncUpsert/syncDelete
           // never throw, so one entity type failing (e.g. offline) can't
           // block the rest of the batch, and the failure is queued for
@@ -491,6 +511,7 @@ export const useSupabaseSync = () => {
 
             // Update prevState for next comparison
             prevState = newState;
+            syncedStateRef.current = newState;
           } catch (error) {
             console.error("Error syncing to Supabase:", error);
           }
@@ -503,6 +524,8 @@ export const useSupabaseSync = () => {
       if (syncTimeoutRef.current) {
         clearTimeout(syncTimeoutRef.current);
       }
+      // A different coach (or demo mode) must not inherit this one's baseline.
+      syncedStateRef.current = null;
     };
   }, [coach?.id, isDemoMode]);
 
