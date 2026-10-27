@@ -21,7 +21,7 @@ import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { DesignTokens } from '../utils/designTokens';
 import { useCurrency } from '../hooks/useCurrency';
-import { DEFAULT_GROUP_CAPACITY, MAX_GROUP_CAPACITY, MIN_GROUP_CAPACITY } from '../utils/groupLessons';
+import { GROUPS, SCHEDULING } from '../config/appSettings';
 import {
   buildWeeklyDates,
   endsBeforeMidnight,
@@ -40,13 +40,11 @@ interface AddLessonSheetProps {
   onClose: () => void;
 }
 
-const DURATIONS = [30, 45, 60, 90, 120];
-const REPEAT_OPTIONS = [4, 8, 12]; // lessons in total, one per week
 const durationLabel = (minutes: number) => (minutes >= 120 ? `${minutes / 60}h` : `${minutes}m`);
 
 function buildDatePills() {
   const today = new Date();
-  return Array.from({ length: 14 }, (_, i) => {
+  return Array.from({ length: SCHEDULING.datePillDays }, (_, i) => {
     const d = addDays(today, i);
     return { iso: format(d, 'yyyy-MM-dd'), label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(d, 'EEE d') };
   });
@@ -69,7 +67,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   } = useCoachStore();
 
   const [isGroup, setIsGroup] = useState(false);
-  const [capacity, setCapacity] = useState(DEFAULT_GROUP_CAPACITY);
+  const [capacity, setCapacity] = useState<number>(GROUPS.defaultCapacity);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [showNewStudent, setShowNewStudent] = useState(false);
@@ -79,14 +77,14 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [startTime, setStartTime] = useState<string | null>(null); // HH:mm
   const [showTimeWheel, setShowTimeWheel] = useState(false);
-  const [duration, setDuration] = useState(60);
+  const [duration, setDuration] = useState<number>(SCHEDULING.defaultLessonMinutes);
   const [durationEdited, setDurationEdited] = useState(false);
   const [price, setPrice] = useState('');
   const [priceEdited, setPriceEdited] = useState(false);
   const [courtId, setCourtId] = useState<string | null>(null);
   const [showCourts, setShowCourts] = useState(false);
   const [repeat, setRepeat] = useState(false);
-  const [repeatCount, setRepeatCount] = useState(8);
+  const [repeatCount, setRepeatCount] = useState<number>(SCHEDULING.defaultRepeatWeeks);
   const [error, setError] = useState('');
 
   const pricePerHour = coach?.pricePerHour ?? 0;
@@ -100,7 +98,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
       .sort((a, b) => `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`))[0]?.courtId;
 
     setIsGroup(false);
-    setCapacity(DEFAULT_GROUP_CAPACITY);
+    setCapacity(GROUPS.defaultCapacity);
     setSelectedIds([]);
     setSearch('');
     setShowNewStudent(false);
@@ -117,7 +115,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
     setCourtId(courts.some((c) => c.id === lastCourt) ? (lastCourt as string) : courts[0]?.id ?? null);
     setShowCourts(false);
     setRepeat(false);
-    setRepeatCount(8);
+    setRepeatCount(SCHEDULING.defaultRepeatWeeks);
     setError('');
   }, [visible]);
 
@@ -143,7 +141,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
   const conflicts = startTime ? findConflicts({ date, startTime, durationMinutes: duration, lessons }) : [];
 
-  const recent = useMemo(() => getRecentStudents(lessons, students, 6), [lessons, students]);
+  const recent = useMemo(() => getRecentStudents(lessons, students, SCHEDULING.recentStudentsShown), [lessons, students]);
   const searching = search.trim().length > 0;
   const shownStudents = useMemo(() => {
     const base = searching
@@ -194,7 +192,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
   };
 
   const changeCapacity = (next: number) => {
-    const clamped = Math.min(MAX_GROUP_CAPACITY, Math.max(MIN_GROUP_CAPACITY, next));
+    const clamped = Math.min(GROUPS.maxCapacity, Math.max(GROUPS.minCapacity, next));
     setCapacity(clamped);
     setSelectedIds((prev) => prev.slice(0, clamped));
     setError('');
@@ -405,11 +403,11 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 <View style={{ paddingHorizontal: 20, paddingTop: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                   <Text style={{ ...DesignTokens.typography.body, color: DesignTokens.colors.graphite }}>Max players</Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                    <RoundButton icon="remove" label="Fewer players" disabled={capacity <= MIN_GROUP_CAPACITY} onPress={() => changeCapacity(capacity - 1)} />
+                    <RoundButton icon="remove" label="Fewer players" disabled={capacity <= GROUPS.minCapacity} onPress={() => changeCapacity(capacity - 1)} />
                     <Text style={{ ...DesignTokens.typography.title3, color: DesignTokens.colors.graphite, minWidth: 24, textAlign: 'center' }}>
                       {capacity}
                     </Text>
-                    <RoundButton icon="add" label="More players" disabled={capacity >= MAX_GROUP_CAPACITY} onPress={() => changeCapacity(capacity + 1)} />
+                    <RoundButton icon="add" label="More players" disabled={capacity >= GROUPS.maxCapacity} onPress={() => changeCapacity(capacity + 1)} />
                   </View>
                 </View>
               )}
@@ -433,7 +431,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                       ))}
                       <Chip label="+ New" onPress={() => { setShowNewStudent(true); setError(''); }} />
                     </View>
-                    {students.length > 6 && (
+                    {students.length > SCHEDULING.searchStudentsAfter && (
                       <View style={{ marginTop: 10 }}>
                         <Field value={search} onChangeText={setSearch} placeholder="Search all students" />
                       </View>
@@ -507,7 +505,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
                 </View>
                 {repeat && (
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-                    {REPEAT_OPTIONS.map((n) => (
+                    {SCHEDULING.repeatWeeklyOptions.map((n) => (
                       <View key={n} style={{ flex: 1 }}>
                         <Chip label={`${n} weeks`} selected={repeatCount === n} onPress={() => setRepeatCount(n)} fill />
                       </View>
@@ -525,7 +523,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
               <Label>Length</Label>
               <View style={{ paddingHorizontal: 20, flexDirection: 'row', gap: 8 }}>
-                {DURATIONS.map((m) => (
+                {SCHEDULING.lessonLengthOptions.map((m) => (
                   <View key={m} style={{ flex: 1 }}>
                     <Chip label={durationLabel(m)} selected={duration === m} onPress={() => chooseDuration(m)} fill />
                   </View>

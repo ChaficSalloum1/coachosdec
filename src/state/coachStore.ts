@@ -8,11 +8,11 @@ import { createDemoWorkspace } from '../utils/demoWorkspace';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
 import { useOfflineQueueStore } from './offlineQueueStore';
 import {
-  DEFAULT_GROUP_CAPACITY,
   buildGroupLessons,
   buildGroupMemberLesson,
   summarizeGroup,
 } from '../utils/groupLessons';
+import { GROUPS } from '../config/appSettings';
 import { futureSeriesLessons } from '../utils/lessonSeries';
 import {
   cancelPaymentStatus,
@@ -530,7 +530,7 @@ export const useCoachStore = create<CoachState>()(
             endTime: addMinutesToTime(params.startTime, params.duration),
             duration: params.duration,
             pricePerPlayer: params.pricePerPlayer,
-            capacity: params.capacity ?? DEFAULT_GROUP_CAPACITY,
+            capacity: params.capacity ?? GROUPS.defaultCapacity,
             areaId: params.areaId,
             facilityId: params.facilityId,
             courtId: params.courtId,

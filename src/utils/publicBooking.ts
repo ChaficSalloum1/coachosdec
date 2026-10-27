@@ -5,6 +5,7 @@ builds the shareable booking URL. Pure so the web page and the app share it.
 */
 import { addDays, format } from 'date-fns';
 
+import { PUBLIC_BOOKING } from '../config/appSettings';
 import { suggestFreeStartTimes } from './lessonScheduling';
 import type { AvailabilityRange, Lesson } from '../types/coach';
 
@@ -23,9 +24,6 @@ export interface BookableDay {
   times: string[]; // HH:mm
 }
 
-export const PUBLIC_BOOKING_DAYS = 14;
-export const PUBLIC_BOOKING_DURATION_MINUTES = 60;
-
 const toHHMM = (time: string | null): string => (time ?? '').slice(0, 5);
 
 export function buildBookableDays(args: {
@@ -35,8 +33,8 @@ export function buildBookableDays(args: {
   durationMinutes?: number;
 }): BookableDay[] {
   const now = args.now ?? new Date();
-  const days = args.days ?? PUBLIC_BOOKING_DAYS;
-  const durationMinutes = args.durationMinutes ?? PUBLIC_BOOKING_DURATION_MINUTES;
+  const days = args.days ?? PUBLIC_BOOKING.windowDays;
+  const durationMinutes = args.durationMinutes ?? PUBLIC_BOOKING.lessonMinutes;
 
   const availabilityRanges = args.rows
     .filter((r) => r.kind === 'availability' && r.day_of_week !== null)
@@ -78,7 +76,7 @@ export function buildBookableDays(args: {
       blackoutDates,
       lessons,
       now,
-      limit: 48,
+      limit: PUBLIC_BOOKING.maxSlotsShownPerDay,
     });
     if (times.length === 0) continue;
     result.push({ date, label: i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : format(day, 'EEE d MMM'), times });

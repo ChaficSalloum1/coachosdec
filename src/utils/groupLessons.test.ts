@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DEFAULT_GROUP_CAPACITY,
   buildDayItems,
   buildGroupLessons,
   buildGroupMemberLesson,
@@ -11,6 +10,7 @@ import {
   validateGroupCapacity,
   type GroupLessonTemplate,
 } from './groupLessons';
+import { GROUPS } from '../config/appSettings';
 import type { Lesson } from '../types/coach';
 
 const template: GroupLessonTemplate = {
@@ -111,7 +111,7 @@ describe('summarizeGroup', () => {
 
   it('falls back to the default capacity for lessons without one', () => {
     const lesson = { ...makeGroup([ana])[0], groupCapacity: undefined };
-    expect(summarizeGroup([lesson], 'g1')!.capacity).toBe(DEFAULT_GROUP_CAPACITY);
+    expect(summarizeGroup([lesson], 'g1')!.capacity).toBe(GROUPS.defaultCapacity);
   });
 });
 

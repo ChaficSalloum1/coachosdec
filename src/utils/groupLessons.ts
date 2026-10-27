@@ -4,11 +4,8 @@ Lesson (own price, payment status, notes, totals); lessons that share a
 groupId are the same session. This module is the pure logic: summarising
 groups and building/validating the lessons. The store wires it to state.
 */
+import { GROUPS } from '../config/appSettings';
 import type { Lesson } from '../types/coach';
-
-export const DEFAULT_GROUP_CAPACITY = 4; // padel is almost always doubles
-export const MIN_GROUP_CAPACITY = 2;
-export const MAX_GROUP_CAPACITY = 12;
 
 export interface LessonGroup {
   groupId: string;
@@ -34,7 +31,7 @@ function toGroup(groupId: string, members: Lesson[]): LessonGroup | null {
   if (lessons.length === 0) return null;
 
   const first = lessons[0];
-  const capacity = Math.max(first.groupCapacity ?? DEFAULT_GROUP_CAPACITY, lessons.length);
+  const capacity = Math.max(first.groupCapacity ?? GROUPS.defaultCapacity, lessons.length);
   const spotsLeft = capacity - lessons.length;
 
   return {
@@ -114,9 +111,9 @@ export function checkCanAddToGroup(group: LessonGroup, studentId: string): AddTo
 }
 
 export function validateGroupCapacity(capacity: number): void {
-  if (!Number.isInteger(capacity) || capacity < MIN_GROUP_CAPACITY || capacity > MAX_GROUP_CAPACITY) {
+  if (!Number.isInteger(capacity) || capacity < GROUPS.minCapacity || capacity > GROUPS.maxCapacity) {
     throw new Error(
-      `A group needs between ${MIN_GROUP_CAPACITY} and ${MAX_GROUP_CAPACITY} players.`
+      `A group needs between ${GROUPS.minCapacity} and ${GROUPS.maxCapacity} players.`
     );
   }
 }

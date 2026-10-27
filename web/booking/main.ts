@@ -3,9 +3,9 @@ Public student booking page. Reads a coach's open times through the
 get_public_booking_* RPCs and sends a request with submit_public_booking_request.
 Opened at /book/<booking-link>. No accounts, no framework.
 */
+import { PUBLIC_BOOKING } from '../../src/config/appSettings';
 import {
   buildBookableDays,
-  PUBLIC_BOOKING_DURATION_MINUTES,
   type BookableDay,
   type PublicAvailabilityRow,
 } from '../../src/utils/publicBooking';
@@ -80,15 +80,15 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
   const form = el('div', {});
   form.hidden = true;
 
-  const name = el('input', { type: 'text', placeholder: 'Your name', autocomplete: 'name', maxLength: 80 });
+  const name = el('input', { type: 'text', placeholder: 'Your name', autocomplete: 'name', maxLength: PUBLIC_BOOKING.maxNameLength });
   const contact = el('input', {
     type: 'text',
     placeholder: 'Phone or email',
     autocomplete: 'email',
     inputMode: 'email',
-    maxLength: 120,
+    maxLength: PUBLIC_BOOKING.maxContactLength,
   });
-  const note = el('textarea', { placeholder: 'Anything your coach should know? (optional)', maxLength: 500 });
+  const note = el('textarea', { placeholder: 'Anything your coach should know? (optional)', maxLength: PUBLIC_BOOKING.maxNoteLength });
   const error = el('p', { class: 'error' });
   error.hidden = true;
   const submit = el('button', { class: 'primary', type: 'button' }, 'Request lesson');
@@ -155,7 +155,7 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
           student_contact: studentContact,
           requested_date: selectedDate,
           requested_time: selectedTime,
-          duration: PUBLIC_BOOKING_DURATION_MINUTES,
+          duration: PUBLIC_BOOKING.lessonMinutes,
           note: note.value.trim(),
         },
       });
@@ -194,7 +194,7 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
     el('p', { class: 'muted' }, sports || 'Pick a time and send a request.'),
     el('h2', {}, 'Day'),
     dayRow,
-    el('h2', {}, `Time (${PUBLIC_BOOKING_DURATION_MINUTES} min)`),
+    el('h2', {}, `Time (${PUBLIC_BOOKING.lessonMinutes} min)`),
     timeGrid,
     form
   );

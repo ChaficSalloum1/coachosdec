@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { UI_TIMING } from '../config/appSettings';
 import { ToastMessage, useToastStore } from '../state/toastStore';
 
-const VISIBLE_MS = 3000;
 // Matches the bottom tab bar height in TabNavigator (60 + safe area).
 const TAB_BAR_HEIGHT = 60;
 
@@ -32,7 +32,7 @@ export function ToastHost() {
     setShown(toast);
     opacity.setValue(0);
     Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
-    const timer = setTimeout(() => dismiss(toast.id), VISIBLE_MS);
+    const timer = setTimeout(() => dismiss(toast.id), UI_TIMING.toastVisibleMs);
     return () => clearTimeout(timer);
   }, [toast, dismiss, opacity]);
 

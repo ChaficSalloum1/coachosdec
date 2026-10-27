@@ -8,6 +8,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Coach } from '../types/coach';
+import { UI_TIMING } from '../config/appSettings';
 import { buildBookingUrl } from '../utils/publicBooking';
 
 interface BookingLinkCardProps {
@@ -39,7 +40,7 @@ export function BookingLinkCard({ coach }: BookingLinkCardProps) {
     await Clipboard.setStringAsync(bookingUrl);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => setCopied(false), UI_TIMING.copiedFlashMs);
   };
 
   // The page is not hosted yet: say so rather than handing out a dead link.

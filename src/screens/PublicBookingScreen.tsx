@@ -12,11 +12,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { addDays, format } from 'date-fns';
 
+import { PUBLIC_BOOKING } from '../config/appSettings';
 import { Coach, BookingRequest, TimeSlot, AvailabilityRange, Lesson } from '../types/coach';
 
-const MAX_STUDENT_NAME_LENGTH = 80;
-const MAX_CONTACT_LENGTH = 120;
-const MAX_NOTE_LENGTH = 500;
 
 interface PublicBookingScreenProps {
   coach: Coach;
@@ -73,17 +71,17 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
       return;
     }
 
-    if (studentName.trim().length > MAX_STUDENT_NAME_LENGTH) {
+    if (studentName.trim().length > PUBLIC_BOOKING.maxNameLength) {
       Alert.alert('Invalid Name', 'Please keep the name under 80 characters.');
       return;
     }
 
-    if (studentContact.trim().length > MAX_CONTACT_LENGTH) {
+    if (studentContact.trim().length > PUBLIC_BOOKING.maxContactLength) {
       Alert.alert('Invalid Contact', 'Please keep the contact under 120 characters.');
       return;
     }
 
-    if (note.trim().length > MAX_NOTE_LENGTH) {
+    if (note.trim().length > PUBLIC_BOOKING.maxNoteLength) {
       Alert.alert('Note Too Long', 'Please keep the note under 500 characters.');
       return;
     }
@@ -97,7 +95,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
         studentContact: studentContact.trim(),
         requestedDate: selectedDate,
         requestedTime: selectedTime,
-        duration: 60, // Default 1 hour
+        duration: PUBLIC_BOOKING.lessonMinutes,
         note: note.trim() || undefined,
         areaId: selectedSlot?.areaId,
         facilityId: selectedSlot?.facilityId,
@@ -225,7 +223,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 onChangeText={setStudentName}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="John Smith"
-                maxLength={MAX_STUDENT_NAME_LENGTH}
+                maxLength={PUBLIC_BOOKING.maxNameLength}
                 style={{ color: '#0B1220' }}
               />
             </View>
@@ -239,7 +237,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 onChangeText={setStudentContact}
                 className="bg-gray-50 rounded-lg px-3 py-3 text-base border border-gray-200"
                 placeholder="john@email.com or (555) 123-4567"
-                maxLength={MAX_CONTACT_LENGTH}
+                maxLength={PUBLIC_BOOKING.maxContactLength}
                 style={{ color: '#0B1220' }}
               />
             </View>
@@ -269,7 +267,7 @@ export function PublicBookingScreen({ coach, availabilityRanges, blackoutDates, 
                 placeholder="Any specific requests or goals..."
                 multiline
                 numberOfLines={3}
-                maxLength={MAX_NOTE_LENGTH}
+                maxLength={PUBLIC_BOOKING.maxNoteLength}
                 style={{ color: '#0B1220', textAlignVertical: 'top' }}
               />
             </View>

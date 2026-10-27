@@ -5,6 +5,7 @@ Pure functions so the sheet itself stays thin.
 */
 import { addWeeks, format } from 'date-fns';
 
+import { SCHEDULING } from '../config/appSettings';
 import type { AvailabilityRange, Lesson, Student } from '../types/coach';
 
 const toMinutes = (hhmm: string): number => {
@@ -28,9 +29,6 @@ const overlaps = (startA: number, endA: number, startB: number, endB: number) =>
 const localDateString = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-// Used only when a coach hasn't set up any availability yet.
-const FALLBACK_WINDOW = { start: '08:00', end: '21:00' };
-
 export function suggestFreeStartTimes(args: {
   date: string; // yyyy-MM-dd
   durationMinutes: number;
@@ -42,8 +40,8 @@ export function suggestFreeStartTimes(args: {
   limit?: number;
 }): string[] {
   const { date, durationMinutes, availabilityRanges, blackoutDates, lessons } = args;
-  const step = args.stepMinutes ?? 30;
-  const limit = args.limit ?? 8;
+  const step = args.stepMinutes ?? SCHEDULING.slotStepMinutes;
+  const limit = args.limit ?? SCHEDULING.suggestedTimesLimit;
   const now = args.now ?? new Date();
 
   if (blackoutDates.some((b) => b.date === date)) return [];
@@ -52,7 +50,7 @@ export function suggestFreeStartTimes(args: {
   let windows: { start: number; end: number }[];
 
   if (availabilityRanges.length === 0) {
-    windows = [{ start: toMinutes(FALLBACK_WINDOW.start), end: toMinutes(FALLBACK_WINDOW.end) }];
+    windows = [{ start: toMinutes(SCHEDULING.fallbackDayWindow.start), end: toMinutes(SCHEDULING.fallbackDayWindow.end) }];
   } else {
     windows = availabilityRanges
       .filter((r) => r.dayOfWeek === weekday)
@@ -123,13 +121,11 @@ export function getRecentStudents(lessons: Lesson[], students: Student[], limit 
 const latestFirst = (a: Lesson, b: Lesson) =>
   `${b.date} ${b.startTime}`.localeCompare(`${a.date} ${a.startTime}`);
 
-export const DEFAULT_DURATION_MINUTES = 60;
-
 // The length this student usually books, else the coach's most recent, else an hour.
 export function suggestDuration(lessons: Lesson[], studentId?: string): number {
   const active = lessons.filter(isActive).sort(latestFirst);
   const forStudent = studentId ? active.find((l) => l.studentId === studentId) : undefined;
-  return (forStudent ?? active[0])?.duration ?? DEFAULT_DURATION_MINUTES;
+  return (forStudent ?? active[0])?.duration ?? SCHEDULING.defaultLessonMinutes;
 }
 
 // What this student paid last time for the same length, else the coach's hourly rate scaled.

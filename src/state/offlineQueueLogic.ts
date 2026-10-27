@@ -3,6 +3,7 @@ Pure queue transitions for the offline mutation outbox, kept separate from
 the Zustand/AsyncStorage wiring in offlineQueueStore.ts so they're testable
 without touching native storage.
 */
+import { SYNC } from '../config/appSettings';
 
 export type MutationKind =
   | 'coach'
@@ -77,8 +78,6 @@ export function applyRecordAttemptFailure(
   return queue.map((m) => (m.id === id ? { ...m, attempts: m.attempts + 1, lastError: error } : m));
 }
 
-export const STUCK_AFTER_ATTEMPTS = 3;
-
 export interface SyncStatus {
   pending: number; // changes saved on this phone but not yet in the cloud
   stuck: number; // of those, the ones that have failed several times (not just offline)
@@ -87,7 +86,7 @@ export interface SyncStatus {
 
 // What the coach should be told about unsynced changes. Pure so it is tested.
 export function summarizeSyncQueue(queue: PendingMutation[]): SyncStatus {
-  const stuck = queue.filter((m) => m.attempts >= STUCK_AFTER_ATTEMPTS);
+  const stuck = queue.filter((m) => m.attempts >= SYNC.stuckAfterAttempts);
   return {
     pending: queue.length,
     stuck: stuck.length,

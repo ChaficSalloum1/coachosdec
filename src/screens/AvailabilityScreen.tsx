@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { v4 as uuidv4 } from 'uuid';
 
 import { useCoachStore } from '../state/coachStore';
+import { UI_TIMING } from '../config/appSettings';
 import { showToast } from '../state/toastStore';
 import { AvailabilityRange, BlackoutDate } from '../types/coach';
 import { RangeEditorModal, BlackoutCalendarModal, PreviewModal } from '../components/AvailabilityModals';
@@ -113,7 +114,7 @@ export function AvailabilityScreen() {
 
     const timeout = setTimeout(() => {
       setUndoAction(null);
-    }, 3000);
+    }, UI_TIMING.undoWindowMs);
 
     setUndoAction({
       action: () => {

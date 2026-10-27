@@ -4,6 +4,7 @@ This runs in the background and keeps your data synced
 */
 import { useEffect, useRef, useState } from "react";
 import { useCoachStore } from "../state/coachStore";
+import { SYNC } from "../config/appSettings";
 import { overlayPendingMutations } from "../state/offlineQueueLogic";
 import { useOfflineQueueStore, type MutationKind } from "../state/offlineQueueStore";
 import { isSupabaseConfigured } from "../utils/supabaseConfig";
@@ -515,7 +516,7 @@ export const useSupabaseSync = () => {
           } catch (error) {
             console.error("Error syncing to Supabase:", error);
           }
-        }, 2000); // Wait 2 seconds before syncing to batch changes
+        }, SYNC.debounceMs);
       }
     );
 

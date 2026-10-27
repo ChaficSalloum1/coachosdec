@@ -9,6 +9,7 @@ import { useEffect, useRef } from "react";
 import NetInfo from "@react-native-community/netinfo";
 import { useCoachStore } from "../state/coachStore";
 import { useOfflineQueueStore, type PendingMutation } from "../state/offlineQueueStore";
+import { SYNC } from "../config/appSettings";
 import { isSupabaseConfigured } from "../utils/supabaseConfig";
 import {
   saveCoachToSupabase,
@@ -68,8 +69,6 @@ async function replay(mutation: PendingMutation): Promise<ReplayResult> {
   }
 }
 
-const RETRY_INTERVAL_MS = 30_000;
-
 /**
  * Call once at the app root, alongside useSupabaseSync().
  */
@@ -115,7 +114,7 @@ export const useOfflineQueueProcessor = () => {
     // Drain whatever survived from a previous session, then keep retrying.
     processQueue();
 
-    const intervalId = setInterval(processQueue, RETRY_INTERVAL_MS);
+    const intervalId = setInterval(processQueue, SYNC.retryIntervalMs);
     const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       if (state.isConnected) {
         processQueue();

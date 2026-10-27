@@ -30,6 +30,7 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { DAY_PAGER } from '../config/appSettings';
 import { showToast } from '../state/toastStore';
 import { buildBookingUrl } from '../utils/publicBooking';
 import { futureSeriesLessons, laterSeriesCount } from '../utils/lessonSeries';
@@ -71,8 +72,8 @@ import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
 import { PaymentStatusBadge } from '../components/payments/PaymentStatusBadge';
 import { normalizePaymentStatus } from '../modules/payments';
 
-const PAGE_WINDOW_SIZE = 61; // ±30 days from today
-const CENTER_PAGE_INDEX = 30; // Today's index
+const PAGE_WINDOW_SIZE: number = DAY_PAGER.windowSize;
+const CENTER_PAGE_INDEX: number = DAY_PAGER.centerIndex;
 
 export function TodayScreen() {
   const insets = useSafeAreaInsets();

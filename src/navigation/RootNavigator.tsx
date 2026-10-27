@@ -7,6 +7,7 @@ import { TabNavigator } from './TabNavigator';
 import { LoginScreen } from '../screens/LoginScreen';
 import { getSession, onAuthStateChange } from '../services/authService';
 import { useCoachStore } from '../state/coachStore';
+import { UI_TIMING } from '../config/appSettings';
 import { isSupabaseConfigured } from '../utils/supabaseConfig';
 
 export type RootStackParamList = {
@@ -65,7 +66,7 @@ export function RootNavigator() {
       if (mounted) {
         setSession(null);
       }
-    }, 3000);
+    }, UI_TIMING.authStartupTimeoutMs);
 
     initSubscriptions();
 
