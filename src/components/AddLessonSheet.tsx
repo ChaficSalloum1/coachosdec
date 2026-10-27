@@ -21,12 +21,12 @@ import { useCoachStore } from '../state/coachStore';
 import { showToast } from '../state/toastStore';
 import { DesignTokens } from '../utils/designTokens';
 import { useCurrency } from '../hooks/useCurrency';
+import { formatTime12Hour } from '../utils/timeFormat';
 import { GROUPS, SCHEDULING } from '../config/appSettings';
 import {
   buildWeeklyDates,
   endsBeforeMidnight,
   findConflicts,
-  formatTime12,
   getRecentStudents,
   planWeeklyLessons,
   suggestDuration,
@@ -342,7 +342,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
       : isGroup
         ? `${selectedIds.length} player${selectedIds.length > 1 ? 's' : ''}`
         : students.find((s) => s.id === selectedIds[0])?.name,
-    startTime ? formatTime12(startTime) : null,
+    startTime ? formatTime12Hour(startTime) : null,
     durationLabel(duration),
     isNaN(priceNumber) ? null : `${formatMoney(priceNumber)}${isGroup ? ' each' : ''}`,
     repeat ? `weekly x${repeatCount}` : null,
@@ -463,7 +463,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
               <View style={{ paddingHorizontal: 20, paddingTop: 12 }}>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                   {timeOptions.map((t) => (
-                    <Chip key={t} label={formatTime12(t)} selected={startTime === t} onPress={() => { setStartTime(t); setError(''); }} />
+                    <Chip key={t} label={formatTime12Hour(t)} selected={startTime === t} onPress={() => { setStartTime(t); setError(''); }} />
                   ))}
                   <Chip label="Other time" onPress={() => setShowTimeWheel((v) => !v)} />
                 </View>
@@ -516,7 +516,7 @@ export function AddLessonSheet({ visible, defaultDate, onClose }: AddLessonSheet
 
               {conflicts.length > 0 && (
                 <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.warning, paddingHorizontal: 20, paddingTop: 10 }}>
-                  Overlaps with {conflicts[0].groupId ? 'a group lesson' : conflicts[0].studentName} at {formatTime12(conflicts[0].startTime)}
+                  Overlaps with {conflicts[0].groupId ? 'a group lesson' : conflicts[0].studentName} at {formatTime12Hour(conflicts[0].startTime)}
                   {conflicts.length > 1 ? ` and ${conflicts.length - 1} more` : ''}.
                 </Text>
               )}

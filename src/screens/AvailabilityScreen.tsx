@@ -27,6 +27,7 @@ import { UI_TIMING } from '../config/appSettings';
 import { showToast } from '../state/toastStore';
 import { AvailabilityRange, BlackoutDate } from '../types/coach';
 import { RangeEditorModal, BlackoutCalendarModal, PreviewModal } from '../components/AvailabilityModals';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const DAYS = [
   { name: 'Sun', value: 0 },
@@ -475,14 +476,6 @@ function RangeCard({ range, onEdit, onDelete, formatLocationText }: RangeCardPro
 
   const combinedGesture = Gesture.Simultaneous(panGesture, tapGesture);
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
   return (
     <GestureDetector gesture={combinedGesture}>
       <Animated.View style={animatedStyle}>
@@ -490,7 +483,7 @@ function RangeCard({ range, onEdit, onDelete, formatLocationText }: RangeCardPro
           <View className="flex-row justify-between items-start">
             <View className="flex-1">
               <Text className="text-lg font-semibold mb-1" style={{ color: '#0B1220' }}>
-                {formatTime(range.startTime)} - {formatTime(range.endTime)}
+                {formatTime12Hour(range.startTime)} - {formatTime12Hour(range.endTime)}
               </Text>
               <Text className="text-sm" style={{ color: '#42526E' }}>
                 {formatLocationText(range.areaId, range.facilityId, range.courtId)}

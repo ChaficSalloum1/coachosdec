@@ -8,14 +8,9 @@ import { DesignTokens } from '../utils/designTokens';
 import { getTimeOfDayColor } from '../utils/dayNav';
 import { useCurrency } from '../hooks/useCurrency';
 import type { LessonGroup } from '../utils/groupLessons';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const MAX_AVATARS = 4;
-
-const formatTime = (time: string) => {
-  const [hours, minutes] = time.split(':');
-  const hour = parseInt(hours);
-  return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
-};
 
 interface GroupLessonCardProps {
   group: LessonGroup;
@@ -77,7 +72,7 @@ export function GroupLessonCard({ group, onPress }: GroupLessonCardProps) {
               }}
               numberOfLines={1}
             >
-              {formatTime(group.startTime)} • Group {group.lessons.length}/{group.capacity}
+              {formatTime12Hour(group.startTime)} • Group {group.lessons.length}/{group.capacity}
             </Text>
             <Text
               style={{

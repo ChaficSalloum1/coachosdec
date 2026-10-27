@@ -71,6 +71,7 @@ import { DesignTokens } from '../utils/designTokens';
 import { LessonPaymentSheet } from '../components/payments/LessonPaymentSheet';
 import { PaymentStatusBadge } from '../components/payments/PaymentStatusBadge';
 import { normalizePaymentStatus } from '../modules/payments';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const PAGE_WINDOW_SIZE: number = DAY_PAGER.windowSize;
 const CENTER_PAGE_INDEX: number = DAY_PAGER.centerIndex;
@@ -701,13 +702,6 @@ function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
     : 0;
   const heroTitle = groupPlayers > 0 ? `Group · ${groupPlayers} player${groupPlayers === 1 ? '' : 's'}` : nextLesson.studentName;
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    return `${hour % 12 || 12}:${minutes} ${ampm}`;
-  };
-
   const minutesUntil = () => {
     const [nh, nm] = nowTime.split(':').map(Number);
     const [lh, lm] = nextLesson.startTime.split(':').map(Number);
@@ -763,7 +757,7 @@ function NextLessonHero({ lessons }: { lessons: Lesson[] }) {
             {heroTitle}
           </Text>
           <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey }}>
-            {formatTime(nextLesson.startTime)} – {formatTime(nextLesson.endTime)}
+            {formatTime12Hour(nextLesson.startTime)} – {formatTime12Hour(nextLesson.endTime)}
           </Text>
         </View>
       </View>
@@ -1011,14 +1005,6 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSeries, o
     Alert.alert(`${lesson.studentName}`, `${lesson.startTime} - ${lesson.endTime}`, actions);
   };
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
   const locationText = formatLocationText(lesson.areaId, lesson.facilityId, lesson.courtId);
   const timeColor = getTimeOfDayColor(lesson.startTime);
   const paymentStatus = normalizePaymentStatus(lesson.paymentStatus, lesson.isPaid);
@@ -1060,7 +1046,7 @@ const LessonCard = React.memo(({ lesson, onMarkPaid, onCancel, onCancelSeries, o
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {formatTime(lesson.startTime)} • {lesson.studentName}
+                {formatTime12Hour(lesson.startTime)} • {lesson.studentName}
               </Text>
               <Text
                 style={{

@@ -16,11 +16,6 @@ const toMinutes = (hhmm: string): number => {
 const toHHMM = (minutes: number): string =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 
-export const formatTime12 = (hhmm: string): string => {
-  const [h, m] = hhmm.split(':').map(Number);
-  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
-};
-
 const isActive = (lesson: Lesson) => lesson.status !== 'cancelled';
 
 const overlaps = (startA: number, endA: number, startB: number, endB: number) =>

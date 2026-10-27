@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addMinutesToTime, normalizeClockTime } from './timeFormat';
+import { addMinutesToTime, formatTime12Hour, normalizeClockTime } from './timeFormat';
 
 describe('addMinutesToTime', () => {
   it('adds minutes within the day', () => {
@@ -30,5 +30,14 @@ describe('normalizeClockTime', () => {
     expect(normalizeClockTime(undefined)).toBeUndefined();
     expect(normalizeClockTime(null)).toBeNull();
     expect(normalizeClockTime('tomorrow')).toBe('tomorrow');
+  });
+});
+
+describe('formatTime12Hour', () => {
+  it('formats 24-hour times for display', () => {
+    expect(formatTime12Hour('09:30')).toBe('9:30 AM');
+    expect(formatTime12Hour('18:00')).toBe('6:00 PM');
+    expect(formatTime12Hour('00:15')).toBe('12:15 AM');
+    expect(formatTime12Hour('12:00')).toBe('12:00 PM');
   });
 });

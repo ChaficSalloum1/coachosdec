@@ -16,12 +16,7 @@ import {
 } from '../../modules/payments';
 import { useCoachStore } from '../../state/coachStore';
 import { DesignTokens } from '../../utils/designTokens';
-
-const formatTime = (time: string) => {
-  const [hours, minutes] = time.split(':');
-  const hour = parseInt(hours);
-  return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
-};
+import { formatTime12Hour } from '../../utils/timeFormat';
 
 interface LessonPaymentSheetProps {
   lessonId: string | null; // null = closed
@@ -57,7 +52,7 @@ export function LessonPaymentSheet({ lessonId, onClose }: LessonPaymentSheetProp
     coachName: coach?.name ?? 'your coach',
     clientName: lesson.studentName,
     sessionTitle: 'lesson',
-    startsAt: `${lesson.date} at ${formatTime(lesson.startTime)}`,
+    startsAt: `${lesson.date} at ${formatTime12Hour(lesson.startTime)}`,
     amountCents: eurosToCents(lesson.price),
     currency: paymentSettings.currency,
     paymentInstructions: instruction.displayText,
@@ -81,7 +76,7 @@ export function LessonPaymentSheet({ lessonId, onClose }: LessonPaymentSheetProp
             <View>
               <Text style={{ ...DesignTokens.typography.title2, color: DesignTokens.colors.graphite }}>Payment</Text>
               <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
-                {lesson.studentName} • {formatTime(lesson.startTime)}
+                {lesson.studentName} • {formatTime12Hour(lesson.startTime)}
               </Text>
             </View>
             <Pressable

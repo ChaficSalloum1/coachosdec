@@ -4,7 +4,6 @@ import {
   buildWeeklyDates,
   endsBeforeMidnight,
   findConflicts,
-  formatTime12,
   getRecentStudents,
   planWeeklyLessons,
   suggestDuration,
@@ -181,15 +180,6 @@ describe('suggestDuration and suggestPrice', () => {
     expect(suggestPrice({ lessons, studentId: 's1', durationMinutes: 90, pricePerHour: 40 })).toBe(55);
     expect(suggestPrice({ lessons, studentId: 's1', durationMinutes: 60, pricePerHour: 40 })).toBe(40);
     expect(suggestPrice({ lessons, studentId: undefined, durationMinutes: 30, pricePerHour: 50 })).toBe(25);
-  });
-});
-
-describe('formatTime12', () => {
-  it('formats 24-hour times for chips', () => {
-    expect(formatTime12('09:30')).toBe('9:30 AM');
-    expect(formatTime12('18:00')).toBe('6:00 PM');
-    expect(formatTime12('00:15')).toBe('12:15 AM');
-    expect(formatTime12('12:00')).toBe('12:00 PM');
   });
 });
 

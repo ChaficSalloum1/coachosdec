@@ -9,7 +9,7 @@ import {
   type BookableDay,
   type PublicAvailabilityRow,
 } from '../../src/utils/publicBooking';
-import { formatTime12 } from '../../src/utils/lessonScheduling';
+import { formatTime12Hour } from '../../src/utils/timeFormat';
 
 declare const __SUPABASE_URL__: string;
 declare const __SUPABASE_KEY__: string;
@@ -114,7 +114,7 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
     const day = days.find((d) => d.date === selectedDate) as BookableDay;
     timeGrid.replaceChildren(
       ...day.times.map((time) => {
-        const chip = el('button', { class: 'chip', type: 'button' }, formatTime12(time));
+        const chip = el('button', { class: 'chip', type: 'button' }, formatTime12Hour(time));
         chip.setAttribute('aria-pressed', String(time === selectedTime));
         chip.onclick = () => {
           selectedTime = time;
@@ -169,7 +169,7 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
           el(
             'p',
             { class: 'muted' },
-            `${coach.name} will confirm your lesson ${whenPhrase(day.label)} at ${formatTime12(selectedTime)} by message.`
+            `${coach.name} will confirm your lesson ${whenPhrase(day.label)} at ${formatTime12Hour(selectedTime)} by message.`
           )
         )
       );

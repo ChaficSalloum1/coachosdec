@@ -14,12 +14,7 @@ import { DesignTokens } from '../utils/designTokens';
 import { summarizeGroup } from '../utils/groupLessons';
 import { laterSeriesCount } from '../utils/lessonSeries';
 import { useCurrency } from '../hooks/useCurrency';
-
-const formatTime = (time: string) => {
-  const [hours, minutes] = time.split(':');
-  const hour = parseInt(hours);
-  return `${hour % 12 || 12}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
-};
+import { formatTime12Hour } from '../utils/timeFormat';
 
 const errorMessage = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong.');
 
@@ -133,7 +128,7 @@ export function GroupLessonSheet({ groupId, onClose }: GroupLessonSheetProps) {
               Group lesson
             </Text>
             <Text style={{ ...DesignTokens.typography.footnote, color: DesignTokens.colors.grey, marginTop: 2 }}>
-              {group.date} • {formatTime(group.startTime)} – {formatTime(group.endTime)}
+              {group.date} • {formatTime12Hour(group.startTime)} – {formatTime12Hour(group.endTime)}
               {locationText ? ` • ${locationText}` : ''}
             </Text>
           </View>

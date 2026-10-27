@@ -15,6 +15,7 @@ import { showToast } from '../state/toastStore';
 import { addDays, addMonths, subMonths, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 
 import { AvailabilityRange, BlackoutDate, Area, Facility, Court } from '../types/coach';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 interface RangeEditorModalProps {
   visible: boolean;
@@ -571,14 +572,6 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
     }
   };
 
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
-  };
-
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View className="flex-1 bg-white">
@@ -622,7 +615,7 @@ export function PreviewModal({ visible, onClose, slots, formatLocationText }: Pr
                           >
                             <Ionicons name="time-outline" size={16} color="#42526E" />
                             <Text className="text-base font-medium ml-2" style={{ color: '#0B1220' }}>
-                              {formatTime(slot.time)}
+                              {formatTime12Hour(slot.time)}
                             </Text>
                             <Text className="text-sm ml-2" style={{ color: '#42526E' }}>
                               • {formatLocationText(slot.range.areaId, slot.range.facilityId, slot.range.courtId)}

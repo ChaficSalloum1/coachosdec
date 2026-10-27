@@ -15,6 +15,7 @@ import { BookingRequest } from '../types/coach';
 import { SwipeableCard } from '../components/SwipeableCard';
 import { SkeletonRow } from '../components/Skeleton';
 import { DesignTokens } from '../utils/designTokens';
+import { formatTime12Hour } from '../utils/timeFormat';
 
 export function RequestsScreen() {
   const insets = useSafeAreaInsets();
@@ -235,7 +236,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
   const showRequestDetails = () => {
     Alert.alert(
       request.studentName,
-      `${formatDate(request.requestedDate)} at ${formatTime(request.requestedTime)}\n${request.duration} minutes\n\nContact: ${request.studentContact}\n${request.note ? `\nNote: ${request.note}` : ''}`,
+      `${formatDate(request.requestedDate)} at ${formatTime12Hour(request.requestedTime)}\n${request.duration} minutes\n\nContact: ${request.studentContact}\n${request.note ? `\nNote: ${request.note}` : ''}`,
       [
         {
           text: 'Approve',
@@ -259,14 +260,6 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
         },
       ]
     );
-  };
-
-  const formatTime = (time: string) => {
-    const [hours, minutes] = time.split(':');
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minutes} ${ampm}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -370,7 +363,7 @@ function RequestCard({ request, onApprove, onDecline, isApproving }: RequestCard
               marginTop: DesignTokens.spacing.xs
             }}
           >
-            {formatDate(request.requestedDate)} • {formatTime(request.requestedTime)}
+            {formatDate(request.requestedDate)} • {formatTime12Hour(request.requestedTime)}
           </Text>
           <Text
             style={{
