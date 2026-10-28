@@ -38,6 +38,17 @@
         "EXPO_PUBLIC_VIBECODE_SUPABASE_ANON_KEY": "sb_publishable_uQU2-4BxtnrNwRdK722daA_FpRez2uE",
         "EXPO_PUBLIC_BOOKING_BASE_URL": "https://coachos-booking.pages.dev/book"
       }
+    },
+    "simulator": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "buildType": "apk"
+      }
     }
   },
   "submit": {
