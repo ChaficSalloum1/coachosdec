@@ -10,7 +10,7 @@ export const booking = {
   yourName: 'Your Name *',
   namePlaceholder: 'John Smith',
   contactLabel: 'Contact (Email or Phone) *',
-  contactPlaceholder: 'john@email.com or (555) 123-4567',
+  contactPlaceholder: 'john@email.com or 07700 900123',
   selectedTime: 'Selected Time',
   slotAt: '{{date}} at {{time}}',
   noteOptional: 'Note (Optional)',

@@ -3,7 +3,7 @@ export const onboarding = {
   title: 'Set up your coaching profile',
   intro: 'Start with the essentials. Payments, availability, locations, and booking link can all be finished later in Settings.',
   displayName: 'Display name',
-  namePlaceholder: 'Nikos Papadakis',
+  namePlaceholder: 'Marcus Bennett',
   sportsYouCoach: 'Sports you coach',
   sportsHint: 'Choose one or more. You can change this later.',
   startingPrice: 'Starting hourly price',
