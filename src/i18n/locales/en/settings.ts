@@ -64,7 +64,7 @@ export const settings = {
     'This permanently deletes your account, students, lessons and notes. It cannot be undone. Export your data first if you want a copy.',
   deleteForever: 'Delete forever',
   deleteFailed: 'Could not delete account',
-  demoNotice: 'You are exploring sample data locally. Nothing is synced to Supabase.',
+  demoNotice: 'You are exploring sample data. Nothing you do here is saved to an account.',
   upgradeToPro: 'Upgrade to CoachOS Pro',
   mustBeLoggedIn: 'You must be logged in to create a coach profile',
   // Payment settings card

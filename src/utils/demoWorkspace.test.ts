@@ -6,13 +6,42 @@ describe('demo workspace', () => {
   it('loads a professional coach workspace with payment settings', () => {
     const demo = createDemoWorkspace();
 
-    expect(demo.coach.name).toBe('Nikos Papadakis');
-    expect(demo.coach.sports).toEqual(['Tennis', 'Padel']);
+    expect(demo.coach.name).toBe('Marcus Bennett');
+    expect(demo.coach.sports).toEqual(['Padel', 'Tennis']);
     expect(demo.coach.paymentSettings.paymentPreference).toBe('MULTIPLE');
     expect(demo.coach.paymentSettings.revolutLink).toContain('revolut.me');
-    expect(demo.coach.paymentSettings.irisAlias).toBe('@nikoscoach');
-    expect(demo.coach.paymentSettings.iban).toMatch(/^GR/);
     expect(demo.coach.paymentSettings.cancellationPolicy).toContain('24 hours');
+  });
+
+  it('is a London coach: pounds, London areas and UK contact details', () => {
+    const demo = createDemoWorkspace();
+
+    expect(demo.coach.paymentSettings.currency).toBe('GBP');
+    expect(demo.areas.map(area => area.name)).toEqual(['North London', 'South West London', 'East London']);
+    expect(demo.facilities.every(facility => /London [A-Z]{1,2}\d/.test(facility.address ?? ''))).toBe(true);
+    const phones = [...demo.students.map(s => s.contact), ...demo.bookingRequests.map(r => r.studentContact)].filter(c => !c.includes('@'));
+    expect(phones.length).toBeGreaterThan(0);
+    expect(phones.every(phone => phone.startsWith('+44 7700 900'))).toBe(true); // numbers Ofcom reserves for drama use
+  });
+
+  it('shows each student with a real history and the right balance', () => {
+    const demo = createDemoWorkspace();
+    const byName = Object.fromEntries(demo.students.map(student => [student.name, student]));
+
+    expect(byName['Amelia Clarke'].totalLessons).toBe(3);
+    expect(byName['Chloe Evans'].totalLessons).toBe(4);
+    expect(byName['Tom Hargreaves'].totalLessons).toBe(1); // his rained-off lesson is cancelled, not counted
+    expect(byName['Raj Patel'].balance).toBe(70); // today's lesson, payment requested
+    expect(byName['Chloe Evans'].balance).toBe(105); // tomorrow's 90 minutes, reminder sent
+    expect(byName['Chloe Evans'].lastLessonDate! < demo.lessons.find(l => l.status === 'scheduled' && l.studentName === 'Chloe Evans')!.date).toBe(true);
+  });
+
+  it('prices every lesson from the coach hourly rate', () => {
+    const demo = createDemoWorkspace();
+
+    for (const lesson of demo.lessons) {
+      expect(lesson.price).toBe((demo.coach.pricePerHour * lesson.duration) / 60);
+    }
   });
 
   it('includes meaningful records for the primary demo screens', () => {

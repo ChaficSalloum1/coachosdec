@@ -393,7 +393,7 @@ function StudentCard({ student, onOpenNotes, notesCount }: StudentCardProps) {
     const today = new Date();
     const diffInDays = Math.floor((today.getTime() - lastLesson.getTime()) / (1000 * 60 * 60 * 24));
     
-    if (diffInDays === 0) return t('common.today');
+    if (diffInDays <= 0) return t('common.today'); // a date in the future is never "-1 days ago"
     if (diffInDays === 1) return t('students.yesterday');
     if (diffInDays < 7) return t('students.daysAgo', { count: diffInDays });
     if (diffInDays < 30) return t('students.weeksAgo', { count: Math.floor(diffInDays / 7) });
