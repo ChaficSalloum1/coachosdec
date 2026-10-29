@@ -38,7 +38,7 @@
         "expo-calendar",
         {
           "calendarPermission": "CoachOS needs access to your calendar to sync approved lessons with your device calendar.",
-          "remindersPermission": false
+          "remindersPermission": "CoachOS does not use your reminders. This text is only here because the calendar component requires it to be declared."
         }
       ],
       "@react-native-community/datetimepicker",
