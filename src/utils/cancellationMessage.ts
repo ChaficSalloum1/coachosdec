@@ -10,7 +10,7 @@ import type { Lesson, Student } from '../types/coach';
 
 const PHONE_PATTERN = /^[\d\s+\-()]{7,}$/;
 
-const shortDate = (date: string) => formatLocalized(new Date(`${date}T12:00:00`), 'EEE d MMM');
+export const shortDate = (date: string) => formatLocalized(new Date(`${date}T12:00:00`), 'EEE d MMM');
 
 export function buildCancellationMessage(params: {
   studentName: string;

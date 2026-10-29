@@ -10,6 +10,7 @@ import {
   type PublicAvailabilityRow,
 } from '../../src/utils/publicBooking';
 import { formatClockTime } from '../../src/utils/timeFormat';
+import { formatMoney, resolveCurrency } from '../../src/modules/payments/currency';
 import { setLanguage, t } from '../../src/i18n';
 import { sportsLabel } from '../../src/constants/sports';
 
@@ -20,6 +21,8 @@ interface CoachProfile {
   id: string;
   name: string;
   sports: string[] | null;
+  price_per_hour: number | string | null;
+  currency: string | null;
   booking_link: string;
 }
 
@@ -96,6 +99,8 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
     maxLength: PUBLIC_BOOKING.maxContactLength,
   });
   const note = el('textarea', { placeholder: t('webBooking.notePlaceholder'), maxLength: PUBLIC_BOOKING.maxNoteLength });
+  const place = el('p', { class: 'muted' });
+  place.hidden = true;
   const error = el('p', { class: 'error' });
   error.hidden = true;
   const submit = el('button', { class: 'primary', type: 'button' }, t('webBooking.requestLesson'));
@@ -125,6 +130,9 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
         chip.setAttribute('aria-pressed', String(time === selectedTime));
         chip.onclick = () => {
           selectedTime = time;
+          const where = day.places[time]?.name;
+          place.textContent = where ? t('webBooking.where', { place: where }) : '';
+          place.hidden = !where;
           form.hidden = false;
           renderTimes();
           name.focus({ preventScroll: true });
@@ -134,6 +142,8 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
       })
     );
   }
+
+  const pickedPlace = () => (days.find((d) => d.date === selectedDate) as BookableDay).places[selectedTime];
 
   function fail(message: string) {
     error.textContent = message;
@@ -163,6 +173,9 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
           requested_date: selectedDate,
           requested_time: selectedTime,
           duration: PUBLIC_BOOKING.lessonMinutes,
+          area_id: pickedPlace().areaId,
+          facility_id: pickedPlace().facilityId,
+          court_id: pickedPlace().courtId,
           note: note.value.trim(),
         },
       });
@@ -177,7 +190,9 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
             'p',
             { class: 'muted' },
             t('webBooking.willConfirm', { coach: coach.name, when: whenPhrase(day.label), time: formatClockTime(selectedTime) })
-          )
+          ),
+          ...(pickedPlace().name ? [el('p', { class: 'muted' }, t('webBooking.where', { place: pickedPlace().name as string }))] : []),
+          el('p', { class: 'muted' }, t('webBooking.nextSteps', { coach: coach.name }))
         )
       );
     } catch (e) {
@@ -190,12 +205,21 @@ function renderBooking(coach: CoachProfile, days: BookableDay[]) {
     }
   };
 
-  form.append(el('h2', {}, t('webBooking.yourDetails')), name, contact, note, error, submit);
+  form.append(el('h2', {}, t('webBooking.yourDetails')), place, name, contact, note, error, submit);
 
   const sports = sportsLabel(coach.sports ?? [], ' · ');
+  const hourly = Number(coach.price_per_hour);
+  const priceLine =
+    hourly > 0
+      ? t('webBooking.priceAndLength', {
+          price: formatMoney((hourly * PUBLIC_BOOKING.lessonMinutes) / 60, resolveCurrency(coach.currency)),
+          minutes: PUBLIC_BOOKING.lessonMinutes,
+        })
+      : '';
   show(
     el('h1', {}, t('webBooking.bookWith', { name: coach.name })),
     el('p', { class: 'muted' }, sports || t('webBooking.pickTime')),
+    ...(priceLine ? [el('p', { class: 'muted' }, priceLine)] : []),
     el('h2', {}, t('webBooking.day')),
     dayRow,
     el('h2', {}, t('webBooking.time', { minutes: PUBLIC_BOOKING.lessonMinutes })),

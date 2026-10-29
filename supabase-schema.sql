@@ -583,25 +583,34 @@ CREATE POLICY "blackout_dates_own_data" ON blackout_dates
 CREATE POLICY "rate_limits_own_data" ON booking_rate_limits
   FOR SELECT USING (auth.uid() = coach_id);
 
-CREATE OR REPLACE FUNCTION get_public_booking_profile(p_booking_link TEXT)
+DROP FUNCTION IF EXISTS get_public_booking_profile(TEXT);
+CREATE FUNCTION get_public_booking_profile(p_booking_link TEXT)
 RETURNS TABLE (
   id UUID,
   name TEXT,
   sports TEXT[],
   price_per_hour DECIMAL,
+  currency TEXT,
   booking_link TEXT
 )
 LANGUAGE sql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT c.id, c.name, c.sports, c.price_per_hour, c.booking_link
+  SELECT
+    c.id,
+    c.name,
+    c.sports,
+    c.price_per_hour,
+    COALESCE(NULLIF(c.payment_settings->>'currency', ''), 'EUR'),
+    c.booking_link
   FROM coaches c
   WHERE c.booking_link = p_booking_link
     AND c.deleted_at IS NULL;
 $$;
 
-CREATE OR REPLACE FUNCTION get_public_booking_availability(p_coach_id UUID)
+DROP FUNCTION IF EXISTS get_public_booking_availability(UUID);
+CREATE FUNCTION get_public_booking_availability(p_coach_id UUID)
 RETURNS TABLE (
   kind TEXT,
   id UUID,
@@ -611,7 +620,8 @@ RETURNS TABLE (
   end_time TIME,
   area_id UUID,
   facility_id UUID,
-  court_id UUID
+  court_id UUID,
+  place_name TEXT
 )
 LANGUAGE sql
 SECURITY DEFINER
@@ -626,8 +636,11 @@ AS $$
     ar.end_time,
     ar.area_id,
     ar.facility_id,
-    ar.court_id
+    ar.court_id,
+    COALESCE(f.name, a.name)
   FROM availability_ranges ar
+  LEFT JOIN facilities f ON f.id = ar.facility_id AND f.deleted_at IS NULL
+  LEFT JOIN areas a ON a.id = ar.area_id AND a.deleted_at IS NULL
   WHERE ar.coach_id = p_coach_id
     AND ar.deleted_at IS NULL
   UNION ALL
@@ -640,7 +653,8 @@ AS $$
     l.end_time,
     l.area_id,
     l.facility_id,
-    l.court_id
+    l.court_id,
+    NULL::TEXT
   FROM lessons l
   WHERE l.coach_id = p_coach_id
     AND l.status <> 'cancelled'
@@ -655,7 +669,8 @@ AS $$
     NULL::TIME,
     NULL::UUID,
     NULL::UUID,
-    NULL::UUID
+    NULL::UUID,
+    NULL::TEXT
   FROM blackout_dates b
   WHERE b.coach_id = p_coach_id
     AND b.deleted_at IS NULL;

@@ -17,6 +17,8 @@ export const requests: Translation['requests'] = {
   decline: 'Απόρριψη',
   detailsBody: '{{date}}, {{time}}\n{{duration}} λεπτά\n\nΕπικοινωνία: {{contact}}\n{{note}}',
   detailsNote: '\nΣημείωση: {{note}}',
+  approvedTitle: 'Η κράτηση εγκρίθηκε',
+  declinedTitle: 'Το αίτημα απορρίφθηκε',
   swipeApprove: 'Σύρετε δεξιά για έγκριση →',
   swipeDecline: '← Σύρετε αριστερά για απόρριψη',
   approving: 'Έγκριση...',
