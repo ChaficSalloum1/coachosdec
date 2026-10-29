@@ -5,7 +5,7 @@ Handles user authentication, session management, and user profile operations
 import { useCoachStore } from '../state/coachStore';
 import { getSupabaseClient } from "../api/supabase";
 import type { User, Session, AuthError } from "@supabase/supabase-js";
-import { makeAuthError, normalizeAuthError } from './authErrors';
+import { makeAuthError, normalizeAuthError, readableAuthError } from './authErrors';
 import { t } from '../i18n';
 
 const getPasswordResetRedirectUrl = () => {
@@ -97,7 +97,7 @@ export const signUp = async (
     return {
       user: data.user,
       session: data.session,
-      error: error,
+      error: readableAuthError(error),
     };
   } catch (error) {
     return {
@@ -133,7 +133,7 @@ export const signIn = async (
     return {
       user: data.user,
       session: data.session,
-      error: error,
+      error: readableAuthError(error),
     };
   } catch (error) {
     return {

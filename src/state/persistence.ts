@@ -14,10 +14,11 @@ import { withInitialPaymentFields } from '../utils/lessonRecords';
 export const PERSIST_NAME = 'coach-storage';
 export const PERSIST_VERSION = 4;
 
-const slimPaymentSettings = (settings: Coach['paymentSettings']) => ({
-  cashEnabled: settings.cashEnabled,
-  paymentPreference: settings.paymentPreference ?? 'CASH',
-  currency: settings.currency,
+// A coach row can carry empty payment settings (older profiles); never crash the save over it.
+const slimPaymentSettings = (settings: Coach['paymentSettings'] | null | undefined) => ({
+  cashEnabled: settings?.cashEnabled ?? true,
+  paymentPreference: settings?.paymentPreference ?? 'CASH',
+  currency: settings?.currency,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
