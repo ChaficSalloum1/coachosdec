@@ -22,7 +22,26 @@ describe('buildBookableDays', () => {
       days: 3,
       rows: [row({ day_of_week: 1, start_time: '09:00:00', end_time: '11:00:00' })],
     });
-    expect(days).toEqual([{ date: '2026-11-02', label: 'Today', times: ['09:00', '09:30', '10:00'] }]);
+    expect(days).toHaveLength(1);
+    expect(days[0]).toMatchObject({ date: '2026-11-02', label: 'Today', times: ['09:00', '09:30', '10:00'] });
+  });
+
+  it('says where each time takes place, following the coach\'s hours for that part of the day', () => {
+    const days = buildBookableDays({
+      now: NOW,
+      days: 1,
+      rows: [
+        row({ day_of_week: 1, start_time: '09:00:00', end_time: '10:00:00', place_name: 'David Lloyd Club', area_id: 'a1', facility_id: 'f1' }),
+        row({ day_of_week: 1, start_time: '17:00:00', end_time: '19:00:00', place_name: 'North side', area_id: 'a2' }),
+      ],
+    });
+    expect(days[0].places['09:00']).toEqual({ name: 'David Lloyd Club', areaId: 'a1', facilityId: 'f1', courtId: null });
+    expect(days[0].places['17:30']).toEqual({ name: 'North side', areaId: 'a2', facilityId: null, courtId: null });
+  });
+
+  it('has no place name when the hours carry no location', () => {
+    const days = buildBookableDays({ now: NOW, days: 1, rows: [row({ day_of_week: 1, start_time: '09:00:00', end_time: '10:00:00' })] });
+    expect(days[0].places['09:00']).toEqual({ name: null, areaId: null, facilityId: null, courtId: null });
   });
 
   it('removes booked times (cancelled lessons are never sent) and blacked-out days', () => {

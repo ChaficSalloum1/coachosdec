@@ -9,6 +9,16 @@ Requests tab.
 - Link format students open: `https://<your-host>/book/<coach-booking-link>`
 - You do **not** need a custom domain to start: a free `*.pages.dev` address works.
 
+## What students see
+The coach's name and sports, the price of a lesson in the coach's currency, the lesson length, and
+where it takes place (the facility, else the area, from the coach's availability). The place is
+saved with the request, so the lesson the coach approves already has its location. This needs
+`scripts/priority10-booking-page-details.sql` (run it **before** deploying a new page build;
+without it the page works but shows euros and no place).
+
+After approving or declining, the app offers to message the student in one tap
+(SMS for a phone number, email otherwise), in the coach's language.
+
 ## Build and test locally
 
 ```bash

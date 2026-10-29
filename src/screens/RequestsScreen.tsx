@@ -4,6 +4,8 @@ import {
   Text,
   ScrollView,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +18,30 @@ import { SwipeableCard } from '../components/SwipeableCard';
 import { SkeletonRow } from '../components/Skeleton';
 import { DesignTokens } from '../utils/designTokens';
 import { formatClockTime } from '../utils/timeFormat';
+import { buildBookingReply, type BookingDecision } from '../utils/bookingReply';
 import { t } from '../i18n';
+
+// After approving or declining, offer to tell the student in one tap: their
+// messaging app opens with the text already written.
+function offerReply(decision: BookingDecision, request: BookingRequest) {
+  const { coach, formatLocationText } = useCoachStore.getState();
+  const { url } = buildBookingReply({
+    decision,
+    request,
+    coachName: coach?.name,
+    place: formatLocationText(request.areaId, request.facilityId, request.courtId) || undefined,
+    platform: Platform.OS,
+  });
+  if (!url) return;
+  Alert.alert(
+    t(decision === 'approved' ? 'requests.approvedTitle' : 'requests.declinedTitle'),
+    t('today.letKnow', { name: request.studentName.split(' ')[0] }),
+    [
+      { text: t('common.notNow'), style: 'cancel' },
+      { text: t('common.message'), onPress: () => Linking.openURL(url).catch(() => {}) },
+    ]
+  );
+}
 
 export function RequestsScreen() {
   const insets = useSafeAreaInsets();
@@ -48,8 +73,10 @@ export function RequestsScreen() {
   const handleApproveRequest = async (requestId: string) => {
     try {
       setApprovingId(requestId);
+      const approved = bookingRequests.find(r => r.id === requestId);
       await approveBookingRequest(requestId);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (approved) offerReply('approved', approved);
     } catch (error) {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       const errorMessage = error instanceof Error ? error.message : t('requests.approveFallbackError');
@@ -103,7 +130,10 @@ export function RequestsScreen() {
                   key={request.id}
                   request={request}
                   onApprove={() => handleApproveRequest(request.id)}
-                  onDecline={() => declineBookingRequest(request.id)}
+                  onDecline={() => {
+                    declineBookingRequest(request.id);
+                    offerReply('declined', request);
+                  }}
                   isApproving={approvingId === request.id}
                 />
               ))}

@@ -16,6 +16,8 @@ export const requests = {
   decline: 'Decline',
   detailsBody: '{{date}} at {{time}}\n{{duration}} minutes\n\nContact: {{contact}}\n{{note}}',
   detailsNote: '\nNote: {{note}}',
+  approvedTitle: 'Booking approved',
+  declinedTitle: 'Request declined',
   swipeApprove: 'Swipe right to approve →',
   swipeDecline: '← Swipe left to decline',
   approving: 'Approving...',

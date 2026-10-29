@@ -18,15 +18,50 @@ export interface PublicAvailabilityRow {
   date: string | null; // yyyy-MM-dd
   start_time: string | null; // HH:mm:ss
   end_time: string | null;
+  area_id?: string | null;
+  facility_id?: string | null;
+  court_id?: string | null;
+  place_name?: string | null; // facility name, else area name (availability rows only)
+}
+
+// Where a lesson starting at a given time would take place.
+export interface BookablePlace {
+  name: string | null;
+  areaId: string | null;
+  facilityId: string | null;
+  courtId: string | null;
 }
 
 export interface BookableDay {
   date: string; // yyyy-MM-dd
   label: string; // Today, Tomorrow, Mon 2
   times: string[]; // HH:mm
+  places: Record<string, BookablePlace>; // by start time
 }
 
 const toHHMM = (time: string | null): string => (time ?? '').slice(0, 5);
+
+const minutesOf = (hhmm: string): number => {
+  const [hours, minutes] = hhmm.split(':').map(Number);
+  return hours * 60 + minutes;
+};
+
+// The first of the coach's hours that day which covers a lesson starting at `time`.
+function placeFor(ranges: PublicAvailabilityRow[], weekday: number, time: string, durationMinutes: number): BookablePlace {
+  const start = minutesOf(time);
+  const covering = ranges.find(
+    (r) =>
+      r.day_of_week === weekday &&
+      minutesOf(toHHMM(r.start_time)) <= start &&
+      start + durationMinutes <= minutesOf(toHHMM(r.end_time))
+  );
+  return {
+    name: covering?.place_name ?? null,
+    areaId: covering?.area_id ?? null,
+    facilityId: covering?.facility_id ?? null,
+    courtId: covering?.court_id ?? null,
+  };
+}
 
 export function buildBookableDays(args: {
   rows: PublicAvailabilityRow[];
@@ -65,6 +100,7 @@ export function buildBookableDays(args: {
           status: 'scheduled',
         }) as Lesson
     );
+  const placedRanges = args.rows.filter((r) => r.kind === 'availability' && r.day_of_week !== null);
   const blackoutDates = args.rows.filter((r) => r.kind === 'blackout' && r.date).map((r) => ({ date: r.date as string }));
 
   const result: BookableDay[] = [];
@@ -81,7 +117,12 @@ export function buildBookableDays(args: {
       limit: PUBLIC_BOOKING.maxSlotsShownPerDay,
     });
     if (times.length === 0) continue;
-    result.push({ date, label: i === 0 ? t('common.today') : i === 1 ? t('common.tomorrow') : formatLocalized(day, 'EEE d MMM'), times });
+    result.push({
+      date,
+      label: i === 0 ? t('common.today') : i === 1 ? t('common.tomorrow') : formatLocalized(day, 'EEE d MMM'),
+      times,
+      places: Object.fromEntries(times.map((time) => [time, placeFor(placedRanges, day.getDay(), time, durationMinutes)])),
+    });
   }
   return result;
 }
