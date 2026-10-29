@@ -27,6 +27,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { getSupabaseClient } from '../api/supabase';
 import palette from '../theme/palette.json';
+import { currentLanguage } from '../i18n';
 
 const PROJECT_ID =
   Constants.expoConfig?.extra?.eas?.projectId ??
@@ -105,7 +106,7 @@ async function saveTokenToSupabase(token: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
     .from('coach_push_tokens')
-    .upsert({ user_id: user.id, token, platform: Platform.OS });
+    .upsert({ user_id: user.id, token, platform: Platform.OS, language: currentLanguage(), updated_at: new Date().toISOString() });
 
   if (error) {
     console.error('[PushNotifications] Failed to save token', error);
