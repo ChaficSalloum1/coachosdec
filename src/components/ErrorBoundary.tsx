@@ -50,6 +50,18 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     // In production, this can be connected to an error reporting service.
   }
 
+  // Last resort when "Try Again" keeps failing: sign out, wipe what is stored on
+  // the phone (signOut does both) and start again from the sign-in screen.
+  startOver = async (): Promise<void> => {
+    try {
+      const { signOut } = await import('../services/authService');
+      await signOut();
+    } catch {
+      // Nothing more to do; resetting below still gives a fresh start.
+    }
+    this.resetError();
+  };
+
   resetError = (): void => {
     this.setState({
       hasError: false,
@@ -80,6 +92,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </Text>
           </View>
 
+          {!__DEV__ && this.state.error && (
+            <Text className="text-xs text-center mb-6" style={{ color: DesignTokens.colors.text.muted }} selectable>
+              {t('shell.errorDetails', { message: this.state.error.message.slice(0, 200) })}
+            </Text>
+          )}
+
           {__DEV__ && this.state.error && (
             <ScrollView 
               className="bg-gray-50 rounded-xl p-4 mb-6 max-h-64"
@@ -102,6 +120,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           >
             <Text className="text-white text-center font-semibold text-base">
               {t('shell.tryAgain')}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={this.startOver}
+            className="mt-3 rounded-xl py-4 px-6 border border-gray-200 active:bg-gray-50"
+          >
+            <Text className="text-center font-semibold text-base" style={{ color: DesignTokens.colors.text.strong }}>
+              {t('shell.startOver')}
             </Text>
           </Pressable>
 

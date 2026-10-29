@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { normalizeAuthError } from './authErrors';
+import { makeAuthError, normalizeAuthError, readableAuthError } from './authErrors';
 
 describe('authService', () => {
   it('turns JSON parse failures into actionable auth copy', () => {
@@ -8,6 +8,18 @@ describe('authService', () => {
 
     expect(error.message).toContain('Authentication could not read the server response');
     expect(error.message).toContain('Supabase URL');
+  });
+
+  it('replaces an empty or blank server error with a readable message', () => {
+    expect(normalizeAuthError(new Error('{}')).message).toBe('Authentication failed. Please try again.');
+    expect(normalizeAuthError(new Error('  ')).message).toBe('Authentication failed. Please try again.');
+  });
+
+  it('replaces a blank error Supabase returned, and passes real ones through', () => {
+    expect(readableAuthError(makeAuthError('{}'))?.message).toBe('Authentication failed. Please try again.');
+    const real = makeAuthError('Invalid login credentials');
+    expect(readableAuthError(real)).toBe(real);
+    expect(readableAuthError(null)).toBeNull();
   });
 
   it('keeps normal auth errors readable', () => {

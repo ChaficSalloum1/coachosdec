@@ -3,6 +3,8 @@ import type { Translation } from '../en';
 export const shell: Translation['shell'] = {
   errorTitle: 'Κάτι πήγε στραβά',
   errorBody: 'Παρουσιάστηκε μη αναμενόμενο σφάλμα. Μην ανησυχείτε, τα δεδομένα σας είναι ασφαλή.',
+  startOver: 'Αποσύνδεση και νέα αρχή',
+  errorDetails: 'Τι πήγε στραβά: {{message}}',
   tryAgain: 'Δοκιμάστε ξανά',
   errorDevOnly: 'Αυτή η αναλυτική προβολή σφάλματος εμφανίζεται μόνο σε λειτουργία ανάπτυξης',
   demoTitle: 'Δοκιμαστικός χώρος',

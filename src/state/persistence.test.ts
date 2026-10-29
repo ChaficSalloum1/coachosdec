@@ -34,6 +34,11 @@ describe('partializeState', () => {
     expect(saved.availabilityRanges).toEqual([{ id: 'v' }]);
   });
 
+  it('does not crash on a coach with no payment settings', () => {
+    const saved = partializeState({ ...state, coach: { ...coach, paymentSettings: null } } as never, true);
+    expect(saved.coach?.paymentSettings).toEqual({ cashEnabled: true, paymentPreference: 'CASH', currency: undefined });
+  });
+
   it('keeps the coach but drops payment details beyond the basics when the server owns them', () => {
     const saved = partializeState(state as never, true);
     expect(saved.coach?.paymentSettings).toEqual({ cashEnabled: true, paymentPreference: 'CASH', currency: 'GBP' });

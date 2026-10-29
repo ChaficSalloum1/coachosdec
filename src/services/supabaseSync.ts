@@ -90,11 +90,10 @@ export const loadCoachDataFromSupabase = async (
       ? toCamelCase((coachResult as any).data)
       : null;
     
-    if (coachData && coachData.paymentSettings) {
-      coachData.paymentSettings = await decryptPaymentSettings(
-        coachData.paymentSettings
-      );
-      coachData.paymentSettings = normalizePaymentSettings(coachData.paymentSettings);
+    if (coachData) {
+      // Older profiles can have no payment settings at all; fill in the defaults.
+      const stored = coachData.paymentSettings ? await decryptPaymentSettings(coachData.paymentSettings) : undefined;
+      coachData.paymentSettings = normalizePaymentSettings(stored);
     }
 
     const studentsData = await Promise.all(
