@@ -15,6 +15,8 @@ import { ToastHost } from "./src/components/ToastHost";
 import { useCoachStore } from "./src/state/coachStore";
 import { useSupabaseSync } from "./src/hooks/useSupabaseSync";
 import { useOfflineQueueProcessor } from "./src/hooks/useOfflineQueueProcessor";
+import { navigationRef } from "./src/navigation/navigationRef";
+import { useNotificationTaps } from "./src/hooks/useNotificationTaps";
 import { isSupabaseConfigured } from "./src/utils/supabaseConfig";
 
 /*
@@ -42,6 +44,7 @@ void restoreLanguage();
 
 function AppContent() {
   const language = useLanguage();
+  useNotificationTaps();
   const isDemoMode = useCoachStore(s => s.isDemoMode);
 
   useMockData(!isSupabaseConfigured() && !isDemoMode);
@@ -74,7 +77,7 @@ function AppContent() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
       <SafeAreaProvider style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
         <View style={{ flex: 1, backgroundColor: DesignTokens.colors.white }}>
-          <NavigationContainer>
+          <NavigationContainer ref={navigationRef}>
             <StatusBar style="dark" />
             {/* Remounted on a language change so every screen redraws in the new language; navigation state lives in the container and is kept. */}
             <RootNavigator key={language} />
